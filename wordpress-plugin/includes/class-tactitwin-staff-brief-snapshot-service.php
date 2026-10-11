@@ -182,6 +182,14 @@ final class TactiTwin_Staff_Brief_Snapshot_Service {
             return array();
         }
 
+        if ( '' !== $exclude_snapshot_uuid ) {
+            $excluded = $this->snapshot( $exclude_snapshot_uuid );
+            $fixture_key = strtolower( trim( (string) ( $excluded['fixture_key'] ?? '' ) ) );
+            if ( '' !== $fixture_key ) {
+                return $this->latest_for_fixture( $fixture_key, $exclude_snapshot_uuid );
+            }
+        }
+
         $table = TactiTwin_DB::table( 'staff_brief_snapshots' );
         if ( '' !== $exclude_snapshot_uuid ) {
             $row = $wpdb->get_row(
