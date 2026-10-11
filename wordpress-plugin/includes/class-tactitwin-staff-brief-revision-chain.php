@@ -49,6 +49,7 @@ final class TactiTwin_Staff_Brief_Revision_Chain {
             'revision_number' => max( 1, $revision_number ),
             'parent_snapshot_uuid' => $parent_uuid,
             'parent_content_sha256' => $parent_sha256,
+            'approved_snapshot_uuid' => null,
             'approved_content_sha256' => null,
             'reviewed_change_count' => $change_count,
             'reviewed_change_ids' => $change_ids,
@@ -60,6 +61,7 @@ final class TactiTwin_Staff_Brief_Revision_Chain {
             'method' => array(
                 'type' => 'immutable-staff-brief-approval-revision-chain',
                 'reads_existing_version_diff' => true,
+                'bound_to_approved_snapshot_identity' => true,
                 'bound_to_approved_snapshot_content' => true,
                 'creates_change_score' => false,
                 'recalculates_tactical_models' => false,
@@ -74,14 +76,19 @@ final class TactiTwin_Staff_Brief_Revision_Chain {
         return $revision;
     }
 
-    public static function bind_to_content( array $revision, string $content_sha256 ): array {
+    public static function bind_to_snapshot( array $revision, string $snapshot_uuid, string $content_sha256 ): array {
         if ( ! self::verify( $revision ) ) {
-            throw new InvalidArgumentException( 'Approval revision metadata failed integrity verification before content binding.' );
+            throw new InvalidArgumentException( 'Approval revision metadata failed integrity verification before snapshot binding.' );
+        }
+        $snapshot_uuid = self::normalize_uuid( $snapshot_uuid );
+        if ( '' === $snapshot_uuid ) {
+            throw new InvalidArgumentException( 'Approval revision snapshot binding requires a valid snapshot UUID.' );
         }
         $content_sha256 = strtolower( trim( $content_sha256 ) );
         if ( 1 !== preg_match( '/^[a-f0-9]{64}$/', $content_sha256 ) ) {
-            throw new InvalidArgumentException( 'Approval revision content binding requires a valid SHA-256 digest.' );
+            throw new InvalidArgumentException( 'Approval revision snapshot binding requires a valid SHA-256 digest.' );
         }
+        $revision['approved_snapshot_uuid'] = $snapshot_uuid;
         $revision['approved_content_sha256'] = $content_sha256;
         $revision['revision_sha256'] = self::revision_hash( $revision );
         return $revision;
@@ -170,6 +177,10 @@ final class TactiTwin_Staff_Brief_Revision_Chain {
             return true;
         }
         return array_keys( $value ) === range( 0, count( $value ) - 1 );
+    }
+
+    private static function normalize_uuid( string $value ): string {
+        return preg_replace( '/[^a-zA-Z0-9\-]/', '', trim( $value ) ) ?: '';
     }
 
     private static function json_encode( $value ): string {
