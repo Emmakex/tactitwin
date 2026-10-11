@@ -55,6 +55,26 @@ final class TactiTwin_Match_Target_Service {
         ) ?: array();
     }
 
+    public function target_by_source( string $source, string $source_match_id ): array {
+        global $wpdb;
+
+        $source = trim( $source );
+        $source_match_id = trim( $source_match_id );
+        if ( '' === $source || '' === $source_match_id ) {
+            return array();
+        }
+
+        $matches = TactiTwin_DB::table( 'matches' );
+        $id = (int) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT id FROM {$matches} WHERE source = %s AND source_match_id = %s LIMIT 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                $source,
+                $source_match_id
+            )
+        );
+        return $id > 0 ? $this->target( $id ) : array();
+    }
+
     public function recent_targets( int $limit = 100 ): array {
         global $wpdb;
 
