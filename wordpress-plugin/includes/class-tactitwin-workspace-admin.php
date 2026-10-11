@@ -45,6 +45,9 @@ final class TactiTwin_Workspace_Admin {
                 case 'defensive-transition-after-loss':
                     $scenario = $service->defensive_transition_after_loss( $team_id, $opponent_id, $sample, $language );
                     break;
+                case 'attack-vs-low-block':
+                    $scenario = $service->attack_vs_low_block( $team_id, $opponent_id, $sample, $language );
+                    break;
                 case 'build-up-vs-high-press':
                     $scenario = $service->build_up_vs_high_press( $team_id, $opponent_id, $sample, $language );
                     break;
@@ -126,6 +129,7 @@ final class TactiTwin_Workspace_Admin {
                                     <option value="build-up-vs-high-press"><?php echo esc_html__( 'Build-up vs High Press', 'tactitwin' ); ?></option>
                                     <option value="opponent-side-bias"><?php echo esc_html__( 'Opponent Side Bias', 'tactitwin' ); ?></option>
                                     <option value="defensive-transition-after-loss"><?php echo esc_html__( 'Defensive Transition After Loss', 'tactitwin' ); ?></option>
+                                    <option value="attack-vs-low-block"><?php echo esc_html__( 'Attack vs Low Block', 'tactitwin' ); ?></option>
                                 </select>
                             </td>
                         </tr>
@@ -242,6 +246,15 @@ final class TactiTwin_Workspace_Admin {
             self::card( __( 'Counterpress recovery', 'tactitwin' ), ( $evidence['our_counterpress_recovery_rate'] ?? 0 ) . '%', __( 'recovery ≤8s', 'tactitwin' ) );
             self::card( __( 'Main loss zone', 'tactitwin' ), ucfirst( TactiTwin_I18n::zone_label( (string) ( $evidence['dominant_loss_zone'] ?? 'middle_third' ), $language ) ), '' );
             self::card( __( 'Opponent transition xG', 'tactitwin' ), (string) ( $evidence['opponent_transition_xg_per_match'] ?? 0 ), __( 'per match ≤10s', 'tactitwin' ) );
+            return;
+        }
+
+        if ( 'attack-vs-low-block' === $scenario_id ) {
+            self::card( __( 'Deep-defence proxy', 'tactitwin' ), ( $evidence['opponent_deep_defensive_action_share_pct'] ?? 0 ) . '%', __( 'defensive actions in own third', 'tactitwin' ) );
+            self::card( __( 'Box entries', 'tactitwin' ), (string) ( $evidence['our_box_entries_per_match'] ?? 0 ), __( 'our per match', 'tactitwin' ) );
+            self::card( __( 'Box shot share', 'tactitwin' ), ( $evidence['our_box_shot_share_pct'] ?? 0 ) . '%', '' );
+            self::card( __( 'xG per shot', 'tactitwin' ), (string) ( $evidence['our_xg_per_shot'] ?? 0 ), '' );
+            self::card( __( 'Opponent concession channel', 'tactitwin' ), ucfirst( TactiTwin_I18n::channel_label( (string) ( $evidence['opponent_most_conceded_channel'] ?? 'central' ), $language ) ), '' );
             return;
         }
 
