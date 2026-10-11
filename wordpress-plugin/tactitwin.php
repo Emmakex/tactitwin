@@ -26,6 +26,7 @@ require_once TACTITWIN_DIR . 'includes/class-tactitwin-analysis-service.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-analysis-rest.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-team-profile.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-high-press-scenario.php';
+require_once TACTITWIN_DIR . 'includes/class-tactitwin-side-bias-scenario.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-profile-service.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-data-preparation-service.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-scenario-rest.php';
