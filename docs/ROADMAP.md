@@ -20,7 +20,12 @@ Implemented milestones now include:
 - v1.20 exact fixture identity, so approval history, diffs and handoff are scoped to one football match rather than only a team/opponent pairing;
 - v1.21 imported Match Target Resolution, so a Staff Brief can select a canonical persisted match and inherit its provider identity, participants and schedule context automatically;
 - v1.22 Match-Centric Planning Context, so one imported match + team perspective is reused across Scenario Lab, Match Plan, What-if, Live Playbook and Staff Brief instead of being reselected independently;
-- **v1.23 Match Workspace**, so the active match becomes the WordPress operational home, the full preparation/live/review flow is navigable from one surface, and Lineup, Personnel and Unit Lab join the shared planning context.
+- v1.23 Match Workspace, so the active match becomes the WordPress operational home, the full preparation/live/review flow is navigable from one surface, and Lineup, Personnel and Unit Lab join the shared planning context;
+- **v1.24 Fixture Lifecycle & Workspace Progress**, so the Workspace derives the real state of the active fixture from existing artifacts, distinguishes persistent/temporary/on-demand states and recommends the next operational step without inventing a preparation score.
+
+### v1.24 exit criterion
+
+For one active fixture, Match Workspace must expose the state and provenance of: target selection, planning-data coverage, Match Plan, Staff Brief, Live Session, imported match evidence and post-match review availability. Approved snapshots and sessions must remain fixture-scoped; temporary Match Plan output must never be presented as fixture-bound persistence; events from another fixture must not satisfy evidence readiness; review availability must not be mislabelled as a persisted completion record; and the Workspace must expose one deterministic next action without converting lifecycle states into a percentage or score.
 
 ### v1.23 exit criterion
 
