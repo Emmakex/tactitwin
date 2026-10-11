@@ -1,6 +1,11 @@
 <?php
 
 define( 'ABSPATH', __DIR__ );
+if ( ! function_exists( 'sanitize_key' ) ) {
+    function sanitize_key( $value ): string {
+        return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( (string) $value ) ) ?: '';
+    }
+}
 require_once __DIR__ . '/../wordpress-plugin/includes/class-tactitwin-i18n.php';
 require_once __DIR__ . '/../wordpress-plugin/includes/class-tactitwin-objective-post-match-evidence.php';
 
@@ -38,7 +43,11 @@ $snapshots = array(
             'plans'=>array(
                 'plan_b'=>array('scenario_id'=>'build-up-vs-high-press'),
             ),
-            'evidence'=>array(),
+            'evidence'=>array(
+                'scenario_fingerprints'=>array(
+                    'exploit-opponent-weak-side'=>array('target_channel'=>'right'),
+                ),
+            ),
         ),
     ),
 );
@@ -60,7 +69,7 @@ $match_summary = array(
             'transition_progression_rate'=>50.0,
             'dangerous_turnover_rate'=>25.0,
             'final_third_actions'=>20,
-            'final_third_channel_share'=>array('left'=>30.0,'central'=>40.0,'right'=>30.0),
+            'final_third_channel_share'=>array('left'=>25.0,'central'=>35.0,'right'=>40.0),
         ),
         '2'=>array(
             'team_name'=>'Team Two',
@@ -95,10 +104,21 @@ tt_objective_assert( 'supported' === $signals['defensive-transition-after-loss']
 tt_objective_assert( 52 === $signals['defensive-transition-after-loss']['staff_first_seen_minute'], 'staff first-seen minute preserved' );
 tt_objective_assert( 'supported' === $signals['opponent-side-bias']['status'], 'lateral bias supported by final-third distribution' );
 tt_objective_assert( 'event-signal-not-recorded-by-staff' === $signals['opponent-side-bias']['comparison']['status'], 'event-only signal distinguished from staff observation' );
-tt_objective_assert( 'insufficient' === $signals['exploit-opponent-weak-side']['status'], 'weak-side evidence refuses post-hoc reconstruction without persisted target' );
+tt_objective_assert( 'supported' === $signals['exploit-opponent-weak-side']['status'], 'persisted pre-match weak-side target can be checked post-match' );
+tt_objective_assert( 'right' === $signals['exploit-opponent-weak-side']['indicators']['prepared_target_channel'], 'stored weak-side target remains temporally anchored' );
+tt_objective_assert( 'event-signal-not-recorded-by-staff' === $signals['exploit-opponent-weak-side']['comparison']['status'], 'weak-side event evidence remains separate from staff observation' );
 tt_objective_assert( 'descriptive-full-match-event-proxy-validation' === $en['method']['type'], 'method boundary explicit' );
 tt_objective_assert( $en['signals'][0]['status'] === $es['signals'][0]['status'], 'language does not alter classifications' );
 tt_objective_assert( $en['signals'][0]['status_label'] !== $es['signals'][0]['status_label'], 'status labels translated' );
+
+$legacy_snapshots = $snapshots;
+$legacy_snapshots[0]['playbook']['evidence'] = array();
+$legacy = TactiTwin_Objective_Post_Match_Evidence::evaluate( $session, $review, $legacy_snapshots, $match_summary, 'en' );
+$legacy_signals = array();
+foreach ( $legacy['signals'] as $signal ) {
+    $legacy_signals[ $signal['scenario_id'] ] = $signal;
+}
+tt_objective_assert( 'insufficient' === $legacy_signals['exploit-opponent-weak-side']['status'], 'legacy sessions refuse post-hoc weak-side reconstruction' );
 
 $bad_summary = $match_summary;
 unset( $bad_summary['teams']['2'] );
