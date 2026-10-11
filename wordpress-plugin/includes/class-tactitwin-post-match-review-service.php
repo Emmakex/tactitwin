@@ -25,6 +25,11 @@ final class TactiTwin_Post_Match_Review_Service {
             $snapshots,
             $language
         );
+        $review['segment_evidence'] = $this->segment_evidence(
+            $session,
+            $snapshots,
+            $language
+        );
 
         return $review;
     }
@@ -59,6 +64,42 @@ final class TactiTwin_Post_Match_Review_Service {
                 'message' => 'es' === $language
                     ? 'El partido está enlazado, pero la evidencia de eventos todavía no está disponible: ' . $e->getMessage()
                     : 'The match is linked, but event evidence is not available yet: ' . $e->getMessage(),
+            );
+        }
+    }
+
+    private function segment_evidence( array $session, array $snapshots, string $language ): array {
+        $match_id = (int) ( $session['source_match_id'] ?? 0 );
+        if ( $match_id <= 0 ) {
+            return array(
+                'status' => 'unlinked',
+                'source_match_id' => null,
+                'message' => 'es' === $language
+                    ? 'Enlaza la sesión con un partido importado para analizar evidencia por intervalos A/B/C.'
+                    : 'Link the session to an imported match to analyse evidence across A/B/C intervals.',
+            );
+        }
+
+        try {
+            $analysis = new TactiTwin_Analysis_Service();
+            $summary = $analysis->match_summary( $match_id );
+            $events = $analysis->match_events( $match_id );
+            $evidence = TactiTwin_Time_Aligned_Evidence::evaluate(
+                $session,
+                $snapshots,
+                $events,
+                $summary,
+                $language
+            );
+            $evidence['status'] = 'available';
+            return $evidence;
+        } catch ( Throwable $e ) {
+            return array(
+                'status' => 'unavailable',
+                'source_match_id' => (string) $match_id,
+                'message' => 'es' === $language
+                    ? 'La evidencia temporal por segmentos no está disponible: ' . $e->getMessage()
+                    : 'Time-aligned segment evidence is not available: ' . $e->getMessage(),
             );
         }
     }
