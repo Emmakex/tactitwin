@@ -16,22 +16,27 @@ final class TactiTwin_Precedent_Quality_Attachment {
         $groups = self::group_map( $library );
         $scores = array();
 
-        foreach ( $retrieval['items'] ?? array() as &$item ) {
-            $key = (string) ( $item['group_key'] ?? '' );
-            if ( ! isset( $groups[ $key ] ) ) {
-                continue;
+        if ( ! empty( $retrieval['items'] ) && is_array( $retrieval['items'] ) ) {
+            foreach ( $retrieval['items'] as &$item ) {
+                $key = (string) ( $item['group_key'] ?? '' );
+                if ( ! isset( $groups[ $key ] ) ) {
+                    continue;
+                }
+                $item['evidence_quality'] = TactiTwin_Evidence_Quality_Calibrator::calibrate(
+                    $groups[ $key ],
+                    $current_opponent_id,
+                    $language,
+                    $as_of_utc
+                );
+                $scores[] = (float) $item['evidence_quality']['quality_score'];
             }
-            $item['evidence_quality'] = TactiTwin_Evidence_Quality_Calibrator::calibrate(
-                $groups[ $key ],
-                $current_opponent_id,
-                $language,
-                $as_of_utc
-            );
-            $scores[] = (float) $item['evidence_quality']['quality_score'];
+            unset( $item );
         }
-        unset( $item );
 
         $retrieval['quality_summary'] = self::summary( $scores, $language );
+        if ( ! isset( $retrieval['method'] ) || ! is_array( $retrieval['method'] ) ) {
+            $retrieval['method'] = array();
+        }
         $retrieval['method']['evidence_quality_calibration'] = array(
             'attached' => true,
             'changes_tactical_scores' => false,
@@ -53,25 +58,33 @@ final class TactiTwin_Precedent_Quality_Attachment {
         $groups = self::group_map( $library );
         $scores = array();
 
-        foreach ( $catalog['scenarios'] ?? array() as &$scenario ) {
-            foreach ( $scenario['contexts'] ?? array() as &$context ) {
-                $key = (string) ( $context['group_key'] ?? '' );
-                if ( ! isset( $groups[ $key ] ) ) {
+        if ( ! empty( $catalog['scenarios'] ) && is_array( $catalog['scenarios'] ) ) {
+            foreach ( $catalog['scenarios'] as &$scenario ) {
+                if ( empty( $scenario['contexts'] ) || ! is_array( $scenario['contexts'] ) ) {
                     continue;
                 }
-                $context['evidence_quality'] = TactiTwin_Evidence_Quality_Calibrator::calibrate(
-                    $groups[ $key ],
-                    $current_opponent_id,
-                    $language,
-                    $as_of_utc
-                );
-                $scores[] = (float) $context['evidence_quality']['quality_score'];
+                foreach ( $scenario['contexts'] as &$context ) {
+                    $key = (string) ( $context['group_key'] ?? '' );
+                    if ( ! isset( $groups[ $key ] ) ) {
+                        continue;
+                    }
+                    $context['evidence_quality'] = TactiTwin_Evidence_Quality_Calibrator::calibrate(
+                        $groups[ $key ],
+                        $current_opponent_id,
+                        $language,
+                        $as_of_utc
+                    );
+                    $scores[] = (float) $context['evidence_quality']['quality_score'];
+                }
+                unset( $context );
             }
-            unset( $context );
+            unset( $scenario );
         }
-        unset( $scenario );
 
         $catalog['quality_summary'] = self::summary( $scores, $language );
+        if ( ! isset( $catalog['method'] ) || ! is_array( $catalog['method'] ) ) {
+            $catalog['method'] = array();
+        }
         $catalog['method']['evidence_quality_calibration'] = array(
             'attached' => true,
             'changes_tactical_scores' => false,
