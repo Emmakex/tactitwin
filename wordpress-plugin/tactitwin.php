@@ -49,6 +49,7 @@ require_once TACTITWIN_DIR . 'includes/class-tactitwin-context-what-if.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-personnel-what-if.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-unit-comparison.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-phase-unit-comparison.php';
+require_once TACTITWIN_DIR . 'includes/class-tactitwin-opponent-lineup-matchup.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-lineup-what-if.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-profile-service.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-personnel-service.php';
