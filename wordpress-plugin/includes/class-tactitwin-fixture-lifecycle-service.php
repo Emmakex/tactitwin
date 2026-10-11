@@ -19,7 +19,7 @@ final class TactiTwin_Fixture_Lifecycle_Service {
         }
 
         $planning = $this->planning_data_counts( $fixture, $team_id, $opponent_id );
-        $temporary_match_plan = $this->temporary_match_plan_for_fixture( $user_id, $fixture_key );
+        $temporary_match_plan = $this->temporary_match_plan_for_matchup( $user_id, $team_id, $opponent_id );
         $temporary_staff_brief = $this->temporary_staff_brief_for_fixture( $user_id, $fixture_key );
 
         $snapshot_service = new TactiTwin_Staff_Brief_Snapshot_Service();
@@ -79,7 +79,7 @@ final class TactiTwin_Fixture_Lifecycle_Service {
         $approved = ! empty( $approved_snapshot );
         $match_plan_state = $approved
             ? 'sealed_in_approval'
-            : ( ! empty( $temporary_match_plan ) ? 'current_temporary' : 'not_current' );
+            : ( ! empty( $temporary_match_plan ) ? 'temporary_matchup_only' : 'not_current' );
         $staff_brief_state = $approved
             ? 'approved'
             : ( ! empty( $temporary_staff_brief ) ? 'draft_temporary' : 'not_generated' );
@@ -132,8 +132,9 @@ final class TactiTwin_Fixture_Lifecycle_Service {
             ),
             'match_plan' => array(
                 'state' => $match_plan_state,
-                'provenance' => $approved ? 'approved_snapshot' : ( ! empty( $temporary_match_plan ) ? 'transient' : 'none' ),
+                'provenance' => $approved ? 'approved_snapshot' : ( ! empty( $temporary_match_plan ) ? 'transient_matchup' : 'none' ),
                 'persistent' => $approved,
+                'fixture_bound' => $approved,
             ),
             'staff_brief' => array(
                 'state' => $staff_brief_state,
@@ -164,18 +165,17 @@ final class TactiTwin_Fixture_Lifecycle_Service {
             ),
         );
 
-        $next_action = self::next_action( $context_selected, $planning_state, $match_plan_state, $staff_brief_state, $session_state, $evidence_state );
-
         return array(
             'fixture_key' => (string) ( $signals['fixture_key'] ?? '' ),
             'phase' => $phase,
             'stages' => $stages,
-            'next_action' => $next_action,
+            'next_action' => self::next_action( $context_selected, $planning_state, $match_plan_state, $staff_brief_state, $session_state, $evidence_state ),
             'method' => array(
                 'name' => 'fixture-lifecycle-v1.24',
                 'no_progress_score' => true,
                 'review_completion_not_persisted' => true,
                 'temporary_outputs_explicit' => true,
+                'temporary_match_plan_fixture_bound' => false,
             ),
         );
     }
@@ -242,15 +242,18 @@ final class TactiTwin_Fixture_Lifecycle_Service {
         );
     }
 
-    private function temporary_match_plan_for_fixture( int $user_id, string $fixture_key ): array {
+    private function temporary_match_plan_for_matchup( int $user_id, string $team_id, string $opponent_id ): array {
         if ( $user_id <= 0 || ! function_exists( 'get_transient' ) ) {
             return array();
         }
         $stored = get_transient( 'tactitwin_match_plan_' . $user_id );
-        if ( ! is_array( $stored ) ) {
+        $plan = is_array( $stored['plan'] ?? null ) ? $stored['plan'] : array();
+        if ( empty( $plan ) ) {
             return array();
         }
-        return strtolower( trim( (string) ( $stored['fixture_key'] ?? '' ) ) ) === $fixture_key ? $stored : array();
+        $stored_team = trim( (string) ( $plan['team']['source_id'] ?? '' ) );
+        $stored_opponent = trim( (string) ( $plan['opponent']['source_id'] ?? '' ) );
+        return $stored_team === $team_id && $stored_opponent === $opponent_id ? $stored : array();
     }
 
     private function temporary_staff_brief_for_fixture( int $user_id, string $fixture_key ): array {
