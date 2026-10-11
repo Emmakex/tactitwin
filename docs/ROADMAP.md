@@ -21,7 +21,12 @@ Implemented milestones now include:
 - v1.21 imported Match Target Resolution, so a Staff Brief can select a canonical persisted match and inherit its provider identity, participants and schedule context automatically;
 - v1.22 Match-Centric Planning Context, so one imported match + team perspective is reused across Scenario Lab, Match Plan, What-if, Live Playbook and Staff Brief instead of being reselected independently;
 - v1.23 Match Workspace, so the active match becomes the WordPress operational home, the full preparation/live/review flow is navigable from one surface, and Lineup, Personnel and Unit Lab join the shared planning context;
-- **v1.24 Fixture Lifecycle & Workspace Progress**, so the Workspace derives the real state of the active fixture from existing artifacts, distinguishes persistent/temporary/on-demand states and recommends the next operational step without inventing a preparation score.
+- v1.24 Fixture Lifecycle & Workspace Progress, so the Workspace derives the real state of the active fixture from existing artifacts, distinguishes persistent/temporary/on-demand states and recommends the next operational step without inventing a preparation score;
+- **v1.25 Post-Match Review Sign-off**, so a closed session review can be frozen into an immutable, versioned staff sign-off bound to the exact fixture, source Staff Brief, Live Session and objective evidence used at review time.
+
+### v1.25 exit criterion
+
+For one closed Live Session created from an approved fixture-bound Staff Brief, staff can inspect the current post-match review and sign off the exact review/evidence payload they saw. TactiTwin must reject sign-off if the session is still active, the fixture chain is missing, the provider match differs, objective evidence is unavailable, or the review hash changed after display. The resulting artifact must be immutable, SHA-256 integrity-bound, versioned without overwriting previous revisions, associated with the authenticated WordPress user, and exposed by Match Workspace as a persistent `signed_off` lifecycle state. The product must explicitly state that this is an application-level staff sign-off rather than a cryptographic digital signature.
 
 ### v1.24 exit criterion
 
