@@ -36,6 +36,11 @@ final class TactiTwin_Staff_Brief_Snapshot {
             'match_plan' => $match_plan,
             'playbook' => $playbook,
         );
+        $content_sha256 = self::hash_content( $content );
+        if ( ! empty( $revision ) ) {
+            $revision = TactiTwin_Staff_Brief_Revision_Chain::bind_to_content( $revision, $content_sha256 );
+        }
+
         $language = TactiTwin_I18n::normalize_language( (string) ( $staff_brief['language'] ?? 'en' ) );
         $team = is_array( $staff_brief['team'] ?? null ) ? $staff_brief['team'] : array();
         $opponent = is_array( $staff_brief['opponent'] ?? null ) ? $staff_brief['opponent'] : array();
@@ -51,7 +56,7 @@ final class TactiTwin_Staff_Brief_Snapshot {
             'approved_by' => max( 0, $approved_by ),
             'approved_at' => trim( $approved_at ),
             'plugin_version' => defined( 'TACTITWIN_VERSION' ) ? (string) TACTITWIN_VERSION : '',
-            'content_sha256' => self::hash_content( $content ),
+            'content_sha256' => $content_sha256,
             'content' => $content,
             'method' => array(
                 'type' => 'immutable-approved-staff-brief-snapshot',
@@ -84,13 +89,17 @@ final class TactiTwin_Staff_Brief_Snapshot {
         if ( empty( $snapshot['content'] ) || ! is_array( $snapshot['content'] ) ) {
             return false;
         }
-        $expected = (string) ( $snapshot['content_sha256'] ?? '' );
+        $expected = strtolower( trim( (string) ( $snapshot['content_sha256'] ?? '' ) ) );
         if ( '' === $expected || ! hash_equals( $expected, self::hash_content( $snapshot['content'] ) ) ) {
             return false;
         }
 
         if ( isset( $snapshot['revision'] ) ) {
             if ( ! is_array( $snapshot['revision'] ) || ! TactiTwin_Staff_Brief_Revision_Chain::verify( $snapshot['revision'] ) ) {
+                return false;
+            }
+            $bound_content = strtolower( trim( (string) ( $snapshot['revision']['approved_content_sha256'] ?? '' ) ) );
+            if ( '' === $bound_content || ! hash_equals( $expected, $bound_content ) ) {
                 return false;
             }
         }
