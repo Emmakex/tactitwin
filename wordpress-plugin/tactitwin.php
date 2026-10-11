@@ -32,6 +32,7 @@ require_once TACTITWIN_DIR . 'includes/class-tactitwin-high-press-scenario.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-side-bias-scenario.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-defensive-transition-scenario.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-low-block-scenario.php';
+require_once TACTITWIN_DIR . 'includes/class-tactitwin-weak-side-scenario.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-matchup-scan.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-profile-service.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-data-preparation-service.php';
