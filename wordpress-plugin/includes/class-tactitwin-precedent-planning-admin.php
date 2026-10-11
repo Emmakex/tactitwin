@@ -79,7 +79,7 @@ final class TactiTwin_Precedent_Planning_Admin {
 
     private static function catalog_panel( array $catalog, string $language ): void {
         ?>
-        <div class="wrap" style="max-width:1200px;margin-top:28px;">
+        <div class="wrap" style="max-width:1280px;margin-top:28px;">
             <hr>
             <h2><?php echo esc_html( self::label( 'catalog_title', $language ) ); ?></h2>
             <p><?php echo esc_html( self::label( 'catalog_intro', $language ) ); ?></p>
@@ -97,14 +97,18 @@ final class TactiTwin_Precedent_Planning_Admin {
                 <div style="background:#fff;border:1px solid #dcdcde;padding:16px 18px;margin:14px 0;">
                     <h3 style="margin-top:0;"><?php echo esc_html( (string) ( $scenario['scenario_name'] ?? '' ) ); ?></h3>
                     <p><?php echo esc_html( self::label( 'current_relevance', $language ) . ': ' . (string) ( $scenario['current_scan']['relevance'] ?? 0 ) . '/100' ); ?></p>
+                    <?php if ( isset( $scenario['ranking_robustness']['top_stability_pct'] ) ) : ?>
+                        <p><strong><?php echo esc_html( self::robustness_summary_label( $scenario['ranking_robustness'], $language ) ); ?></strong></p>
+                    <?php endif; ?>
                     <table class="widefat striped">
-                        <thead><tr><th><?php echo esc_html( self::label( 'context', $language ) ); ?></th><th><?php echo esc_html( self::label( 'plan', $language ) ); ?></th><th><?php echo esc_html( self::label( 'suitability', $language ) ); ?></th><th><?php echo esc_html( self::label( 'quality', $language ) ); ?></th><th><?php echo esc_html( self::label( 'similarity', $language ) ); ?></th><th><?php echo esc_html( self::label( 'sample', $language ) ); ?></th><th><?php echo esc_html( self::label( 'signals', $language ) ); ?></th></tr></thead>
+                        <thead><tr><th><?php echo esc_html( self::label( 'context', $language ) ); ?></th><th><?php echo esc_html( self::label( 'plan', $language ) ); ?></th><th><?php echo esc_html( self::label( 'suitability', $language ) ); ?></th><th><?php echo esc_html( self::label( 'robustness', $language ) ); ?></th><th><?php echo esc_html( self::label( 'quality', $language ) ); ?></th><th><?php echo esc_html( self::label( 'similarity', $language ) ); ?></th><th><?php echo esc_html( self::label( 'sample', $language ) ); ?></th><th><?php echo esc_html( self::label( 'signals', $language ) ); ?></th></tr></thead>
                         <tbody>
                             <?php foreach ( $scenario['contexts'] as $context ) : ?>
                                 <tr>
                                     <td><?php echo esc_html( self::context_label( $context, $language ) ); ?></td>
                                     <td><?php echo esc_html( (string) ( $context['to_plan'] ?? '-' ) . ' / ' . (string) ( $context['to_mode'] ?? '-' ) ); ?></td>
                                     <td><?php echo esc_html( self::suitability_label( $context['evidence_suitability'] ?? array() ) ); ?></td>
+                                    <td><?php echo esc_html( self::robustness_item_label( $context['ranking_robustness'] ?? array(), $language ) ); ?></td>
                                     <td><?php echo esc_html( self::quality_label( $context['evidence_quality'] ?? array() ) ); ?></td>
                                     <td><?php echo esc_html( self::similarity_label( $context['opponent_context_similarity'] ?? array() ) ); ?></td>
                                     <td><?php echo esc_html( (string) ( $context['sample']['maturity_label'] ?? $context['sample']['maturity'] ?? '-' ) . ' · ' . (string) ( $context['sample']['cleaner'] ?? 0 ) . '/' . (string) ( $context['sample']['context_comparable'] ?? 0 ) ); ?></td>
@@ -138,7 +142,7 @@ final class TactiTwin_Precedent_Planning_Admin {
                         <?php else : ?>
                             <ul style="list-style:disc;padding-left:20px;">
                                 <?php foreach ( $precedents['items'] as $item ) : ?>
-                                    <li style="margin-bottom:8px;"><strong><?php echo esc_html( (string) ( $item['scenario_name'] ?? $item['scenario_id'] ?? '' ) ); ?></strong> — <?php echo esc_html( self::suitability_label( $item['evidence_suitability'] ?? array() ) . ' · ' . self::quality_label( $item['evidence_quality'] ?? array() ) . ' · ' . self::similarity_label( $item['opponent_context_similarity'] ?? array() ) . ' · ' . self::metric_summary( $item['metrics'] ?? array() ) ); ?></li>
+                                    <li style="margin-bottom:8px;"><strong><?php echo esc_html( (string) ( $item['scenario_name'] ?? $item['scenario_id'] ?? '' ) ); ?></strong> — <?php echo esc_html( self::suitability_label( $item['evidence_suitability'] ?? array() ) . ' · ' . self::robustness_item_label( $item['ranking_robustness'] ?? array(), $language ) . ' · ' . self::quality_label( $item['evidence_quality'] ?? array() ) . ' · ' . self::similarity_label( $item['opponent_context_similarity'] ?? array() ) . ' · ' . self::metric_summary( $item['metrics'] ?? array() ) ); ?></li>
                                 <?php endforeach; ?>
                             </ul>
                         <?php endif; ?>
@@ -177,6 +181,30 @@ final class TactiTwin_Precedent_Planning_Admin {
             return '—';
         }
         return (string) ( $suitability['suitability_label'] ?? $suitability['suitability_level'] ?? '' ) . ' · ' . (string) $suitability['suitability_score'] . '/100';
+    }
+
+    private static function robustness_summary_label( array $robustness, string $language ): string {
+        $stability = $robustness['top_stability_pct'] ?? null;
+        if ( ! is_numeric( $stability ) ) {
+            return '—';
+        }
+        $level = str_replace( '-', ' ', (string) ( $robustness['robustness_level'] ?? '' ) );
+        $margin = $robustness['baseline_top_margin'] ?? null;
+        $text = self::label( 'robustness', $language ) . ': ' . $level . ' · ' . (string) $stability . '%';
+        if ( is_numeric( $margin ) ) {
+            $text .= ' · ' . self::label( 'top_margin', $language ) . ' ' . (string) $margin;
+        }
+        return $text;
+    }
+
+    private static function robustness_item_label( array $robustness, string $language ): string {
+        $best = $robustness['best_rank'] ?? null;
+        $worst = $robustness['worst_rank'] ?? null;
+        if ( ! is_numeric( $best ) || ! is_numeric( $worst ) ) {
+            return '—';
+        }
+        $top = $robustness['top_rank_frequency_pct'] ?? 0;
+        return self::label( 'rank_range', $language ) . ' ' . (string) $best . '–' . (string) $worst . ' · ' . self::label( 'top_frequency', $language ) . ' ' . (string) $top . '%';
     }
 
     private static function quality_label( array $quality ): string {
@@ -218,24 +246,24 @@ final class TactiTwin_Precedent_Planning_Admin {
             'en'=>array(
                 'catalog_title'=>'Historical tactical precedents',
                 'catalog_intro'=>'Pre-match evidence from prior interventions is kept separated by minute band, score state and manpower state.',
-                'current_relevance'=>'Current scenario relevance','suitability'=>'Evidence suitability','quality'=>'Evidence quality','quality_mean'=>'Mean evidence quality',
-                'similarity'=>'Opponent similarity','similarity_mean'=>'Mean opponent similarity',
+                'current_relevance'=>'Current scenario relevance','suitability'=>'Evidence suitability','robustness'=>'Ranking robustness','quality'=>'Evidence quality','quality_mean'=>'Mean evidence quality',
+                'similarity'=>'Opponent similarity','similarity_mean'=>'Mean opponent similarity','top_margin'=>'top margin','rank_range'=>'ranks','top_frequency'=>'top',
                 'context'=>'Historical context','plan'=>'Destination plan','sample'=>'Sample','signals'=>'Median historical deltas',
                 'playbook_title'=>'Exact-context precedents for Plan A/B/C',
                 'playbook_intro'=>'Only historical transitions into the same destination plan are shown. Plan B also requires the current live scenario.',
                 'no_items'=>'No exact-context precedents for this plan.',
-                'guardrail_evidence'=>'Evidence suitability only reorders already matched historical evidence. It combines current relevance, evidence quality and opponent similarity without changing tactical scores, priorities, active plan or recommendations.',
+                'guardrail_evidence'=>'Suitability orders already matched historical evidence; robustness tests how sensitive that order is to transparent weight changes. Neither layer changes tactical scores, priorities, active plan or recommendations.',
             ),
             'es'=>array(
                 'catalog_title'=>'Precedentes tácticos históricos',
                 'catalog_intro'=>'La evidencia prepartido de intervenciones anteriores se mantiene separada por franja temporal, marcador y estado numérico.',
-                'current_relevance'=>'Relevancia actual del escenario','suitability'=>'Idoneidad de evidencia','quality'=>'Calidad de evidencia','quality_mean'=>'Calidad media de evidencia',
-                'similarity'=>'Similitud del rival','similarity_mean'=>'Similitud media del rival',
+                'current_relevance'=>'Relevancia actual del escenario','suitability'=>'Idoneidad de evidencia','robustness'=>'Robustez del ranking','quality'=>'Calidad de evidencia','quality_mean'=>'Calidad media de evidencia',
+                'similarity'=>'Similitud del rival','similarity_mean'=>'Similitud media del rival','top_margin'=>'margen del primero','rank_range'=>'rangos','top_frequency'=>'primero',
                 'context'=>'Contexto histórico','plan'=>'Plan de destino','sample'=>'Muestra','signals'=>'Medianas históricas de delta',
                 'playbook_title'=>'Precedentes de contexto exacto para Plan A/B/C',
                 'playbook_intro'=>'Solo se muestran transiciones históricas hacia el mismo plan de destino. Plan B exige además el escenario vivo actual.',
                 'no_items'=>'No hay precedentes de contexto exacto para este plan.',
-                'guardrail_evidence'=>'La idoneidad solo reordena evidencia histórica ya coincidente. Combina relevancia actual, calidad de evidencia y similitud del rival sin cambiar scores tácticos, prioridades, plan activo ni recomendaciones.',
+                'guardrail_evidence'=>'La idoneidad ordena evidencia histórica ya coincidente; la robustez comprueba cuánto depende ese orden de cambios transparentes en los pesos. Ninguna capa cambia scores tácticos, prioridades, plan activo ni recomendaciones.',
             ),
         );
         return $labels[ $language ][ $key ] ?? $labels['en'][ $key ] ?? $key;
