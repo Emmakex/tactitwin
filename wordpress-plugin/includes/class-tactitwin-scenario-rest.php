@@ -38,23 +38,18 @@ final class TactiTwin_Scenario_REST {
                 'methods'             => WP_REST_Server::READABLE,
                 'callback'            => array( self::class, 'high_press' ),
                 'permission_callback' => static fn(): bool => current_user_can( 'manage_options' ),
-                'args'                => array(
-                    'team_id' => array(
-                        'required'          => true,
-                        'sanitize_callback' => 'absint',
-                        'validate_callback' => static fn( $value ): bool => (int) $value > 0,
-                    ),
-                    'opponent_id' => array(
-                        'required'          => true,
-                        'sanitize_callback' => 'absint',
-                        'validate_callback' => static fn( $value ): bool => (int) $value > 0,
-                    ),
-                    'limit' => array(
-                        'default'           => 5,
-                        'sanitize_callback' => 'absint',
-                        'validate_callback' => static fn( $value ): bool => (int) $value >= 1 && (int) $value <= 10,
-                    ),
-                ),
+                'args'                => self::matchup_args(),
+            )
+        );
+
+        register_rest_route(
+            'tactitwin/v1',
+            '/scenarios/opponent-side-bias',
+            array(
+                'methods'             => WP_REST_Server::READABLE,
+                'callback'            => array( self::class, 'side_bias' ),
+                'permission_callback' => static fn(): bool => current_user_can( 'manage_options' ),
+                'args'                => self::matchup_args(),
             )
         );
     }
@@ -72,15 +67,50 @@ final class TactiTwin_Scenario_REST {
     }
 
     public static function high_press( WP_REST_Request $request ) {
-        try {
-            $result = ( new TactiTwin_Profile_Service() )->build_up_vs_high_press(
+        return self::scenario_response(
+            static fn() => ( new TactiTwin_Profile_Service() )->build_up_vs_high_press(
                 (int) $request['team_id'],
                 (int) $request['opponent_id'],
                 (int) $request['limit']
-            );
-            return new WP_REST_Response( array( 'ok' => true, 'result' => $result ), 200 );
+            )
+        );
+    }
+
+    public static function side_bias( WP_REST_Request $request ) {
+        return self::scenario_response(
+            static fn() => ( new TactiTwin_Profile_Service() )->opponent_side_bias(
+                (int) $request['team_id'],
+                (int) $request['opponent_id'],
+                (int) $request['limit']
+            )
+        );
+    }
+
+    private static function scenario_response( callable $callback ) {
+        try {
+            return new WP_REST_Response( array( 'ok' => true, 'result' => $callback() ), 200 );
         } catch ( Throwable $e ) {
             return new WP_Error( 'tactitwin_scenario_failed', $e->getMessage(), array( 'status' => 422 ) );
         }
+    }
+
+    private static function matchup_args(): array {
+        return array(
+            'team_id' => array(
+                'required'          => true,
+                'sanitize_callback' => 'absint',
+                'validate_callback' => static fn( $value ): bool => (int) $value > 0,
+            ),
+            'opponent_id' => array(
+                'required'          => true,
+                'sanitize_callback' => 'absint',
+                'validate_callback' => static fn( $value ): bool => (int) $value > 0,
+            ),
+            'limit' => array(
+                'default'           => 5,
+                'sanitize_callback' => 'absint',
+                'validate_callback' => static fn( $value ): bool => (int) $value >= 1 && (int) $value <= 10,
+            ),
+        );
     }
 }

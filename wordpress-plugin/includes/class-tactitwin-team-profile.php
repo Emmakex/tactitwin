@@ -63,12 +63,8 @@ final class TactiTwin_Team_Profile {
             'high_pressure_share_pct' => self::percentage( $totals['high_pressures'], $totals['pressures'] ),
         );
 
-        $final_third_total = max( 1.0, $totals['final_third_actions'] );
-        $channels = array(
-            'left'    => round( ( $totals['final_third_left_channel'] / $final_third_total ) * 100, 1 ),
-            'central' => round( ( $totals['final_third_central_channel'] / $final_third_total ) * 100, 1 ),
-            'right'   => round( ( $totals['final_third_right_channel'] / $final_third_total ) * 100, 1 ),
-        );
+        $channels = self::channel_share( $totals );
+        $channels_against = self::channel_share( $opponent_totals );
 
         $opponent_context = array(
             'pressures_per_match'       => round( $opponent_totals['pressures'] / $match_count, 2 ),
@@ -88,11 +84,22 @@ final class TactiTwin_Team_Profile {
                 'newest_match'   => empty( $match_dates ) ? null : max( $match_dates ),
                 'confidence'     => self::confidence( $match_count ),
             ),
-            'totals'          => $totals,
-            'averages'        => $averages,
-            'rates'           => $rates,
-            'final_third_channel_share' => $channels,
-            'opponent_context' => $opponent_context,
+            'totals'                         => $totals,
+            'averages'                       => $averages,
+            'rates'                          => $rates,
+            'final_third_channel_share'      => $channels,
+            'final_third_channel_share_against' => $channels_against,
+            'opponent_context'               => $opponent_context,
+        );
+    }
+
+    private static function channel_share( array $totals ): array {
+        $total = max( 1.0, (float) ( $totals['final_third_actions'] ?? 0 ) );
+
+        return array(
+            'left'    => round( ( (float) ( $totals['final_third_left_channel'] ?? 0 ) / $total ) * 100, 1 ),
+            'central' => round( ( (float) ( $totals['final_third_central_channel'] ?? 0 ) / $total ) * 100, 1 ),
+            'right'   => round( ( (float) ( $totals['final_third_right_channel'] ?? 0 ) / $total ) * 100, 1 ),
         );
     }
 

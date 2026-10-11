@@ -31,10 +31,17 @@ final class TactiTwin_Workspace_Admin {
         $team_id     = absint( $_POST['team_id'] ?? 0 );
         $opponent_id = absint( $_POST['opponent_id'] ?? 0 );
         $sample      = max( 1, min( 10, absint( $_POST['sample'] ?? 5 ) ) );
+        $scenario_id = sanitize_key( $_POST['scenario_id'] ?? 'build-up-vs-high-press' );
 
         try {
             $preparation = ( new TactiTwin_Data_Preparation_Service() )->prepare_matchup( $team_id, $opponent_id, $sample );
-            $scenario    = ( new TactiTwin_Profile_Service() )->build_up_vs_high_press( $team_id, $opponent_id, $sample );
+            $service     = new TactiTwin_Profile_Service();
+
+            if ( 'opponent-side-bias' === $scenario_id ) {
+                $scenario = $service->opponent_side_bias( $team_id, $opponent_id, $sample );
+            } else {
+                $scenario = $service->build_up_vs_high_press( $team_id, $opponent_id, $sample );
+            }
 
             set_transient(
                 'tactitwin_scenario_' . get_current_user_id(),
@@ -72,7 +79,7 @@ final class TactiTwin_Workspace_Admin {
         ?>
         <div class="wrap">
             <h1><?php echo esc_html__( 'TactiTwin Scenario Lab', 'tactitwin' ); ?></h1>
-            <p><?php echo esc_html__( 'Prepare a data-backed matchup and evaluate how your build-up may behave against an opponent high press.', 'tactitwin' ); ?></p>
+            <p><?php echo esc_html__( 'Prepare a data-backed matchup, choose a tactical question and receive an explainable scenario assessment.', 'tactitwin' ); ?></p>
 
             <?php if ( $error ) : ?>
                 <div class="notice notice-error"><p><?php echo esc_html( $error ); ?></p></div>
@@ -87,6 +94,15 @@ final class TactiTwin_Workspace_Admin {
                     <input type="hidden" name="action" value="tactitwin_prepare_scenario">
                     <?php wp_nonce_field( 'tactitwin_prepare_scenario' ); ?>
                     <table class="form-table" role="presentation">
+                        <tr>
+                            <th><label for="tt-scenario"><?php echo esc_html__( 'Scenario', 'tactitwin' ); ?></label></th>
+                            <td>
+                                <select name="scenario_id" id="tt-scenario">
+                                    <option value="build-up-vs-high-press"><?php echo esc_html__( 'Build-up vs High Press', 'tactitwin' ); ?></option>
+                                    <option value="opponent-side-bias"><?php echo esc_html__( 'Opponent Side Bias', 'tactitwin' ); ?></option>
+                                </select>
+                            </td>
+                        </tr>
                         <tr>
                             <th><label for="tt-team"><?php echo esc_html__( 'Our team', 'tactitwin' ); ?></label></th>
                             <td><?php self::team_select( 'team_id', 'tt-team', $teams ); ?></td>
@@ -119,8 +135,6 @@ final class TactiTwin_Workspace_Admin {
         $risk     = $scenario['risk'];
         $opp      = $scenario['opportunity'];
         $coverage = $scenario['coverage'];
-        $evidence = $scenario['evidence'];
-        $recs     = $scenario['recommendations'];
         ?>
         <hr style="margin:32px 0;">
         <h2><?php echo esc_html( $scenario['team']['name'] . ' vs ' . $scenario['opponent']['name'] ); ?></h2>
@@ -134,16 +148,14 @@ final class TactiTwin_Workspace_Admin {
             <?php self::card( __( 'Risk', 'tactitwin' ), $risk['score'] . '/100', strtoupper( $risk['level'] ) ); ?>
             <?php self::card( __( 'Opportunity', 'tactitwin' ), $opp['score'] . '/100', strtoupper( $opp['level'] ) ); ?>
             <?php self::card( __( 'Coverage', 'tactitwin' ), (string) $coverage['effective_matches'], strtoupper( $coverage['status'] ) ); ?>
-            <?php self::card( __( 'Build-up completion', 'tactitwin' ), $evidence['our_build_up_completion_pct'] . '%', '' ); ?>
-            <?php self::card( __( 'Build-up escapes', 'tactitwin' ), $evidence['our_build_up_escape_rate'] . '%', '' ); ?>
-            <?php self::card( __( 'Opponent high pressures', 'tactitwin' ), (string) $evidence['opponent_high_pressures_per_match'], __( 'per match', 'tactitwin' ) ); ?>
+            <?php self::scenario_cards( $scenario ); ?>
         </div>
 
         <h3><?php echo esc_html__( 'Recommended response', 'tactitwin' ); ?></h3>
         <ol style="max-width:900px;background:#fff;padding:20px 20px 20px 38px;border:1px solid #dcdcde;">
-            <li><?php echo esc_html( $recs['primary'] ); ?></li>
-            <li><?php echo esc_html( $recs['secondary'] ); ?></li>
-            <li><?php echo esc_html( $recs['attacking_outlet'] ); ?></li>
+            <?php foreach ( $scenario['recommendations'] as $recommendation ) : ?>
+                <li><?php echo esc_html( $recommendation ); ?></li>
+            <?php endforeach; ?>
         </ol>
 
         <details style="max-width:900px;margin-top:18px;">
@@ -151,6 +163,33 @@ final class TactiTwin_Workspace_Admin {
             <pre style="white-space:pre-wrap;background:#fff;padding:16px;border:1px solid #dcdcde;"><?php echo esc_html( wp_json_encode( $scenario, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) ); ?></pre>
         </details>
         <?php
+    }
+
+    private static function scenario_cards( array $scenario ): void {
+        $evidence = $scenario['evidence'] ?? array();
+
+        if ( 'opponent-side-bias' === ( $scenario['scenario_id'] ?? '' ) ) {
+            self::card(
+                __( 'Opponent dominant channel', 'tactitwin' ),
+                ucfirst( (string) ( $evidence['opponent_dominant_channel'] ?? '-' ) ),
+                ''
+            );
+            self::card(
+                __( 'Our vulnerable channel', 'tactitwin' ),
+                ucfirst( (string) ( $evidence['our_most_vulnerable_channel'] ?? '-' ) ),
+                ''
+            );
+            self::card(
+                __( 'Preferred trap channel', 'tactitwin' ),
+                ucfirst( (string) ( $evidence['opponent_weak_channel'] ?? '-' ) ),
+                ''
+            );
+            return;
+        }
+
+        self::card( __( 'Build-up completion', 'tactitwin' ), ( $evidence['our_build_up_completion_pct'] ?? 0 ) . '%', '' );
+        self::card( __( 'Build-up escapes', 'tactitwin' ), ( $evidence['our_build_up_escape_rate'] ?? 0 ) . '%', '' );
+        self::card( __( 'Opponent high pressures', 'tactitwin' ), (string) ( $evidence['opponent_high_pressures_per_match'] ?? 0 ), __( 'per match', 'tactitwin' ) );
     }
 
     private static function card( string $title, string $value, string $meta ): void {

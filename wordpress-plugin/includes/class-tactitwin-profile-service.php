@@ -69,13 +69,25 @@ final class TactiTwin_Profile_Service {
     }
 
     public function build_up_vs_high_press( int $team_id, int $opponent_id, int $limit = 5 ): array {
+        $profiles = $this->matchup_profiles( $team_id, $opponent_id, $limit );
+
+        return TactiTwin_High_Press_Scenario::evaluate( $profiles['team'], $profiles['opponent'] );
+    }
+
+    public function opponent_side_bias( int $team_id, int $opponent_id, int $limit = 5 ): array {
+        $profiles = $this->matchup_profiles( $team_id, $opponent_id, $limit );
+
+        return TactiTwin_Side_Bias_Scenario::evaluate( $profiles['team'], $profiles['opponent'] );
+    }
+
+    private function matchup_profiles( int $team_id, int $opponent_id, int $limit ): array {
         if ( $team_id === $opponent_id ) {
             throw new InvalidArgumentException( 'Team and opponent must be different.' );
         }
 
-        $team_profile     = $this->team_profile( $team_id, $limit );
-        $opponent_profile = $this->team_profile( $opponent_id, $limit );
-
-        return TactiTwin_High_Press_Scenario::evaluate( $team_profile, $opponent_profile );
+        return array(
+            'team'     => $this->team_profile( $team_id, $limit ),
+            'opponent' => $this->team_profile( $opponent_id, $limit ),
+        );
     }
 }
