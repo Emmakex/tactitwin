@@ -81,8 +81,15 @@ final class TactiTwin_Intervention_Library_Service {
     }
 
     private function attach_session_dates( array $library, array $session_dates ): array {
-        foreach ( $library['groups'] ?? array() as &$group ) {
-            foreach ( $group['cases'] ?? array() as &$case ) {
+        if ( empty( $library['groups'] ) || ! is_array( $library['groups'] ) ) {
+            return $library;
+        }
+
+        foreach ( $library['groups'] as &$group ) {
+            if ( empty( $group['cases'] ) || ! is_array( $group['cases'] ) ) {
+                continue;
+            }
+            foreach ( $group['cases'] as &$case ) {
                 $uuid = (string) ( $case['session_uuid'] ?? '' );
                 $case['session_closed_at'] = (string) ( $session_dates[ $uuid ] ?? '' );
             }
