@@ -53,6 +53,12 @@ final class TactiTwin_Playbook_Precedent_Attachment {
 
             $total = count( $matched );
             $returned = array_slice( $matched, 0, $per_plan_limit );
+            $decision_brief = TactiTwin_Evidence_Decision_Brief::from_items(
+                $returned,
+                array(),
+                $language,
+                'plan-' . strtolower( $plan_id ) . '-filtered-evidence'
+            );
             $result['plans'][ $plan_key ]['historical_precedents'] = array(
                 'status' => $total > 0 ? 'available' : 'no-match',
                 'plan_id' => $plan_id,
@@ -60,11 +66,15 @@ final class TactiTwin_Playbook_Precedent_Attachment {
                 'matched_count' => $total,
                 'returned_count' => count( $returned ),
                 'items' => $returned,
+                'decision_brief' => $decision_brief,
                 'summary' => self::plan_summary( $plan_id, $scenario_filter, $total, $language ),
                 'method' => array(
-                    'source' => 'v1.8 exact-context historical precedent retrieval',
+                    'source' => 'v1.8 exact-context historical precedent retrieval enriched through v1.14',
                     'destination_plan_match_required' => true,
                     'plan_b_scenario_match_required' => 'B' === $plan_id,
+                    'decision_brief_after_plan_filter' => true,
+                    'decision_brief_creates_new_score' => false,
+                    'decision_brief_changes_evidence_order' => false,
                     'reweights_tactical_scores' => false,
                     'changes_recommendations' => false,
                 ),
@@ -79,6 +89,9 @@ final class TactiTwin_Playbook_Precedent_Attachment {
             'exact_context_required' => true,
             'destination_plan_match_required' => true,
             'plan_b_scenario_match_required' => true,
+            'decision_brief_after_plan_filter' => true,
+            'decision_brief_creates_new_score' => false,
+            'decision_brief_changes_evidence_order' => false,
             'reweights_tactical_scores' => false,
             'changes_recommendations' => false,
             'note' => self::text( 'method', $language ),
@@ -106,14 +119,14 @@ final class TactiTwin_Playbook_Precedent_Attachment {
     private static function text( string $key, string $language ): string {
         $catalog = array(
             'en' => array(
-                'method' => 'v1.9 distributes exact-context v1.8 precedents to Plan A/B/C only when their historical destination plan matches. Plan B additionally requires the historical scenario to match the currently armed or live-activated Plan B scenario.',
+                'method' => 'v1.14 keeps the v1.9 Plan A/B/C destination filters and then builds a descriptive evidence brief inside each filtered plan shortlist. The brief never changes the underlying v1.12 evidence order, tactical scores or recommendations.',
                 'none_plan' => 'No exact-context historical transitions into Plan %s were found.',
                 'none_b' => 'No exact-context historical transitions into Plan B were found for scenario %s.',
                 'count_plan' => '%d exact-context historical transitions into Plan %s are available.',
                 'count_b' => '%d exact-context historical transitions into Plan B are available for scenario %s.',
             ),
             'es' => array(
-                'method' => 'v1.9 distribuye los precedentes de contexto exacto de v1.8 entre Plan A/B/C solo cuando coincide el plan histórico de destino. Plan B exige además que el escenario histórico coincida con el Plan B actualmente armado o activado en directo.',
+                'method' => 'v1.14 mantiene los filtros de destino Plan A/B/C de v1.9 y después construye un brief descriptivo dentro de cada shortlist ya filtrada. El brief nunca cambia el orden de evidencia v1.12, los scores tácticos ni las recomendaciones.',
                 'none_plan' => 'No se encontraron transiciones históricas de contexto exacto hacia el Plan %s.',
                 'none_b' => 'No se encontraron transiciones históricas de contexto exacto hacia el Plan B para el escenario %s.',
                 'count_plan' => 'Hay %d transiciones históricas de contexto exacto hacia el Plan %s.',
