@@ -58,6 +58,11 @@ final class TactiTwin_Contingency_REST {
                         'sanitize_callback' => 'absint',
                         'validate_callback' => static fn( $value ): bool => (int) $value >= 1 && (int) $value <= 10,
                     ),
+                    'precedent_limit' => array(
+                        'default'           => 5,
+                        'sanitize_callback' => 'absint',
+                        'validate_callback' => static fn( $value ): bool => (int) $value >= 1 && (int) $value <= 10,
+                    ),
                     'lang' => array(
                         'default'           => TactiTwin_I18n::current_language(),
                         'sanitize_callback' => 'sanitize_key',
@@ -75,7 +80,7 @@ final class TactiTwin_Contingency_REST {
     public static function playbook( WP_REST_Request $request ) {
         try {
             $language = TactiTwin_I18n::normalize_language( (string) ( $request['lang'] ?? TactiTwin_I18n::current_language() ) );
-            $result = ( new TactiTwin_Profile_Service() )->contingency_playbook(
+            $result = ( new TactiTwin_Precedent_Aware_Contingency_Service() )->evaluate(
                 (int) $request['team_id'],
                 (int) $request['opponent_id'],
                 (int) $request['our_score'],
@@ -84,7 +89,8 @@ final class TactiTwin_Contingency_REST {
                 (int) $request['limit'],
                 $language,
                 (int) $request['our_players'],
-                (int) $request['opponent_players']
+                (int) $request['opponent_players'],
+                (int) $request['precedent_limit']
             );
 
             return new WP_REST_Response( array( 'ok' => true, 'result' => $result ), 200 );
