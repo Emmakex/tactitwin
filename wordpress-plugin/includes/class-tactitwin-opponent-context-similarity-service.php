@@ -9,22 +9,27 @@ final class TactiTwin_Opponent_Context_Similarity_Service {
         array $library,
         int $current_opponent_id,
         int $profile_limit = 5,
-        string $language = 'en'
+        string $language = 'en',
+        ?array $current_profile = null
     ): array {
         if ( $current_opponent_id <= 0 ) {
             throw new InvalidArgumentException( 'A positive current opponent identifier is required.' );
         }
         $language = TactiTwin_I18n::normalize_language( $language );
         $profile_limit = max( 1, min( 10, $profile_limit ) );
-        $profiles = new TactiTwin_Profile_Service();
         $historical_profiles = new TactiTwin_Historical_Team_Profile_Service();
-        $current = $profiles->team_profile( $current_opponent_id, $profile_limit );
+        if ( null === $current_profile ) {
+            $current_profile = ( new TactiTwin_Profile_Service() )->team_profile( $current_opponent_id, $profile_limit );
+        }
+        if ( (string) ( $current_profile['team_source_id'] ?? '' ) !== (string) $current_opponent_id ) {
+            throw new InvalidArgumentException( 'Provided current opponent profile does not match the requested opponent identifier.' );
+        }
         $cache = array();
 
         foreach ( $library['groups'] ?? array() as $index => $group ) {
             $library['groups'][ $index ]['opponent_context_similarity'] = $this->group_similarity(
                 $group,
-                $current,
+                $current_profile,
                 $current_opponent_id,
                 $historical_profiles,
                 $cache,
