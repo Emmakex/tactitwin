@@ -6,7 +6,7 @@ TactiTwin is a football tactical analysis and match-scenario simulation project.
 
 ## Product direction
 
-`public/open data -> normalized football model -> tactical analysis -> scenario engine -> lineup decisions -> match plan -> Plan A/B/C -> live staff observations -> persistent match-day timeline -> post-match review -> event-evidence audit`
+`public/open data -> normalized football model -> tactical analysis -> scenario engine -> lineup decisions -> match plan -> Plan A/B/C -> live staff observations -> persistent match-day timeline -> post-match review -> full-match evidence -> time-aligned segment evidence`
 
 TactiTwin is not intended to predict a final score with certainty. It is a decision-support system for exploring tactical risks, opportunities and "what if" scenarios before, during and after a match while retaining evidence, confidence and method boundaries.
 
@@ -26,7 +26,8 @@ The first phase focuses on:
 - Explicit staff-confirmed live observations.
 - Persistent match-day sessions and decision timelines.
 - Descriptive post-match prepared / observed / activated audit.
-- Post-match event-evidence comparison against the immutable live record.
+- Full-match event-evidence comparison against the immutable live record.
+- Time-aligned event evidence inside reconstructed A/B/C intervals.
 - WordPress administration UI and REST endpoints.
 
 Initial data-source targets:
@@ -56,6 +57,7 @@ The current WordPress plugin supports:
 - A/B/C timeline and transition reconstruction.
 - Descriptive Session Review separating what was prepared, observed and activated.
 - Evidence Review linking a Live Session to an imported match and comparing staff observations with transparent full-match event proxies.
+- Segment Evidence comparing the same signals inside the exact A/B/C intervals reconstructed from staff snapshots.
 
 ### Game State / What-if
 
@@ -67,7 +69,7 @@ Current score-state evidence includes observed minutes, shots, xG, progressive a
 
 The current match-day workflow is:
 
-`Match Plan -> Contingency Playbook -> Live Playbook -> Live Session -> Session Review -> Evidence Review`
+`Match Plan -> Contingency Playbook -> Live Playbook -> Live Session -> Session Review -> Evidence Review -> Segment Evidence`
 
 Plan B is never activated merely because historical data predicted an opponent behaviour. A supported manual observation from the staff can activate Plan B when Plan C is not already required by score/manpower context. Plan C keeps precedence for the configured score/manpower contingencies.
 
@@ -85,11 +87,31 @@ A Live Session can be linked to a compatible imported match. Once event data exi
 
 The result uses explicit `supported`, `partially-supported`, `not-supported` and `insufficient` states. This layer does **not** replace the live staff record, does not claim event data is tracking, and does not score coaching quality or causality.
 
+### Time-Aligned Segment Evidence
+
+v1.4 slices the linked event stream into the same intervals reconstructed from the Live Session timeline. A transition at minute `M` follows an explicit boundary rule: the old plan ends before minute `M` and the new plan receives events stamped with minute `M`. The final segment includes its final stored minute.
+
+Each interval includes:
+
+- Plan A/B/C, mode and active scenario;
+- from/to minute and snapshot IDs;
+- event count;
+- staff observations recorded in that segment;
+- all five event-derived tactical signals;
+- active-scenario evidence when a Plan B scenario is active;
+- compact team/opponent metrics for auditability.
+
+Segment thresholds are different from full-match thresholds. Short intervals use minimum sample gates and per-90 normalization where appropriate, preventing a 15-minute segment from being judged with a 90-minute raw-count requirement.
+
+Events before the first snapshot are explicitly left outside the reconstructed plan timeline rather than silently assigned to Plan A.
+
 ## Method boundaries
 
 The current version deliberately does not claim to model full team block height, compactness, every off-ball pressure, causal coaching impact or tracking-derived player geometry unless the necessary data exists.
 
-v1.3 event evidence is currently aggregated over the full match. It cannot prove that a full-match event signal occurred at the exact minute of a staff snapshot. Time-aligned evidence by A/B/C segment is a later layer.
+v1.3 remains the full-match evidence layer. v1.4 adds minute-aligned evidence for reconstructed A/B/C intervals, but snapshots are still minute-granular and do not prove continuous staff observation between submissions. A transition sequence crossing a segment boundary can be split and undercounted.
+
+Neither full-match nor segment evidence proves that a tactical decision caused a positive or negative outcome.
 
 ## Key REST surfaces
 
@@ -102,6 +124,8 @@ Examples include:
 - `GET /wp-json/tactitwin/v1/planning/live-sessions/{session_uuid}/review`
 - `GET /wp-json/tactitwin/v1/planning/live-sessions/{session_uuid}/matching-matches`
 - `POST /wp-json/tactitwin/v1/planning/live-sessions/{session_uuid}/link-match`
+
+The existing post-match review response contains both `objective_evidence` and `segment_evidence` when a linked match with events is available.
 
 ## Planned modules
 
@@ -127,6 +151,7 @@ Examples include:
 - **v1.1 — Persistent Live Session Timeline**
 - **v1.2 — Descriptive Post-Match Review**
 - **v1.3 — Objective Post-Match Event Evidence**
+- **v1.4 — Time-Aligned Segment Evidence**
 
 ## Repository workflow
 
@@ -134,4 +159,4 @@ Development should flow through feature branches and pull requests into `main`, 
 
 ## Status
 
-Active coach-usable MVP development. The current product spans pre-match tactical analysis, lineup decision support, contingency planning, explicit live staff observation, persistent match-day audit trails and post-match event-evidence review.
+Active coach-usable MVP development. The current product spans pre-match tactical analysis, lineup decision support, contingency planning, explicit live staff observation, persistent match-day audit trails, full-match post-match evidence and time-aligned A/B/C segment review.

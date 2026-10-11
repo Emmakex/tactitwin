@@ -5,26 +5,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 final class TactiTwin_Analysis_Service {
-    public function match_summary( int $match_id ): array {
+    public function match_events( int $match_id ): array {
         global $wpdb;
 
-        $match_table = TactiTwin_DB::table( 'matches' );
         $event_table = TactiTwin_DB::table( 'events' );
-        $team_table  = TactiTwin_DB::table( 'teams' );
-
-        $match = $wpdb->get_row(
-            $wpdb->prepare(
-                "SELECT * FROM {$match_table} WHERE source = %s AND source_match_id = %s LIMIT 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-                TactiTwin_StatsBomb_Normalizer::SOURCE,
-                (string) $match_id
-            ),
-            ARRAY_A
-        );
-
-        if ( ! $match ) {
-            throw new RuntimeException( 'Match metadata is not imported yet.' );
-        }
-
         $events = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT event_index, period, minute, second, possession, possession_team_source_id,
@@ -42,6 +26,30 @@ final class TactiTwin_Analysis_Service {
         if ( empty( $events ) ) {
             throw new RuntimeException( 'Match events are not imported yet.' );
         }
+
+        return $events;
+    }
+
+    public function match_summary( int $match_id ): array {
+        global $wpdb;
+
+        $match_table = TactiTwin_DB::table( 'matches' );
+        $team_table  = TactiTwin_DB::table( 'teams' );
+
+        $match = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT * FROM {$match_table} WHERE source = %s AND source_match_id = %s LIMIT 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                TactiTwin_StatsBomb_Normalizer::SOURCE,
+                (string) $match_id
+            ),
+            ARRAY_A
+        );
+
+        if ( ! $match ) {
+            throw new RuntimeException( 'Match metadata is not imported yet.' );
+        }
+
+        $events = $this->match_events( $match_id );
 
         $metrics     = TactiTwin_Match_Metrics::calculate( $events );
         $transitions = TactiTwin_Transition_Metrics::calculate( $events );
