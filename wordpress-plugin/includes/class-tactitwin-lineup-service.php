@@ -75,11 +75,22 @@ final class TactiTwin_Lineup_Service {
         );
         $unit = TactiTwin_Unit_Comparison::interpret( $unit_raw, $language );
         $result['unit_interactions'] = $unit;
+
+        $phase_raw = ( new TactiTwin_Phase_Unit_Service() )->compare_lineups(
+            $team_id,
+            $baseline_player_ids,
+            $candidate_player_ids,
+            $limit
+        );
+        $phase = TactiTwin_Phase_Unit_Comparison::interpret( $phase_raw, $language );
+        $result['phase_unit_interactions'] = $phase;
+
         $result['recommendations'] = array_values(
             array_unique(
                 array_merge(
                     $result['recommendations'] ?? array(),
-                    $unit['recommendations'] ?? array()
+                    $unit['recommendations'] ?? array(),
+                    $phase['recommendations'] ?? array()
                 )
             )
         );
