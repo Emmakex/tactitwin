@@ -33,6 +33,11 @@ final class TactiTwin_Match_Plan_REST {
                         'sanitize_callback' => 'absint',
                         'validate_callback' => static fn( $value ): bool => (int) $value >= 1 && (int) $value <= 10,
                     ),
+                    'precedent_context_limit' => array(
+                        'default'           => 3,
+                        'sanitize_callback' => 'absint',
+                        'validate_callback' => static fn( $value ): bool => (int) $value >= 1 && (int) $value <= 10,
+                    ),
                     'lang' => array(
                         'default'           => TactiTwin_I18n::current_language(),
                         'sanitize_callback' => 'sanitize_key',
@@ -50,11 +55,12 @@ final class TactiTwin_Match_Plan_REST {
     public static function match_plan( WP_REST_Request $request ) {
         try {
             $language = TactiTwin_I18n::normalize_language( (string) ( $request['lang'] ?? TactiTwin_I18n::current_language() ) );
-            $result = ( new TactiTwin_Profile_Service() )->match_plan(
+            $result = ( new TactiTwin_Precedent_Aware_Match_Plan_Service() )->evaluate(
                 (int) $request['team_id'],
                 (int) $request['opponent_id'],
                 (int) $request['limit'],
-                $language
+                $language,
+                (int) $request['precedent_context_limit']
             );
 
             return new WP_REST_Response( array( 'ok' => true, 'result' => $result ), 200 );
