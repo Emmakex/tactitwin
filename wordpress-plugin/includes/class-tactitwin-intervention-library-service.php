@@ -168,50 +168,54 @@ final class TactiTwin_Intervention_Library_Service {
         $library_invalid_cases = 0;
         $signed_session_ids = array();
 
-        foreach ( $library['groups'] ?? array() as &$group ) {
-            $signed_cases = 0;
-            $unsigned_cases = 0;
-            $invalid_cases = 0;
-            $group_signed_sessions = array();
-            $latest_revision = 0;
+        if ( ! empty( $library['groups'] ) && is_array( $library['groups'] ) ) {
+            foreach ( $library['groups'] as &$group ) {
+                $signed_cases = 0;
+                $unsigned_cases = 0;
+                $invalid_cases = 0;
+                $group_signed_sessions = array();
+                $latest_revision = 0;
 
-            foreach ( $group['cases'] ?? array() as &$case ) {
-                $session_uuid = (string) ( $case['session_uuid'] ?? '' );
-                $marker = is_array( $review_markers[ $session_uuid ] ?? null )
-                    ? $review_markers[ $session_uuid ]
-                    : self::unsigned_review_marker( $session_uuid );
-                $case['learning_review'] = $marker;
-                if ( 'signed' === (string) ( $marker['status'] ?? '' ) ) {
-                    ++$signed_cases;
-                    ++$library_signed_cases;
-                    $group_signed_sessions[ $session_uuid ] = true;
-                    $signed_session_ids[ $session_uuid ] = true;
-                    $latest_revision = max( $latest_revision, (int) ( $marker['revision_number'] ?? 0 ) );
-                } elseif ( 'invalid' === (string) ( $marker['status'] ?? '' ) ) {
-                    ++$invalid_cases;
-                    ++$library_invalid_cases;
-                } else {
-                    ++$unsigned_cases;
-                    ++$library_unsigned_cases;
+                if ( ! empty( $group['cases'] ) && is_array( $group['cases'] ) ) {
+                    foreach ( $group['cases'] as &$case ) {
+                        $session_uuid = (string) ( $case['session_uuid'] ?? '' );
+                        $marker = is_array( $review_markers[ $session_uuid ] ?? null )
+                            ? $review_markers[ $session_uuid ]
+                            : self::unsigned_review_marker( $session_uuid );
+                        $case['learning_review'] = $marker;
+                        if ( 'signed' === (string) ( $marker['status'] ?? '' ) ) {
+                            ++$signed_cases;
+                            ++$library_signed_cases;
+                            $group_signed_sessions[ $session_uuid ] = true;
+                            $signed_session_ids[ $session_uuid ] = true;
+                            $latest_revision = max( $latest_revision, (int) ( $marker['revision_number'] ?? 0 ) );
+                        } elseif ( 'invalid' === (string) ( $marker['status'] ?? '' ) ) {
+                            ++$invalid_cases;
+                            ++$library_invalid_cases;
+                        } else {
+                            ++$unsigned_cases;
+                            ++$library_unsigned_cases;
+                        }
+                    }
+                    unset( $case );
                 }
-            }
-            unset( $case );
 
-            $total = $signed_cases + $unsigned_cases + $invalid_cases;
-            $group['learning_review'] = array(
-                'status' => self::coverage_status( $signed_cases, $unsigned_cases, $invalid_cases ),
-                'scope' => $scope,
-                'signed_cases' => $signed_cases,
-                'unsigned_cases' => $unsigned_cases,
-                'invalid_cases' => $invalid_cases,
-                'total_cases' => $total,
-                'signed_sessions' => count( $group_signed_sessions ),
-                'latest_signed_revision' => $latest_revision,
-                'affects_metrics' => 'signed' === $scope,
-                'affects_ranking' => false,
-            );
+                $total = $signed_cases + $unsigned_cases + $invalid_cases;
+                $group['learning_review'] = array(
+                    'status' => self::coverage_status( $signed_cases, $unsigned_cases, $invalid_cases ),
+                    'scope' => $scope,
+                    'signed_cases' => $signed_cases,
+                    'unsigned_cases' => $unsigned_cases,
+                    'invalid_cases' => $invalid_cases,
+                    'total_cases' => $total,
+                    'signed_sessions' => count( $group_signed_sessions ),
+                    'latest_signed_revision' => $latest_revision,
+                    'affects_metrics' => 'signed' === $scope,
+                    'affects_ranking' => false,
+                );
+            }
+            unset( $group );
         }
-        unset( $group );
 
         $library['learning_review'] = array(
             'scope' => $scope,
