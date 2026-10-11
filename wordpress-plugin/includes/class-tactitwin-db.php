@@ -5,7 +5,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 final class TactiTwin_DB {
-    public const SCHEMA_VERSION = '0.4.0';
+    public const SCHEMA_VERSION = '0.5.0';
 
     public static function install(): void {
         global $wpdb;
@@ -14,14 +14,15 @@ final class TactiTwin_DB {
 
         $charset = $wpdb->get_charset_collate();
 
-        $competitions          = $wpdb->prefix . 'tactitwin_competitions';
-        $teams                 = $wpdb->prefix . 'tactitwin_teams';
-        $players               = $wpdb->prefix . 'tactitwin_players';
-        $matches               = $wpdb->prefix . 'tactitwin_matches';
-        $events                = $wpdb->prefix . 'tactitwin_events';
-        $staff_brief_snapshots = $wpdb->prefix . 'tactitwin_staff_brief_snapshots';
-        $live_sessions         = $wpdb->prefix . 'tactitwin_live_sessions';
-        $live_snapshots        = $wpdb->prefix . 'tactitwin_live_snapshots';
+        $competitions                = $wpdb->prefix . 'tactitwin_competitions';
+        $teams                       = $wpdb->prefix . 'tactitwin_teams';
+        $players                     = $wpdb->prefix . 'tactitwin_players';
+        $matches                     = $wpdb->prefix . 'tactitwin_matches';
+        $events                      = $wpdb->prefix . 'tactitwin_events';
+        $staff_brief_snapshots       = $wpdb->prefix . 'tactitwin_staff_brief_snapshots';
+        $live_sessions               = $wpdb->prefix . 'tactitwin_live_sessions';
+        $live_snapshots              = $wpdb->prefix . 'tactitwin_live_snapshots';
+        $post_match_review_snapshots = $wpdb->prefix . 'tactitwin_post_match_review_snapshots';
 
         dbDelta(
             "CREATE TABLE {$competitions} (
@@ -201,13 +202,38 @@ final class TactiTwin_DB {
             ) {$charset};"
         );
 
+        dbDelta(
+            "CREATE TABLE {$post_match_review_snapshots} (
+                id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+                review_uuid varchar(64) NOT NULL,
+                fixture_key char(64) NOT NULL,
+                session_uuid varchar(64) NOT NULL,
+                staff_brief_snapshot_uuid varchar(64) NOT NULL,
+                source_match_id varchar(64) NOT NULL,
+                revision_number int(11) unsigned NOT NULL DEFAULT 1,
+                parent_review_uuid varchar(64) NOT NULL DEFAULT '',
+                parent_content_sha256 char(64) NOT NULL DEFAULT '',
+                review_sha256 char(64) NOT NULL,
+                content_sha256 char(64) NOT NULL,
+                signed_by bigint(20) unsigned NOT NULL DEFAULT 0,
+                signed_at datetime NOT NULL,
+                snapshot_json longtext NOT NULL,
+                PRIMARY KEY  (id),
+                UNIQUE KEY review_uuid (review_uuid),
+                UNIQUE KEY session_revision (session_uuid, revision_number),
+                KEY fixture_key (fixture_key),
+                KEY session_uuid (session_uuid),
+                KEY signed_at (signed_at)
+            ) {$charset};"
+        );
+
         update_option( 'tactitwin_schema_version', self::SCHEMA_VERSION );
     }
 
     public static function table( string $entity ): string {
         global $wpdb;
 
-        $allowed = array( 'competitions', 'teams', 'players', 'matches', 'events', 'staff_brief_snapshots', 'live_sessions', 'live_snapshots' );
+        $allowed = array( 'competitions', 'teams', 'players', 'matches', 'events', 'staff_brief_snapshots', 'live_sessions', 'live_snapshots', 'post_match_review_snapshots' );
         if ( ! in_array( $entity, $allowed, true ) ) {
             throw new InvalidArgumentException( 'Unknown TactiTwin entity table.' );
         }
@@ -219,7 +245,7 @@ final class TactiTwin_DB {
         global $wpdb;
 
         $counts = array();
-        foreach ( array( 'competitions', 'teams', 'players', 'matches', 'events', 'staff_brief_snapshots', 'live_sessions', 'live_snapshots' ) as $entity ) {
+        foreach ( array( 'competitions', 'teams', 'players', 'matches', 'events', 'staff_brief_snapshots', 'live_sessions', 'live_snapshots', 'post_match_review_snapshots' ) as $entity ) {
             $table             = self::table( $entity );
             $counts[ $entity ] = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         }

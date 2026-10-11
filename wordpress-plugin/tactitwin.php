@@ -58,6 +58,8 @@ require_once TACTITWIN_DIR . 'includes/class-tactitwin-time-aligned-evidence.php
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-transition-window-deltas.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-context-aware-transition-review.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-post-match-review-service.php';
+require_once TACTITWIN_DIR . 'includes/class-tactitwin-post-match-review-snapshot.php';
+require_once TACTITWIN_DIR . 'includes/class-tactitwin-post-match-review-signoff-service.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-context-matched-intervention-library.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-intervention-library-service.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-historical-precedent-retrieval.php';
