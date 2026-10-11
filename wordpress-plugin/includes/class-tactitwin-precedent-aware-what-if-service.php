@@ -4,6 +4,11 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+require_once TACTITWIN_DIR . 'includes/class-tactitwin-historical-team-profile-service.php';
+require_once TACTITWIN_DIR . 'includes/class-tactitwin-opponent-context-distance.php';
+require_once TACTITWIN_DIR . 'includes/class-tactitwin-opponent-context-similarity-service.php';
+require_once TACTITWIN_DIR . 'includes/class-tactitwin-precedent-similarity-attachment.php';
+
 final class TactiTwin_Precedent_Aware_What_If_Service {
     public function evaluate(
         int $team_id,
