@@ -94,7 +94,7 @@ final class TactiTwin_Evidence_Quality_Calibrator {
                 continue;
             }
             $seconds = max( 0, $as_of->getTimestamp() - $date->getTimestamp() );
-            $days[] = $seconds / DAY_IN_SECONDS;
+            $days[] = $seconds / 86400;
         }
         sort( $days, SORT_NUMERIC );
         if ( empty( $days ) ) {
