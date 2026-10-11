@@ -82,6 +82,7 @@ require_once TACTITWIN_DIR . 'includes/class-tactitwin-evidence-conflict-signals
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-match-day-staff-brief.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-staff-brief-snapshot.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-staff-brief-version-diff.php';
+require_once TACTITWIN_DIR . 'includes/class-tactitwin-staff-brief-revision-chain.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-staff-brief-snapshot-service.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-precedent-aware-what-if-service.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-precedent-aware-match-plan-service.php';
