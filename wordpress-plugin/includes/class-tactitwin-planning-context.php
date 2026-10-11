@@ -13,6 +13,9 @@ final class TactiTwin_Planning_Context {
         'tactitwin_run_what_if' => 'tactitwin_run_what_if',
         'tactitwin_run_live_playbook' => 'tactitwin_run_live_playbook',
         'tactitwin_generate_staff_brief' => 'tactitwin_generate_staff_brief',
+        'tactitwin_run_personnel_what_if' => 'tactitwin_run_personnel_what_if',
+        'tactitwin_run_unit_pair' => 'tactitwin_run_unit_pair',
+        'tactitwin_run_lineup_what_if' => 'tactitwin_run_lineup_what_if',
     );
 
     private const PAGE_ACTIONS = array(
@@ -21,6 +24,9 @@ final class TactiTwin_Planning_Context {
         'tactitwin-what-if' => 'tactitwin_run_what_if',
         'tactitwin-live-playbook' => 'tactitwin_run_live_playbook',
         'tactitwin-staff-brief' => 'tactitwin_generate_staff_brief',
+        'tactitwin-personnel-lab' => 'tactitwin_run_personnel_what_if',
+        'tactitwin-unit-lab' => 'tactitwin_run_unit_pair',
+        'tactitwin-lineup-lab' => 'tactitwin_run_lineup_what_if',
     );
 
     public static function register(): void {
@@ -28,6 +34,14 @@ final class TactiTwin_Planning_Context {
             add_action( 'admin_post_' . $action, array( self::class, 'apply_request_context' ), 1 );
         }
         add_action( 'admin_footer', array( self::class, 'render_selector' ), 4 );
+    }
+
+    public static function supported_actions(): array {
+        return array_keys( self::ACTION_NONCES );
+    }
+
+    public static function supported_pages(): array {
+        return self::PAGE_ACTIONS;
     }
 
     public static function decode_selection( string $selection ): array {
@@ -75,6 +89,18 @@ final class TactiTwin_Planning_Context {
         );
     }
 
+    public static function resolve_selection( string $selection ): array {
+        $decoded = self::decode_selection( $selection );
+        if ( empty( $decoded ) ) {
+            return array();
+        }
+        $resolved = ( new TactiTwin_Match_Target_Service() )->resolve(
+            (int) $decoded['target_match_row_id'],
+            (string) $decoded['team_source_id']
+        );
+        return self::build_context( $resolved );
+    }
+
     public static function apply_to_payload( array $payload, array $context, string $action ): array {
         $team_id = trim( (string) ( $context['team_source_id'] ?? '' ) );
         $opponent_id = trim( (string) ( $context['opponent_source_id'] ?? '' ) );
@@ -103,6 +129,26 @@ final class TactiTwin_Planning_Context {
         return is_array( $stored ) ? $stored : array();
     }
 
+    public static function store_current( array $context ): void {
+        if ( ! function_exists( 'get_current_user_id' ) || ! function_exists( 'update_user_meta' ) ) {
+            return;
+        }
+        $user_id = get_current_user_id();
+        if ( $user_id > 0 ) {
+            update_user_meta( $user_id, self::USER_META_KEY, $context );
+        }
+    }
+
+    public static function clear_current(): void {
+        if ( ! function_exists( 'get_current_user_id' ) || ! function_exists( 'delete_user_meta' ) ) {
+            return;
+        }
+        $user_id = get_current_user_id();
+        if ( $user_id > 0 ) {
+            delete_user_meta( $user_id, self::USER_META_KEY );
+        }
+    }
+
     public static function apply_request_context(): void {
         if ( ! current_user_can( 'manage_options' ) ) {
             return;
@@ -123,19 +169,14 @@ final class TactiTwin_Planning_Context {
 
         if ( '' === trim( $selection ) ) {
             if ( $has_selector ) {
-                delete_user_meta( get_current_user_id(), self::USER_META_KEY );
+                self::clear_current();
             }
             return;
         }
 
         try {
-            $decoded = self::decode_selection( $selection );
-            $resolved = ( new TactiTwin_Match_Target_Service() )->resolve(
-                (int) $decoded['target_match_row_id'],
-                (string) $decoded['team_source_id']
-            );
-            $context = self::build_context( $resolved );
-            update_user_meta( get_current_user_id(), self::USER_META_KEY, $context );
+            $context = self::resolve_selection( $selection );
+            self::store_current( $context );
             $_POST = self::apply_to_payload( $_POST, $context, $action );
         } catch ( Throwable $e ) {
             $page = array_search( $action, self::PAGE_ACTIONS, true );
@@ -228,7 +269,10 @@ final class TactiTwin_Planning_Context {
             var selectValue = function (field, value) {
                 if (!field || !value) return;
                 var option = Array.prototype.find.call(field.options || [], function (item) { return item.value === String(value); });
-                if (option) field.value = String(value);
+                if (!option) return;
+                var changed = field.value !== String(value);
+                field.value = String(value);
+                if (changed) field.dispatchEvent(new Event('change', { bubbles: true }));
             };
             var sync = function () {
                 var option = selector.options[selector.selectedIndex];
@@ -257,6 +301,9 @@ final class TactiTwin_Planning_Context {
             'tactitwin_run_what_if' => 'tactitwin_what_if_error_',
             'tactitwin_run_live_playbook' => 'tactitwin_live_playbook_error_',
             'tactitwin_generate_staff_brief' => 'tactitwin_staff_brief_error_',
+            'tactitwin_run_personnel_what_if' => 'tactitwin_personnel_error_',
+            'tactitwin_run_unit_pair' => 'tactitwin_unit_error_',
+            'tactitwin_run_lineup_what_if' => 'tactitwin_lineup_error_',
         )[ $action ] ?? '';
     }
 
@@ -266,7 +313,7 @@ final class TactiTwin_Planning_Context {
                 'label' => 'Contexto del partido',
                 'manual' => '— Selección manual de equipos —',
                 'our_team' => 'Nuestro equipo',
-                'help' => 'Selecciona una vez el partido real y la perspectiva. TactiTwin reutilizará este mismo contexto en Scenario Lab, Match Plan, What-if, Live Playbook y Staff Brief.',
+                'help' => 'Selecciona una vez el partido real y la perspectiva. TactiTwin reutilizará este contexto en análisis, Match Plan, What-if, alineaciones, jugadores, unidades, Live Playbook y Staff Brief.',
                 'none' => 'No hay partidos importados disponibles. Se mantiene la selección manual de equipos.',
                 'locked' => 'Estos equipos vienen del contexto de partido activo y se validan de nuevo en servidor.',
             );
@@ -275,7 +322,7 @@ final class TactiTwin_Planning_Context {
             'label' => 'Match context',
             'manual' => '— Manual team selection —',
             'our_team' => 'Our team',
-            'help' => 'Select the real match and team perspective once. TactiTwin will reuse this same context across Scenario Lab, Match Plan, What-if, Live Playbook and Staff Brief.',
+            'help' => 'Select the real match and team perspective once. TactiTwin will reuse this context across analysis, Match Plan, What-if, lineups, personnel, units, Live Playbook and Staff Brief.',
             'none' => 'No imported matches are available. Manual team selection remains available.',
             'locked' => 'These teams come from the active match context and are validated again server-side.',
         );
