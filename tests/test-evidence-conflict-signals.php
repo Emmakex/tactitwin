@@ -129,7 +129,9 @@ foreach ( $opposed['conflict_signals']['signals'] as $signal ) {
         break;
     }
 }
-tt_v115_assert( 2 === count( $opposed_signal['evidence']['metrics'] ?? array() ), 'only materially opposed shared metrics are reported' );
+$opposed_metrics = $opposed_signal['evidence']['metrics'] ?? array();
+tt_v115_assert( 1 === count( $opposed_metrics ), 'only materially opposed shared metrics are reported' );
+tt_v115_assert( 'box_entries' === (string) ( $opposed_metrics[0]['metric'] ?? '' ), 'sub-threshold xG opposition is deliberately excluded' );
 
 $missing = tt_v115_brief(
     tt_v115_candidate( 'missing', 72.0, null, 73.0 )
