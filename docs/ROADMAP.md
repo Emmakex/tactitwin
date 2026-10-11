@@ -19,7 +19,12 @@ Implemented milestones now include:
 - v1.19.1 snapshot-identity binding for approval revisions;
 - v1.20 exact fixture identity, so approval history, diffs and handoff are scoped to one football match rather than only a team/opponent pairing;
 - v1.21 imported Match Target Resolution, so a Staff Brief can select a canonical persisted match and inherit its provider identity, participants and schedule context automatically;
-- **v1.22 Match-Centric Planning Context**, so one imported match + team perspective is reused across Scenario Lab, Match Plan, What-if, Live Playbook and Staff Brief instead of being reselected independently.
+- v1.22 Match-Centric Planning Context, so one imported match + team perspective is reused across Scenario Lab, Match Plan, What-if, Live Playbook and Staff Brief instead of being reselected independently;
+- **v1.23 Match Workspace**, so the active match becomes the WordPress operational home, the full preparation/live/review flow is navigable from one surface, and Lineup, Personnel and Unit Lab join the shared planning context.
+
+### v1.23 exit criterion
+
+Opening TactiTwin lands on a Match Workspace where staff can select one imported match + team perspective, see its canonical fixture context and navigate the full pre-match / match-day / post-match workflow. Lineup and Personnel must inherit the canonical team/opponent pair, Unit Lab must inherit the canonical team, and roster selectors must refresh when context changes. Live Sessions must remain handoff-derived; Session Review, Evidence Review, Segment Evidence and Transition Deltas must remain session-derived; Intervention Library must remain cross-session historical; and the former import dashboard must remain available under Data & Imports.
 
 ### v1.22 exit criterion
 

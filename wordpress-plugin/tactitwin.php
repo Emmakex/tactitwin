@@ -126,6 +126,7 @@ require_once TACTITWIN_DIR . 'includes/class-tactitwin-fixture-identity-admin.ph
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-personnel-admin.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-unit-admin.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-lineup-admin.php';
+require_once TACTITWIN_DIR . 'includes/class-tactitwin-match-workspace-admin.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin.php';
 
 register_activation_hook( __FILE__, array( 'TactiTwin', 'activate' ) );
@@ -165,4 +166,5 @@ TactiTwin_Fixture_Identity_Admin::register();
 TactiTwin_Personnel_Admin::register();
 TactiTwin_Unit_Admin::register();
 TactiTwin_Lineup_Admin::register();
+TactiTwin_Match_Workspace_Admin::register();
 TactiTwin::instance();
