@@ -5,7 +5,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 final class TactiTwin_Match_Day_Staff_Brief {
-    public static function compose( array $match_plan, array $playbook, string $language = 'en' ): array {
+    public static function compose( array $match_plan, array $playbook, string $language = 'en', array $fixture = array() ): array {
         $language = TactiTwin_I18n::normalize_language( $language );
         if ( 'match-plan' !== (string) ( $match_plan['plan_id'] ?? '' ) ) {
             throw new InvalidArgumentException( 'Match-day staff brief requires a TactiTwin Match Plan.' );
@@ -23,6 +23,12 @@ final class TactiTwin_Match_Day_Staff_Brief {
             throw new InvalidArgumentException( 'Match Plan and Contingency Playbook must describe the same matchup.' );
         }
 
+        if ( empty( $fixture ) && function_exists( 'apply_filters' ) ) {
+            $filtered = apply_filters( 'tactitwin_staff_brief_fixture_identity', array(), $match_plan, $playbook, $language );
+            $fixture = is_array( $filtered ) ? $filtered : array();
+        }
+        $fixture_identity = empty( $fixture ) ? array() : TactiTwin_Fixture_Identity::normalize( $fixture, $team_id, $opponent_id );
+
         $plans = array();
         foreach ( array( 'plan_a'=>'A', 'plan_b'=>'B', 'plan_c'=>'C' ) as $key => $id ) {
             $source = is_array( $playbook['plans'][ $key ] ?? null ) ? $playbook['plans'][ $key ] : array();
@@ -31,7 +37,7 @@ final class TactiTwin_Match_Day_Staff_Brief {
 
         $material_tensions = self::material_tensions( $plans );
 
-        return array(
+        $brief = array(
             'staff_brief_id' => 'match-day-staff-brief',
             'language' => $language,
             'team' => $match_plan['team'] ?? array(),
@@ -62,6 +68,7 @@ final class TactiTwin_Match_Day_Staff_Brief {
                 'pre_match_reference_context' => true,
                 'handoff_source_included' => true,
                 'handoff_source_recalculated_on_approval' => false,
+                'fixture_identity_bound' => ! empty( $fixture_identity ),
                 'creates_new_tactical_score' => false,
                 'reorders_priorities' => false,
                 'changes_plan_activation' => false,
@@ -70,6 +77,10 @@ final class TactiTwin_Match_Day_Staff_Brief {
                 'note' => self::text( 'method', $language ),
             ),
         );
+        if ( ! empty( $fixture_identity ) ) {
+            $brief['fixture'] = $fixture_identity;
+        }
+        return $brief;
     }
 
     private static function plan_card( array $source, string $fallback_id ): array {
@@ -162,12 +173,12 @@ final class TactiTwin_Match_Day_Staff_Brief {
     private static function text( string $key, string $language ): string {
         $catalog = array(
             'en' => array(
-                'method' => 'v1.17 keeps v1.16 presentation behavior and additionally carries the exact Match Plan and Contingency Playbook source payload required for explicit approval and immutable Live Session handoff. It still creates no tactical score and changes no recommendation or plan activation.',
+                'method' => 'v1.20 keeps the existing Staff Brief presentation and handoff behavior while allowing the brief to be bound to one exact fixture identity. It creates no tactical score and changes no recommendation or plan activation.',
                 'watch_clear' => 'No material evidence tension is present in the visible Plan A/B/C briefs.',
                 'watch_review' => 'One or more material evidence tensions should be reviewed by staff before relying on the historical analogy.',
             ),
             'es' => array(
-                'method' => 'v1.17 mantiene la presentación de v1.16 y además conserva el payload exacto de Match Plan y Contingency Playbook necesario para aprobación explícita y handoff inmutable a Live Session. Sigue sin crear scores tácticos ni cambiar recomendaciones o activación de planes.',
+                'method' => 'v1.20 mantiene la presentación y el handoff existentes del Staff Brief y permite vincular el brief a la identidad de un partido concreto. Sigue sin crear scores tácticos ni cambiar recomendaciones o activación de planes.',
                 'watch_clear' => 'No hay tensiones materiales de evidencia en los briefs visibles de Plan A/B/C.',
                 'watch_review' => 'Hay una o más tensiones materiales de evidencia que el staff debería revisar antes de apoyarse en la analogía histórica.',
             ),
