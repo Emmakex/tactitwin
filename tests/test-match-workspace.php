@@ -66,6 +66,10 @@ $expected_order = array(
     'live_playbook',
     'live_sessions',
     'session_review',
+    'evidence_review',
+    'segment_evidence',
+    'transition_deltas',
+    'intervention_library',
 );
 tt_v123_assert( $expected_order === $ids, 'workspace exposes the intended end-to-end match workflow in deterministic order' );
 tt_v123_assert( count( $pages ) === count( array_unique( $pages ) ), 'workspace page links are unique' );
@@ -74,7 +78,10 @@ tt_v123_assert( 'direct' === $steps[3]['context_mode'], 'Lineup Lab consumes act
 tt_v123_assert( 'direct' === $steps[4]['context_mode'], 'Personnel Lab consumes active match context directly' );
 tt_v123_assert( 'team' === $steps[5]['context_mode'], 'Unit Lab consumes the active-match team while remaining opponent-independent' );
 tt_v123_assert( 'handoff' === $steps[8]['context_mode'], 'Live Sessions remain downstream of approved/session handoff rather than being silently rebound' );
-tt_v123_assert( 'session' === $steps[9]['context_mode'], 'post-match review remains session-derived' );
+foreach ( array( 9, 10, 11, 12 ) as $index ) {
+    tt_v123_assert( 'session' === $steps[ $index ]['context_mode'], $steps[ $index ]['id'] . ' remains session-derived' );
+}
+tt_v123_assert( 'history' === $steps[13]['context_mode'], 'Intervention Library remains a cross-session historical layer' );
 
 $away = TactiTwin_Planning_Context::build_context( TactiTwin_Match_Target_Service::resolve_row( $match, '400' ) );
 tt_v123_assert( $context['fixture_key'] !== $away['fixture_key'], 'opposite team perspectives remain separate fixture scopes in workspace mode' );
