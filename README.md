@@ -6,9 +6,9 @@ TactiTwin is a football tactical analysis and match-scenario simulation project.
 
 ## Product direction
 
-`public/open data -> normalized football model -> tactical analysis -> scenario engine -> recommendations -> match plan -> game-state what-if`
+`public/open data -> normalized football model -> tactical analysis -> scenario engine -> lineup decisions -> match plan -> Plan A/B/C -> live staff observations -> persistent match-day timeline -> post-match review -> event-evidence audit`
 
-TactiTwin is not intended to predict a final score with certainty. It is a decision-support system for exploring tactical risks, opportunities and "what if" scenarios before and during match preparation.
+TactiTwin is not intended to predict a final score with certainty. It is a decision-support system for exploring tactical risks, opportunities and "what if" scenarios before, during and after a match while retaining evidence, confidence and method boundaries.
 
 ## Phase 1 — WordPress MVP
 
@@ -20,7 +20,13 @@ The first phase focuses on:
 - Tactical metrics and opponent profiling.
 - Scenario simulation with rules, weights and scores.
 - Match-plan recommendations with explainable evidence.
-- Historical score-state conditioning for leading/drawing/trailing What-if scenarios.
+- Historical score-state and manpower conditioning.
+- Lineup and unit what-if comparison.
+- Plan A / B / C contingency preparation.
+- Explicit staff-confirmed live observations.
+- Persistent match-day sessions and decision timelines.
+- Descriptive post-match prepared / observed / activated audit.
+- Post-match event-evidence comparison against the immutable live record.
 - WordPress administration UI and REST endpoints.
 
 Initial data-source targets:
@@ -42,6 +48,14 @@ The current WordPress plugin supports:
 - Full Matchup Scan across all five scenarios.
 - Bilingual Match Plan generation in English and Spanish.
 - Game State / What-if planning from an exact hypothetical minute and scoreline.
+- Player, unit, phase-unit and lineup comparison.
+- Opponent-conditioned lineup matchup.
+- Plan A / B / C contingency playbook.
+- Live Playbook with explicit staff-confirmed opponent-behaviour inputs.
+- Persistent Live Sessions with append-only tactical snapshots.
+- A/B/C timeline and transition reconstruction.
+- Descriptive Session Review separating what was prepared, observed and activated.
+- Evidence Review linking a Live Session to an imported match and comparing staff observations with transparent full-match event proxies.
 
 ### Game State / What-if
 
@@ -49,13 +63,45 @@ The What-if Lab accepts a hypothetical minute and exact scoreline, for example m
 
 Current score-state evidence includes observed minutes, shots, xG, progressive actions, final-third entries, box entries and pressing activity normalized per 90 minutes. The exact hypothetical scoreline is retained as context, while the historical sample is currently grouped by leading/drawing/trailing rather than exact past scoreline.
 
-The current version deliberately does not claim to model cards, substitutions, home/away splits, exact opponent-specific score states, line height or compactness unless the necessary data exists. Tracking/video-derived positional data is planned for the latter spatial signals.
+### Match-day decision workflow
 
-REST endpoint:
+The current match-day workflow is:
 
-`GET /wp-json/tactitwin/v1/planning/what-if`
+`Match Plan -> Contingency Playbook -> Live Playbook -> Live Session -> Session Review -> Evidence Review`
 
-Parameters: `team_id`, `opponent_id`, `our_score`, `opponent_score`, `minute`, `limit`, `lang`.
+Plan B is never activated merely because historical data predicted an opponent behaviour. A supported manual observation from the staff can activate Plan B when Plan C is not already required by score/manpower context. Plan C keeps precedence for the configured score/manpower contingencies.
+
+Live Sessions persist the exact playbook JSON submitted at each staff update. Post-match review therefore reconstructs the historical decision state from immutable snapshots rather than recalculating the past with newer code or newer data.
+
+### Objective Post-Match Evidence
+
+A Live Session can be linked to a compatible imported match. Once event data exists for that match, TactiTwin can compare sampled staff observations with transparent full-match event proxies for:
+
+- opponent high press,
+- opponent low/compact block,
+- transition threat after our losses,
+- opponent lateral bias,
+- access to a pre-match weak-side target when that structured target was persisted before/during the match.
+
+The result uses explicit `supported`, `partially-supported`, `not-supported` and `insufficient` states. This layer does **not** replace the live staff record, does not claim event data is tracking, and does not score coaching quality or causality.
+
+## Method boundaries
+
+The current version deliberately does not claim to model full team block height, compactness, every off-ball pressure, causal coaching impact or tracking-derived player geometry unless the necessary data exists.
+
+v1.3 event evidence is currently aggregated over the full match. It cannot prove that a full-match event signal occurred at the exact minute of a staff snapshot. Time-aligned evidence by A/B/C segment is a later layer.
+
+## Key REST surfaces
+
+Examples include:
+
+- `GET /wp-json/tactitwin/v1/planning/what-if`
+- `GET /wp-json/tactitwin/v1/planning/contingency-playbook`
+- `POST /wp-json/tactitwin/v1/planning/live-playbook`
+- persistent Live Session create/update/read/close routes
+- `GET /wp-json/tactitwin/v1/planning/live-sessions/{session_uuid}/review`
+- `GET /wp-json/tactitwin/v1/planning/live-sessions/{session_uuid}/matching-matches`
+- `POST /wp-json/tactitwin/v1/planning/live-sessions/{session_uuid}/link-match`
 
 ## Planned modules
 
@@ -68,14 +114,19 @@ Parameters: `team_id`, `opponent_id`, `our_score`, `opponent_score`, `minute`, `
 - `docs/` — architecture, roadmap and data-source documentation.
 - `tests/` — automated tests and fixtures.
 
-## Initial roadmap
+## Product milestones
 
 - **v0.1 — Core + Data Layer**
 - **v0.2 — Analysis Engine**
 - **v0.3 — Scenario Engine + Game State What-if**
 - **v0.4 — Match Planner**
 - **v0.5 — Tactical Assistant**
-- **v1.0 — Coach-usable MVP**
+- **v0.6–v0.8 — Unit / lineup / opponent-conditioned decision support**
+- **v0.9 — Contingency Playbook Plan A/B/C**
+- **v1.0 — Explicit Live Observation activation**
+- **v1.1 — Persistent Live Session Timeline**
+- **v1.2 — Descriptive Post-Match Review**
+- **v1.3 — Objective Post-Match Event Evidence**
 
 ## Repository workflow
 
@@ -83,4 +134,4 @@ Development should flow through feature branches and pull requests into `main`, 
 
 ## Status
 
-Active MVP development. The current product already combines normalized event data, explainable tactical scenarios, a Full Matchup Scan, a bilingual Match Plan and historical score-state What-if planning.
+Active coach-usable MVP development. The current product spans pre-match tactical analysis, lineup decision support, contingency planning, explicit live staff observation, persistent match-day audit trails and post-match event-evidence review.
