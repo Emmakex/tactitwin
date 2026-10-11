@@ -1,6 +1,7 @@
 <?php
 
 define( 'ABSPATH', __DIR__ );
+require_once __DIR__ . '/../wordpress-plugin/includes/class-tactitwin-i18n.php';
 require_once __DIR__ . '/../wordpress-plugin/includes/class-tactitwin-side-bias-scenario.php';
 
 function tt_side_bias_assert( $condition, string $message ): void {
