@@ -38,7 +38,7 @@ final class TactiTwin_Staff_Brief_Snapshot {
         );
         $content_sha256 = self::hash_content( $content );
         if ( ! empty( $revision ) ) {
-            $revision = TactiTwin_Staff_Brief_Revision_Chain::bind_to_content( $revision, $content_sha256 );
+            $revision = TactiTwin_Staff_Brief_Revision_Chain::bind_to_snapshot( $revision, $snapshot_uuid, $content_sha256 );
         }
 
         $language = TactiTwin_I18n::normalize_language( (string) ( $staff_brief['language'] ?? 'en' ) );
@@ -96,6 +96,11 @@ final class TactiTwin_Staff_Brief_Snapshot {
 
         if ( isset( $snapshot['revision'] ) ) {
             if ( ! is_array( $snapshot['revision'] ) || ! TactiTwin_Staff_Brief_Revision_Chain::verify( $snapshot['revision'] ) ) {
+                return false;
+            }
+            $bound_uuid = self::normalize_uuid( (string) ( $snapshot['revision']['approved_snapshot_uuid'] ?? '' ) );
+            $snapshot_uuid = self::normalize_uuid( (string) ( $snapshot['snapshot_uuid'] ?? '' ) );
+            if ( '' === $bound_uuid || '' === $snapshot_uuid || ! hash_equals( $snapshot_uuid, $bound_uuid ) ) {
                 return false;
             }
             $bound_content = strtolower( trim( (string) ( $snapshot['revision']['approved_content_sha256'] ?? '' ) ) );
