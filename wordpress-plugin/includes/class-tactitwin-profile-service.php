@@ -68,24 +68,24 @@ final class TactiTwin_Profile_Service {
         return TactiTwin_Team_Profile::aggregate( $samples );
     }
 
-    public function build_up_vs_high_press( int $team_id, int $opponent_id, int $limit = 5 ): array {
+    public function build_up_vs_high_press( int $team_id, int $opponent_id, int $limit = 5, string $language = 'en' ): array {
         $profiles = $this->matchup_profiles( $team_id, $opponent_id, $limit );
-        return TactiTwin_High_Press_Scenario::evaluate( $profiles['team'], $profiles['opponent'] );
+        return TactiTwin_High_Press_Scenario::evaluate( $profiles['team'], $profiles['opponent'], $language );
     }
 
-    public function opponent_side_bias( int $team_id, int $opponent_id, int $limit = 5 ): array {
+    public function opponent_side_bias( int $team_id, int $opponent_id, int $limit = 5, string $language = 'en' ): array {
         $profiles = $this->matchup_profiles( $team_id, $opponent_id, $limit );
-        return TactiTwin_Side_Bias_Scenario::evaluate( $profiles['team'], $profiles['opponent'] );
+        return TactiTwin_Side_Bias_Scenario::evaluate( $profiles['team'], $profiles['opponent'], $language );
     }
 
-    public function defensive_transition_after_loss( int $team_id, int $opponent_id, int $limit = 5 ): array {
+    public function defensive_transition_after_loss( int $team_id, int $opponent_id, int $limit = 5, string $language = 'en' ): array {
         $profiles = $this->matchup_profiles( $team_id, $opponent_id, $limit );
-        return TactiTwin_Defensive_Transition_Scenario::evaluate( $profiles['team'], $profiles['opponent'] );
+        return TactiTwin_Defensive_Transition_Scenario::evaluate( $profiles['team'], $profiles['opponent'], $language );
     }
 
-    public function full_matchup_scan( int $team_id, int $opponent_id, int $limit = 5 ): array {
+    public function full_matchup_scan( int $team_id, int $opponent_id, int $limit = 5, string $language = 'en' ): array {
         $profiles = $this->matchup_profiles( $team_id, $opponent_id, $limit );
-        return TactiTwin_Matchup_Scan::evaluate( $profiles['team'], $profiles['opponent'] );
+        return TactiTwin_Matchup_Scan::evaluate( $profiles['team'], $profiles['opponent'], $language );
     }
 
     private function matchup_profiles( int $team_id, int $opponent_id, int $limit ): array {
