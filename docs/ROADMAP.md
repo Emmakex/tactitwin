@@ -17,7 +17,12 @@ Implemented milestones now include:
 - v1.18 structural Staff Brief version diff;
 - v1.19 immutable approval revision chain + stale-review protection;
 - v1.19.1 snapshot-identity binding for approval revisions;
-- **v1.20 exact fixture identity**, so approval history, diffs and handoff are scoped to one football match rather than only a team/opponent pairing.
+- v1.20 exact fixture identity, so approval history, diffs and handoff are scoped to one football match rather than only a team/opponent pairing;
+- **v1.21 imported Match Target Resolution**, so a Staff Brief can select a canonical persisted match and inherit its provider identity, participants and schedule context automatically.
+
+### v1.21 exit criterion
+
+A coach can select an imported match in the Staff Brief screen instead of manually copying fixture identifiers. TactiTwin must verify that the chosen team participates in that match, resolve the correct opponent before tactical calculation, build the v1.20 fixture identity from the persisted match record, and preserve the existing manual fixture workflow as a fallback.
 
 ### v1.20 exit criterion
 
