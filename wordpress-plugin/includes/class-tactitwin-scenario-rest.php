@@ -69,7 +69,8 @@ final class TactiTwin_Scenario_REST {
             static fn() => ( new TactiTwin_Profile_Service() )->build_up_vs_high_press(
                 (int) $request['team_id'],
                 (int) $request['opponent_id'],
-                (int) $request['limit']
+                (int) $request['limit'],
+                self::request_language( $request )
             )
         );
     }
@@ -79,7 +80,8 @@ final class TactiTwin_Scenario_REST {
             static fn() => ( new TactiTwin_Profile_Service() )->opponent_side_bias(
                 (int) $request['team_id'],
                 (int) $request['opponent_id'],
-                (int) $request['limit']
+                (int) $request['limit'],
+                self::request_language( $request )
             )
         );
     }
@@ -89,7 +91,8 @@ final class TactiTwin_Scenario_REST {
             static fn() => ( new TactiTwin_Profile_Service() )->defensive_transition_after_loss(
                 (int) $request['team_id'],
                 (int) $request['opponent_id'],
-                (int) $request['limit']
+                (int) $request['limit'],
+                self::request_language( $request )
             )
         );
     }
@@ -99,9 +102,14 @@ final class TactiTwin_Scenario_REST {
             static fn() => ( new TactiTwin_Profile_Service() )->full_matchup_scan(
                 (int) $request['team_id'],
                 (int) $request['opponent_id'],
-                (int) $request['limit']
+                (int) $request['limit'],
+                self::request_language( $request )
             )
         );
+    }
+
+    private static function request_language( WP_REST_Request $request ): string {
+        return TactiTwin_I18n::normalize_language( (string) ( $request['lang'] ?? TactiTwin_I18n::current_language() ) );
     }
 
     private static function scenario_response( callable $callback ) {
@@ -128,6 +136,15 @@ final class TactiTwin_Scenario_REST {
                 'default'           => 5,
                 'sanitize_callback' => 'absint',
                 'validate_callback' => static fn( $value ): bool => (int) $value >= 1 && (int) $value <= 10,
+            ),
+            'lang' => array(
+                'default'           => TactiTwin_I18n::current_language(),
+                'sanitize_callback' => 'sanitize_key',
+                'validate_callback' => static fn( $value ): bool => in_array(
+                    TactiTwin_I18n::normalize_language( (string) $value ),
+                    TactiTwin_I18n::supported(),
+                    true
+                ),
             ),
         );
     }

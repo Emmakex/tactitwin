@@ -5,15 +5,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 final class TactiTwin_Defensive_Transition_Scenario {
-    public static function evaluate( array $team_profile, array $opponent_profile ): array {
+    public static function evaluate( array $team_profile, array $opponent_profile, string $language = 'en' ): array {
+        $language         = TactiTwin_I18n::normalize_language( $language );
         $team_matches     = (int) ( $team_profile['coverage']['matches'] ?? 0 );
         $opponent_matches = (int) ( $opponent_profile['coverage']['matches'] ?? 0 );
         $effective        = min( $team_matches, $opponent_matches );
 
-        $rates       = $team_profile['rates'] ?? array();
-        $team_avg    = $team_profile['averages'] ?? array();
+        $rates        = $team_profile['rates'] ?? array();
+        $team_avg     = $team_profile['averages'] ?? array();
         $opponent_avg = $opponent_profile['averages'] ?? array();
-        $zones       = $team_profile['turnover_zone_share'] ?? array();
+        $zones        = $team_profile['turnover_zone_share'] ?? array();
 
         $risk_components = array(
             'dangerous_turnover_rate' => self::normalize( (float) ( $rates['dangerous_turnover_rate'] ?? 0 ), 12.0 ),
@@ -33,9 +34,9 @@ final class TactiTwin_Defensive_Transition_Scenario {
         );
 
         $opportunity_components = array(
-            'counterpress_recovery'   => self::clamp( (float) ( $rates['counterpress_recovery_rate'] ?? 0 ) ),
-            'final_third_loss_share'  => self::clamp( (float) ( $zones['final_third'] ?? 0 ) ),
-            'avoid_own_third_losses'  => self::clamp( 100.0 - (float) ( $zones['own_third'] ?? 0 ) ),
+            'counterpress_recovery'  => self::clamp( (float) ( $rates['counterpress_recovery_rate'] ?? 0 ) ),
+            'final_third_loss_share' => self::clamp( (float) ( $zones['final_third'] ?? 0 ) ),
+            'avoid_own_third_losses' => self::clamp( 100.0 - (float) ( $zones['own_third'] ?? 0 ) ),
         );
 
         $opportunity_score = round(
@@ -52,10 +53,13 @@ final class TactiTwin_Defensive_Transition_Scenario {
                 'final_third'  => (float) ( $zones['final_third'] ?? 0 ),
             )
         );
+        $risk_level = self::level( $risk_score );
+        $opp_level  = self::level( $opportunity_score );
 
         return array(
             'scenario_id'   => 'defensive-transition-after-loss',
-            'scenario_name' => 'Defensive Transition After Loss',
+            'scenario_name' => TactiTwin_I18n::t( 'scenario.transition.name', array(), $language ),
+            'language'      => $language,
             'team' => array(
                 'source_id' => (string) ( $team_profile['team_source_id'] ?? '' ),
                 'name'      => (string) ( $team_profile['team_name'] ?? '' ),
@@ -70,29 +74,31 @@ final class TactiTwin_Defensive_Transition_Scenario {
                 'effective_matches' => $effective,
                 'status'            => self::coverage_status( $effective ),
                 'warning'           => $effective < 3
-                    ? 'Low evidence coverage: import at least three event-data matches per team before using this scenario for match planning.'
+                    ? TactiTwin_I18n::t( 'coverage.low', array(), $language )
                     : null,
             ),
             'risk' => array(
-                'score'      => $risk_score,
-                'level'      => self::level( $risk_score ),
-                'components' => $risk_components,
+                'score'       => $risk_score,
+                'level'       => $risk_level,
+                'level_label' => TactiTwin_I18n::level_label( $risk_level, $language ),
+                'components'  => $risk_components,
             ),
             'opportunity' => array(
-                'score'      => $opportunity_score,
-                'level'      => self::level( $opportunity_score ),
-                'components' => $opportunity_components,
+                'score'       => $opportunity_score,
+                'level'       => $opp_level,
+                'level_label' => TactiTwin_I18n::level_label( $opp_level, $language ),
+                'components'  => $opportunity_components,
             ),
             'evidence' => array(
-                'our_turnovers_per_match'                  => (float) ( $team_avg['transition_turnovers_per_match'] ?? 0 ),
-                'our_dangerous_turnover_rate'              => (float) ( $rates['dangerous_turnover_rate'] ?? 0 ),
-                'our_transition_progression_rate'          => (float) ( $rates['transition_progression_rate'] ?? 0 ),
-                'our_counterpress_recovery_rate'           => (float) ( $rates['counterpress_recovery_rate'] ?? 0 ),
-                'our_turnover_zone_share'                  => $zones,
-                'dominant_loss_zone'                       => $dominant_loss_zone,
+                'our_turnovers_per_match'                   => (float) ( $team_avg['transition_turnovers_per_match'] ?? 0 ),
+                'our_dangerous_turnover_rate'               => (float) ( $rates['dangerous_turnover_rate'] ?? 0 ),
+                'our_transition_progression_rate'           => (float) ( $rates['transition_progression_rate'] ?? 0 ),
+                'our_counterpress_recovery_rate'            => (float) ( $rates['counterpress_recovery_rate'] ?? 0 ),
+                'our_turnover_zone_share'                   => $zones,
+                'dominant_loss_zone'                        => $dominant_loss_zone,
                 'opponent_transition_progressions_per_match'=> (float) ( $opponent_avg['transition_progressions_created_within_10s_per_match'] ?? 0 ),
-                'opponent_transition_shots_per_match'      => (float) ( $opponent_avg['transition_shots_created_within_10s_per_match'] ?? 0 ),
-                'opponent_transition_xg_per_match'         => (float) ( $opponent_avg['transition_xg_created_within_10s_per_match'] ?? 0 ),
+                'opponent_transition_shots_per_match'       => (float) ( $opponent_avg['transition_shots_created_within_10s_per_match'] ?? 0 ),
+                'opponent_transition_xg_per_match'          => (float) ( $opponent_avg['transition_xg_created_within_10s_per_match'] ?? 0 ),
             ),
             'recommendations' => self::recommendations(
                 $risk_score,
@@ -100,7 +106,8 @@ final class TactiTwin_Defensive_Transition_Scenario {
                 $dominant_loss_zone,
                 (float) ( $zones['own_third'] ?? 0 ),
                 (float) ( $opponent_avg['transition_shots_created_within_10s_per_match'] ?? 0 ),
-                (float) ( $opponent_avg['transition_xg_created_within_10s_per_match'] ?? 0 )
+                (float) ( $opponent_avg['transition_xg_created_within_10s_per_match'] ?? 0 ),
+                $language
             ),
             'method' => array(
                 'type' => 'temporal-transition-window-heuristic',
@@ -108,7 +115,7 @@ final class TactiTwin_Defensive_Transition_Scenario {
                     'opponent_threat_seconds' => 10,
                     'counterpress_recovery_seconds' => 8,
                 ),
-                'note' => 'The model analyzes normalized event sequences immediately after turnovers. Scores support tactical preparation and are not probabilities of conceding a goal.',
+                'note' => TactiTwin_I18n::t( 'scenario.transition.method', array(), $language ),
             ),
         );
     }
@@ -119,33 +126,36 @@ final class TactiTwin_Defensive_Transition_Scenario {
         string $loss_zone,
         float $own_third_share,
         float $opponent_transition_shots,
-        float $opponent_transition_xg
+        float $opponent_transition_xg,
+        string $language
     ): array {
         $recommendations = array();
 
         if ( $risk >= 65.0 ) {
-            $recommendations['primary'] = 'Prioritize rest-defence before adding another player to the attack: keep a stable central cover structure behind the ball and avoid simultaneous forward movements that leave the first counterattack pass unprotected.';
+            $recommendations['primary'] = TactiTwin_I18n::t( 'transition.high.primary', array(), $language );
         } elseif ( $risk >= 45.0 ) {
-            $recommendations['primary'] = 'Use conditional attacking freedom: allow extra numbers forward only when central cover and the far-side defender are positioned to control the first transition action.';
+            $recommendations['primary'] = TactiTwin_I18n::t( 'transition.medium.primary', array(), $language );
         } else {
-            $recommendations['primary'] = 'The recent sample shows manageable transition exposure; preserve the current rest-defence spacing and keep the nearest players ready to react immediately after loss.';
+            $recommendations['primary'] = TactiTwin_I18n::t( 'transition.low.primary', array(), $language );
         }
 
         $recommendations['counterpress'] = $counterpress_rate < 25.0
-            ? 'Train an explicit 5–8 second reaction after loss: nearest player pressures the ball, second player blocks the first forward lane and the rest recover goal-side instead of all attacking the ball.'
-            : 'The counterpress recovery rate is useful enough to keep an aggressive immediate reaction, but only when the nearest players have compact distances around the loss.';
+            ? TactiTwin_I18n::t( 'transition.counterpress_low', array(), $language )
+            : TactiTwin_I18n::t( 'transition.counterpress_good', array(), $language );
 
-        $recommendations['loss_zone'] = 'The most frequent loss zone in the imported sample is ' . str_replace( '_', ' ', $loss_zone ) . '; rehearse the first defensive movements from that exact field position rather than treating every turnover identically.';
+        $recommendations['loss_zone'] = TactiTwin_I18n::t(
+            'transition.loss_zone',
+            array( TactiTwin_I18n::zone_label( $loss_zone, $language ) ),
+            $language
+        );
 
         if ( $own_third_share >= 25.0 ) {
-            $recommendations['build_up_protection'] = 'A material share of losses occurs in our own third. Reduce unsupported central risk there and ensure the receiver has a backward or wide safety option before the pass is played.';
+            $recommendations['build_up_protection'] = TactiTwin_I18n::t( 'transition.build_up_protection', array(), $language );
         }
 
-        if ( $opponent_transition_shots >= 1.0 || $opponent_transition_xg >= 0.25 ) {
-            $recommendations['opponent_threat'] = 'The opponent creates meaningful immediate threat after rival turnovers. Deny the first forward action, protect the central lane first and force the transition toward a slower or wider route.';
-        } else {
-            $recommendations['opponent_threat'] = 'The opponent transition sample is not highly shot-heavy, so avoid overreacting: protect central access while keeping enough structure to regain possession rather than dropping automatically.';
-        }
+        $recommendations['opponent_threat'] = $opponent_transition_shots >= 1.0 || $opponent_transition_xg >= 0.25
+            ? TactiTwin_I18n::t( 'transition.opponent_threat_high', array(), $language )
+            : TactiTwin_I18n::t( 'transition.opponent_threat_low', array(), $language );
 
         return $recommendations;
     }

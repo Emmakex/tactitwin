@@ -6,6 +6,7 @@
  * Version:     0.1.0-dev
  * Author:      Emmakex
  * Text Domain: tactitwin
+ * Domain Path: /languages
  * Requires PHP: 8.1
  */
 
@@ -17,6 +18,7 @@ define( 'TACTITWIN_VERSION', '0.1.0-dev' );
 define( 'TACTITWIN_FILE', __FILE__ );
 define( 'TACTITWIN_DIR', plugin_dir_path( __FILE__ ) );
 
+require_once TACTITWIN_DIR . 'includes/class-tactitwin-i18n.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-db.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-statsbomb-client.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-statsbomb-normalizer.php';
@@ -38,6 +40,7 @@ require_once TACTITWIN_DIR . 'includes/class-tactitwin.php';
 
 register_activation_hook( __FILE__, array( 'TactiTwin', 'activate' ) );
 
+TactiTwin_I18n::register();
 TactiTwin_Analysis_REST::register();
 TactiTwin_Scenario_REST::register();
 TactiTwin_Workspace_Admin::register();

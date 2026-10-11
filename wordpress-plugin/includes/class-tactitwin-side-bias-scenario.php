@@ -5,7 +5,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 final class TactiTwin_Side_Bias_Scenario {
-    public static function evaluate( array $team_profile, array $opponent_profile ): array {
+    public static function evaluate( array $team_profile, array $opponent_profile, string $language = 'en' ): array {
+        $language         = TactiTwin_I18n::normalize_language( $language );
         $team_matches     = (int) ( $team_profile['coverage']['matches'] ?? 0 );
         $opponent_matches = (int) ( $opponent_profile['coverage']['matches'] ?? 0 );
         $coverage_matches = min( $team_matches, $opponent_matches );
@@ -29,10 +30,13 @@ final class TactiTwin_Side_Bias_Scenario {
         $risk_score         = self::clamp( ( $risk_raw - 33.3 ) * 3.0 );
         $opportunity_score  = self::clamp( 100.0 - ( $channel_risk[ $weak_channel ] * 1.5 ) );
         $overlap            = $dominant_channel === $vulnerable_channel;
+        $risk_level         = self::level( $risk_score );
+        $opp_level          = self::level( $opportunity_score );
 
         return array(
             'scenario_id'   => 'opponent-side-bias',
-            'scenario_name' => 'Opponent Side Bias',
+            'scenario_name' => TactiTwin_I18n::t( 'scenario.side_bias.name', array(), $language ),
+            'language'      => $language,
             'team' => array(
                 'source_id' => (string) ( $team_profile['team_source_id'] ?? '' ),
                 'name'      => (string) ( $team_profile['team_name'] ?? '' ),
@@ -47,20 +51,22 @@ final class TactiTwin_Side_Bias_Scenario {
                 'effective_matches' => $coverage_matches,
                 'status'            => self::coverage_status( $coverage_matches ),
                 'warning'           => $coverage_matches < 3
-                    ? 'Low evidence coverage: import at least three event-data matches per team before using this scenario for match planning.'
+                    ? TactiTwin_I18n::t( 'coverage.low', array(), $language )
                     : null,
             ),
             'risk' => array(
-                'score'              => $risk_score,
-                'level'              => self::level( $risk_score ),
+                'score'                => $risk_score,
+                'level'                => $risk_level,
+                'level_label'          => TactiTwin_I18n::level_label( $risk_level, $language ),
                 'highest_risk_channel' => $risk_channel,
-                'channel_scores'     => $channel_risk,
-                'dominant_overlap'   => $overlap,
+                'channel_scores'       => $channel_risk,
+                'dominant_overlap'     => $overlap,
             ),
             'opportunity' => array(
-                'score'        => $opportunity_score,
-                'level'        => self::level( $opportunity_score ),
-                'channel'      => $weak_channel,
+                'score'       => $opportunity_score,
+                'level'       => $opp_level,
+                'level_label' => TactiTwin_I18n::level_label( $opp_level, $language ),
+                'channel'     => $weak_channel,
             ),
             'evidence' => array(
                 'opponent_final_third_channel_share' => $opponent_channels,
@@ -75,11 +81,12 @@ final class TactiTwin_Side_Bias_Scenario {
                 $vulnerable_channel,
                 $overlap,
                 $opponent_channels,
-                $our_concessions
+                $our_concessions,
+                $language
             ),
             'method' => array(
                 'type' => 'explainable-channel-matchup-heuristic',
-                'note' => 'Channel scores combine the opponent attack distribution with our observed concession distribution; they are tactical decision-support signals, not outcome probabilities.',
+                'note' => TactiTwin_I18n::t( 'scenario.side_bias.method', array(), $language ),
             ),
         );
     }
@@ -90,39 +97,43 @@ final class TactiTwin_Side_Bias_Scenario {
         string $vulnerable,
         bool $overlap,
         array $opponent_channels,
-        array $our_concessions
+        array $our_concessions,
+        string $language
     ): array {
-        $our_side = self::defensive_side( $dominant );
-        $dominant_share = $opponent_channels[ $dominant ];
-        $conceded_share = $our_concessions[ $dominant ];
+        $our_side        = self::defensive_side( $dominant );
+        $dominant_share  = $opponent_channels[ $dominant ];
+        $conceded_share  = $our_concessions[ $dominant ];
+        $our_side_label  = TactiTwin_I18n::channel_label( $our_side, $language );
+        $dominant_label  = TactiTwin_I18n::channel_label( $dominant, $language );
+        $weak_label      = TactiTwin_I18n::channel_label( $weak, $language );
+        $vulnerable_label= TactiTwin_I18n::channel_label( $vulnerable, $language );
 
-        $primary = sprintf(
-            'Prioritize protection of our %s defensive channel: the opponent sends %.1f%% of its observed final-third actions through its %s channel, while %.1f%% of the final-third actions we concede arrive through that same matchup channel.',
-            $our_side,
-            $dominant_share,
-            $dominant,
-            $conceded_share
+        $primary = TactiTwin_I18n::t(
+            'side_bias.primary',
+            array( $our_side_label, $dominant_share, $dominant_label, $conceded_share ),
+            $language
         );
 
         if ( $overlap ) {
-            $primary .= ' This is a direct overlap between their strongest route and our most exposed channel.';
+            $primary .= TactiTwin_I18n::t( 'side_bias.overlap', array(), $language );
         }
 
         return array(
             'primary' => $primary,
-            'pressing_orientation' => sprintf(
-                'Orient the first defensive pressure to discourage the opponent %s channel and make circulation continue toward its %s channel, the least-used route in the imported sample.',
-                $dominant,
-                $weak
+            'pressing_orientation' => TactiTwin_I18n::t(
+                'side_bias.pressing',
+                array( $dominant_label, $weak_label ),
+                $language
             ),
-            'cover_structure' => 'Keep the near-side full-back/wing-back protected by an inside midfielder and preserve cover behind the first duel instead of allowing an isolated wide 1v1.',
-            'training_focus' => sprintf(
-                'Rehearse defensive shifting toward our %s side, then train the transition after recovery from that zone so the opponent cannot immediately counter-press the same corridor.',
-                $our_side
+            'cover_structure' => TactiTwin_I18n::t( 'side_bias.cover', array(), $language ),
+            'training_focus' => TactiTwin_I18n::t(
+                'side_bias.training',
+                array( $our_side_label ),
+                $language
             ),
             'secondary_alert' => $vulnerable !== $dominant
-                ? sprintf( 'Our historically most exposed channel is %s, so do not over-shift so aggressively that this secondary weakness becomes open.', $vulnerable )
-                : 'The opponent preference and our defensive exposure align, so this channel should receive the clearest match-plan priority.',
+                ? TactiTwin_I18n::t( 'side_bias.secondary_other', array( $vulnerable_label ), $language )
+                : TactiTwin_I18n::t( 'side_bias.secondary_overlap', array(), $language ),
         );
     }
 

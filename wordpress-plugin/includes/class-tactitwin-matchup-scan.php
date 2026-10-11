@@ -5,11 +5,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 final class TactiTwin_Matchup_Scan {
-    public static function evaluate( array $team_profile, array $opponent_profile ): array {
+    public static function evaluate( array $team_profile, array $opponent_profile, string $language = 'en' ): array {
+        $language = TactiTwin_I18n::normalize_language( $language );
         $scenarios = array(
-            TactiTwin_High_Press_Scenario::evaluate( $team_profile, $opponent_profile ),
-            TactiTwin_Side_Bias_Scenario::evaluate( $team_profile, $opponent_profile ),
-            TactiTwin_Defensive_Transition_Scenario::evaluate( $team_profile, $opponent_profile ),
+            TactiTwin_High_Press_Scenario::evaluate( $team_profile, $opponent_profile, $language ),
+            TactiTwin_Side_Bias_Scenario::evaluate( $team_profile, $opponent_profile, $language ),
+            TactiTwin_Defensive_Transition_Scenario::evaluate( $team_profile, $opponent_profile, $language ),
         );
 
         usort(
@@ -29,11 +30,12 @@ final class TactiTwin_Matchup_Scan {
         $recommendations = array();
         foreach ( $scenarios as $index => $scenario ) {
             $ranking[] = array(
-                'rank'          => $index + 1,
-                'scenario_id'   => (string) $scenario['scenario_id'],
-                'scenario_name' => (string) $scenario['scenario_name'],
-                'risk_score'    => (float) $scenario['risk']['score'],
-                'risk_level'    => (string) $scenario['risk']['level'],
+                'rank'              => $index + 1,
+                'scenario_id'       => (string) $scenario['scenario_id'],
+                'scenario_name'     => (string) $scenario['scenario_name'],
+                'risk_score'        => (float) $scenario['risk']['score'],
+                'risk_level'        => (string) $scenario['risk']['level'],
+                'risk_level_label'  => (string) ( $scenario['risk']['level_label'] ?? $scenario['risk']['level'] ),
                 'opportunity_score' => (float) $scenario['opportunity']['score'],
             );
 
@@ -49,10 +51,12 @@ final class TactiTwin_Matchup_Scan {
 
         $average_risk        = round( array_sum( $risk_scores ) / max( 1, count( $risk_scores ) ), 1 );
         $average_opportunity = round( array_sum( $opportunity_scores ) / max( 1, count( $opportunity_scores ) ), 1 );
+        $opportunity_level   = self::level( $average_opportunity );
 
         return array(
             'scenario_id'   => 'full-matchup-scan',
-            'scenario_name' => 'Full Matchup Scan',
+            'scenario_name' => TactiTwin_I18n::t( 'scenario.full_scan.name', array(), $language ),
+            'language'      => $language,
             'team'          => $top['team'],
             'opponent'      => $top['opponent'],
             'coverage'      => array(
@@ -61,18 +65,20 @@ final class TactiTwin_Matchup_Scan {
                 'effective_matches' => $effective_matches,
                 'status'            => self::coverage_status( $effective_matches ),
                 'warning'           => $effective_matches < 3
-                    ? 'Low evidence coverage: import at least three event-data matches per team before using the full scan for match planning.'
+                    ? TactiTwin_I18n::t( 'coverage.full_scan_low', array(), $language )
                     : null,
             ),
             'risk' => array(
                 'score'          => (float) $top['risk']['score'],
                 'level'          => (string) $top['risk']['level'],
+                'level_label'    => (string) ( $top['risk']['level_label'] ?? TactiTwin_I18n::level_label( (string) $top['risk']['level'], $language ) ),
                 'average_score'  => $average_risk,
                 'top_scenario'   => (string) $top['scenario_name'],
             ),
             'opportunity' => array(
-                'score' => $average_opportunity,
-                'level' => self::level( $average_opportunity ),
+                'score'       => $average_opportunity,
+                'level'       => $opportunity_level,
+                'level_label' => TactiTwin_I18n::level_label( $opportunity_level, $language ),
             ),
             'evidence' => array(
                 'scenario_count'   => count( $scenarios ),
@@ -82,7 +88,7 @@ final class TactiTwin_Matchup_Scan {
             'subscenarios'     => $scenarios,
             'method' => array(
                 'type' => 'scenario-orchestration',
-                'note' => 'The headline risk is the highest current scenario risk; average risk and opportunity summarize the full scan. Each underlying scenario remains independently explainable.',
+                'note' => TactiTwin_I18n::t( 'scenario.full_scan.method', array(), $language ),
             ),
         );
     }
