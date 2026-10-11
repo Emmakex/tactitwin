@@ -88,6 +88,7 @@ require_once TACTITWIN_DIR . 'includes/class-tactitwin-staff-brief-snapshot.php'
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-staff-brief-version-diff.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-staff-brief-revision-chain.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-staff-brief-snapshot-service.php';
+require_once TACTITWIN_DIR . 'includes/class-tactitwin-fixture-lifecycle-service.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-precedent-aware-what-if-service.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-precedent-aware-match-plan-service.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-precedent-aware-contingency-service.php';
@@ -127,6 +128,7 @@ require_once TACTITWIN_DIR . 'includes/class-tactitwin-personnel-admin.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-unit-admin.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-lineup-admin.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-match-workspace-admin.php';
+require_once TACTITWIN_DIR . 'includes/class-tactitwin-fixture-lifecycle-admin.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin.php';
 
 register_activation_hook( __FILE__, array( 'TactiTwin', 'activate' ) );
@@ -167,4 +169,5 @@ TactiTwin_Personnel_Admin::register();
 TactiTwin_Unit_Admin::register();
 TactiTwin_Lineup_Admin::register();
 TactiTwin_Match_Workspace_Admin::register();
+TactiTwin_Fixture_Lifecycle_Admin::register();
 TactiTwin::instance();
