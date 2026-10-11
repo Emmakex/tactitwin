@@ -18,7 +18,12 @@ Implemented milestones now include:
 - v1.19 immutable approval revision chain + stale-review protection;
 - v1.19.1 snapshot-identity binding for approval revisions;
 - v1.20 exact fixture identity, so approval history, diffs and handoff are scoped to one football match rather than only a team/opponent pairing;
-- **v1.21 imported Match Target Resolution**, so a Staff Brief can select a canonical persisted match and inherit its provider identity, participants and schedule context automatically.
+- v1.21 imported Match Target Resolution, so a Staff Brief can select a canonical persisted match and inherit its provider identity, participants and schedule context automatically;
+- **v1.22 Match-Centric Planning Context**, so one imported match + team perspective is reused across Scenario Lab, Match Plan, What-if, Live Playbook and Staff Brief instead of being reselected independently.
+
+### v1.22 exit criterion
+
+A coach can choose one canonical imported match and team perspective once, then move across the main planning surfaces without re-entering the matchup. Every supported admin action must re-resolve the stored match server-side before tactical calculation, keep manual team selection available as an explicit fallback, and pass the canonical match row into Staff Brief so v1.21/v1.20 fixture integrity continues unchanged.
 
 ### v1.21 exit criterion
 

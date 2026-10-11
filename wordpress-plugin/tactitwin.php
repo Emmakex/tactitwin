@@ -81,6 +81,8 @@ require_once TACTITWIN_DIR . 'includes/class-tactitwin-evidence-decision-brief.p
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-evidence-conflict-signals.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-fixture-identity.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-match-target-service.php';
+require_once TACTITWIN_DIR . 'includes/class-tactitwin-planning-context.php';
+require_once TACTITWIN_DIR . 'includes/class-tactitwin-planning-context-admin-bridge.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-match-day-staff-brief.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-staff-brief-snapshot.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-staff-brief-version-diff.php';
@@ -144,6 +146,8 @@ TactiTwin_Personnel_REST::register();
 TactiTwin_Unit_REST::register();
 TactiTwin_Phase_Unit_REST::register();
 TactiTwin_Lineup_REST::register();
+TactiTwin_Planning_Context::register();
+TactiTwin_Planning_Context_Admin_Bridge::register();
 TactiTwin_Workspace_Admin::register();
 TactiTwin_Match_Plan_Admin::register();
 TactiTwin_Game_State_Admin::register();
