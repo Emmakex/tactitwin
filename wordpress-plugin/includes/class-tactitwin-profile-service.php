@@ -110,19 +110,23 @@ final class TactiTwin_Profile_Service {
         int $opponent_score,
         int $minute,
         int $limit = 5,
-        string $language = 'en'
+        string $language = 'en',
+        int $our_players = 11,
+        int $opponent_players = 11
     ): array {
         $profiles = $this->matchup_profiles( $team_id, $opponent_id, $limit );
         $scan = TactiTwin_Matchup_Scan::evaluate( $profiles['team'], $profiles['opponent'], $language );
 
-        return TactiTwin_Game_State_What_If::evaluate(
+        return TactiTwin_Context_What_If::evaluate(
             $profiles['team'],
             $profiles['opponent'],
             $scan,
             $our_score,
             $opponent_score,
             $minute,
-            $language
+            $language,
+            $our_players,
+            $opponent_players
         );
     }
 

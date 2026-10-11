@@ -28,8 +28,8 @@ final class TactiTwin_Analysis_Service {
         $events = $wpdb->get_results(
             $wpdb->prepare(
                 "SELECT event_index, period, minute, second, possession, possession_team_source_id,
-                        team_source_id, event_type_name, outcome_name, xg,
-                        location_x, location_y, end_location_x, end_location_y
+                        team_source_id, player_source_id, position_name, event_type_name, outcome_name, xg,
+                        location_x, location_y, end_location_x, end_location_y, raw_json
                  FROM {$event_table}
                  WHERE source = %s AND source_match_id = %s
                  ORDER BY event_index ASC", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -55,7 +55,8 @@ final class TactiTwin_Analysis_Service {
                 )
             )
         );
-        $game_states = TactiTwin_Game_State_Metrics::calculate( $events, $team_ids );
+        $game_states    = TactiTwin_Game_State_Metrics::calculate( $events, $team_ids );
+        $manpower_states = TactiTwin_Manpower_Metrics::calculate( $events, $team_ids );
 
         foreach ( $team_ids as $team_id ) {
             if ( ! isset( $metrics[ $team_id ] ) ) {
@@ -74,6 +75,7 @@ final class TactiTwin_Analysis_Service {
                     'turnovers_middle_third' => (int) ( $zones['middle_third'] ?? 0 ),
                     'turnovers_final_third'  => (int) ( $zones['final_third'] ?? 0 ),
                     'game_states'            => $game_states[ $team_id ] ?? array(),
+                    'manpower_states'        => $manpower_states[ $team_id ] ?? array(),
                 )
             );
         }
