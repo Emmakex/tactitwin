@@ -53,7 +53,6 @@ final class TactiTwin_Phase_Unit_Profile {
                 'confidence'       => self::confidence( $shared_minutes, $matches ),
             ),
             'phases' => $phases,
-            'dominant_phase' => self::dominant_phase( $phases ),
         );
     }
 
@@ -107,19 +106,6 @@ final class TactiTwin_Phase_Unit_Profile {
             'per_90_shared' => $per90,
             'signal' => round( $signal, 'final_third' === $phase ? 3 : 2 ),
         );
-    }
-
-    private static function dominant_phase( array $phases ): ?string {
-        $best = null;
-        $best_value = 0.0;
-        foreach ( $phases as $phase => $data ) {
-            $value = (float) ( $data['signal'] ?? 0.0 );
-            if ( $value > $best_value ) {
-                $best_value = $value;
-                $best = (string) $phase;
-            }
-        }
-        return $best;
     }
 
     private static function confidence( float $minutes, int $matches ): string {
