@@ -79,7 +79,7 @@ final class TactiTwin_Precedent_Planning_Admin {
 
     private static function catalog_panel( array $catalog, string $language ): void {
         ?>
-        <div class="wrap" style="max-width:1100px;margin-top:28px;">
+        <div class="wrap" style="max-width:1200px;margin-top:28px;">
             <hr>
             <h2><?php echo esc_html( self::label( 'catalog_title', $language ) ); ?></h2>
             <p><?php echo esc_html( self::label( 'catalog_intro', $language ) ); ?></p>
@@ -98,12 +98,13 @@ final class TactiTwin_Precedent_Planning_Admin {
                     <h3 style="margin-top:0;"><?php echo esc_html( (string) ( $scenario['scenario_name'] ?? '' ) ); ?></h3>
                     <p><?php echo esc_html( self::label( 'current_relevance', $language ) . ': ' . (string) ( $scenario['current_scan']['relevance'] ?? 0 ) . '/100' ); ?></p>
                     <table class="widefat striped">
-                        <thead><tr><th><?php echo esc_html( self::label( 'context', $language ) ); ?></th><th><?php echo esc_html( self::label( 'plan', $language ) ); ?></th><th><?php echo esc_html( self::label( 'quality', $language ) ); ?></th><th><?php echo esc_html( self::label( 'similarity', $language ) ); ?></th><th><?php echo esc_html( self::label( 'sample', $language ) ); ?></th><th><?php echo esc_html( self::label( 'signals', $language ) ); ?></th></tr></thead>
+                        <thead><tr><th><?php echo esc_html( self::label( 'context', $language ) ); ?></th><th><?php echo esc_html( self::label( 'plan', $language ) ); ?></th><th><?php echo esc_html( self::label( 'suitability', $language ) ); ?></th><th><?php echo esc_html( self::label( 'quality', $language ) ); ?></th><th><?php echo esc_html( self::label( 'similarity', $language ) ); ?></th><th><?php echo esc_html( self::label( 'sample', $language ) ); ?></th><th><?php echo esc_html( self::label( 'signals', $language ) ); ?></th></tr></thead>
                         <tbody>
                             <?php foreach ( $scenario['contexts'] as $context ) : ?>
                                 <tr>
                                     <td><?php echo esc_html( self::context_label( $context, $language ) ); ?></td>
                                     <td><?php echo esc_html( (string) ( $context['to_plan'] ?? '-' ) . ' / ' . (string) ( $context['to_mode'] ?? '-' ) ); ?></td>
+                                    <td><?php echo esc_html( self::suitability_label( $context['evidence_suitability'] ?? array() ) ); ?></td>
                                     <td><?php echo esc_html( self::quality_label( $context['evidence_quality'] ?? array() ) ); ?></td>
                                     <td><?php echo esc_html( self::similarity_label( $context['opponent_context_similarity'] ?? array() ) ); ?></td>
                                     <td><?php echo esc_html( (string) ( $context['sample']['maturity_label'] ?? $context['sample']['maturity'] ?? '-' ) . ' · ' . (string) ( $context['sample']['cleaner'] ?? 0 ) . '/' . (string) ( $context['sample']['context_comparable'] ?? 0 ) ); ?></td>
@@ -137,7 +138,7 @@ final class TactiTwin_Precedent_Planning_Admin {
                         <?php else : ?>
                             <ul style="list-style:disc;padding-left:20px;">
                                 <?php foreach ( $precedents['items'] as $item ) : ?>
-                                    <li style="margin-bottom:8px;"><strong><?php echo esc_html( (string) ( $item['scenario_name'] ?? $item['scenario_id'] ?? '' ) ); ?></strong> — <?php echo esc_html( self::quality_label( $item['evidence_quality'] ?? array() ) . ' · ' . self::similarity_label( $item['opponent_context_similarity'] ?? array() ) . ' · ' . self::metric_summary( $item['metrics'] ?? array() ) ); ?></li>
+                                    <li style="margin-bottom:8px;"><strong><?php echo esc_html( (string) ( $item['scenario_name'] ?? $item['scenario_id'] ?? '' ) ); ?></strong> — <?php echo esc_html( self::suitability_label( $item['evidence_suitability'] ?? array() ) . ' · ' . self::quality_label( $item['evidence_quality'] ?? array() ) . ' · ' . self::similarity_label( $item['opponent_context_similarity'] ?? array() ) . ' · ' . self::metric_summary( $item['metrics'] ?? array() ) ); ?></li>
                                 <?php endforeach; ?>
                             </ul>
                         <?php endif; ?>
@@ -169,6 +170,13 @@ final class TactiTwin_Precedent_Planning_Admin {
             $parts[] = $name . ': ' . ( (float) $median > 0 ? '+' : '' ) . (string) $median;
         }
         return ! empty( $parts ) ? implode( ' · ', $parts ) : '—';
+    }
+
+    private static function suitability_label( array $suitability ): string {
+        if ( ! isset( $suitability['suitability_score'] ) || ! is_numeric( $suitability['suitability_score'] ) ) {
+            return '—';
+        }
+        return (string) ( $suitability['suitability_label'] ?? $suitability['suitability_level'] ?? '' ) . ' · ' . (string) $suitability['suitability_score'] . '/100';
     }
 
     private static function quality_label( array $quality ): string {
@@ -210,24 +218,24 @@ final class TactiTwin_Precedent_Planning_Admin {
             'en'=>array(
                 'catalog_title'=>'Historical tactical precedents',
                 'catalog_intro'=>'Pre-match evidence from prior interventions is kept separated by minute band, score state and manpower state.',
-                'current_relevance'=>'Current scenario relevance','quality'=>'Evidence quality','quality_mean'=>'Mean evidence quality',
+                'current_relevance'=>'Current scenario relevance','suitability'=>'Evidence suitability','quality'=>'Evidence quality','quality_mean'=>'Mean evidence quality',
                 'similarity'=>'Opponent similarity','similarity_mean'=>'Mean opponent similarity',
                 'context'=>'Historical context','plan'=>'Destination plan','sample'=>'Sample','signals'=>'Median historical deltas',
                 'playbook_title'=>'Exact-context precedents for Plan A/B/C',
                 'playbook_intro'=>'Only historical transitions into the same destination plan are shown. Plan B also requires the current live scenario.',
                 'no_items'=>'No exact-context precedents for this plan.',
-                'guardrail_evidence'=>'Evidence quality and opponent similarity are separate context signals. They do not change tactical scores, priorities, active plan or recommendations.',
+                'guardrail_evidence'=>'Evidence suitability only reorders already matched historical evidence. It combines current relevance, evidence quality and opponent similarity without changing tactical scores, priorities, active plan or recommendations.',
             ),
             'es'=>array(
                 'catalog_title'=>'Precedentes tácticos históricos',
                 'catalog_intro'=>'La evidencia prepartido de intervenciones anteriores se mantiene separada por franja temporal, marcador y estado numérico.',
-                'current_relevance'=>'Relevancia actual del escenario','quality'=>'Calidad de evidencia','quality_mean'=>'Calidad media de evidencia',
+                'current_relevance'=>'Relevancia actual del escenario','suitability'=>'Idoneidad de evidencia','quality'=>'Calidad de evidencia','quality_mean'=>'Calidad media de evidencia',
                 'similarity'=>'Similitud del rival','similarity_mean'=>'Similitud media del rival',
                 'context'=>'Contexto histórico','plan'=>'Plan de destino','sample'=>'Muestra','signals'=>'Medianas históricas de delta',
                 'playbook_title'=>'Precedentes de contexto exacto para Plan A/B/C',
                 'playbook_intro'=>'Solo se muestran transiciones históricas hacia el mismo plan de destino. Plan B exige además el escenario vivo actual.',
                 'no_items'=>'No hay precedentes de contexto exacto para este plan.',
-                'guardrail_evidence'=>'La calidad de evidencia y la similitud del rival son señales de contexto separadas. No cambian scores tácticos, prioridades, plan activo ni recomendaciones.',
+                'guardrail_evidence'=>'La idoneidad solo reordena evidencia histórica ya coincidente. Combina relevancia actual, calidad de evidencia y similitud del rival sin cambiar scores tácticos, prioridades, plan activo ni recomendaciones.',
             ),
         );
         return $labels[ $language ][ $key ] ?? $labels['en'][ $key ] ?? $key;
