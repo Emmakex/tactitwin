@@ -42,7 +42,7 @@ final class TactiTwin_Profile_Service {
         $samples  = array();
 
         foreach ( $matches as $match ) {
-            $summary = $analysis->match_summary( (int) $match['source_match_id'] );
+            $summary  = $analysis->match_summary( (int) $match['source_match_id'] );
             $team_key = (string) $team_id;
 
             if ( ! isset( $summary['teams'][ $team_key ] ) ) {
@@ -78,6 +78,12 @@ final class TactiTwin_Profile_Service {
         $profiles = $this->matchup_profiles( $team_id, $opponent_id, $limit );
 
         return TactiTwin_Side_Bias_Scenario::evaluate( $profiles['team'], $profiles['opponent'] );
+    }
+
+    public function defensive_transition_after_loss( int $team_id, int $opponent_id, int $limit = 5 ): array {
+        $profiles = $this->matchup_profiles( $team_id, $opponent_id, $limit );
+
+        return TactiTwin_Defensive_Transition_Scenario::evaluate( $profiles['team'], $profiles['opponent'] );
     }
 
     private function matchup_profiles( int $team_id, int $opponent_id, int $limit ): array {

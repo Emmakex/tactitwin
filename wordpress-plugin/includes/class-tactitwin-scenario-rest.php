@@ -31,27 +31,24 @@ final class TactiTwin_Scenario_REST {
             )
         );
 
-        register_rest_route(
-            'tactitwin/v1',
-            '/scenarios/build-up-vs-high-press',
+        foreach (
             array(
-                'methods'             => WP_REST_Server::READABLE,
-                'callback'            => array( self::class, 'high_press' ),
-                'permission_callback' => static fn(): bool => current_user_can( 'manage_options' ),
-                'args'                => self::matchup_args(),
-            )
-        );
-
-        register_rest_route(
-            'tactitwin/v1',
-            '/scenarios/opponent-side-bias',
-            array(
-                'methods'             => WP_REST_Server::READABLE,
-                'callback'            => array( self::class, 'side_bias' ),
-                'permission_callback' => static fn(): bool => current_user_can( 'manage_options' ),
-                'args'                => self::matchup_args(),
-            )
-        );
+                'build-up-vs-high-press'       => 'high_press',
+                'opponent-side-bias'           => 'side_bias',
+                'defensive-transition-after-loss' => 'defensive_transition',
+            ) as $route => $callback
+        ) {
+            register_rest_route(
+                'tactitwin/v1',
+                '/scenarios/' . $route,
+                array(
+                    'methods'             => WP_REST_Server::READABLE,
+                    'callback'            => array( self::class, $callback ),
+                    'permission_callback' => static fn(): bool => current_user_can( 'manage_options' ),
+                    'args'                => self::matchup_args(),
+                )
+            );
+        }
     }
 
     public static function team_profile( WP_REST_Request $request ) {
@@ -79,6 +76,16 @@ final class TactiTwin_Scenario_REST {
     public static function side_bias( WP_REST_Request $request ) {
         return self::scenario_response(
             static fn() => ( new TactiTwin_Profile_Service() )->opponent_side_bias(
+                (int) $request['team_id'],
+                (int) $request['opponent_id'],
+                (int) $request['limit']
+            )
+        );
+    }
+
+    public static function defensive_transition( WP_REST_Request $request ) {
+        return self::scenario_response(
+            static fn() => ( new TactiTwin_Profile_Service() )->defensive_transition_after_loss(
                 (int) $request['team_id'],
                 (int) $request['opponent_id'],
                 (int) $request['limit']
