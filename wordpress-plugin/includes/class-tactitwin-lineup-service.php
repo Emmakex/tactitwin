@@ -46,13 +46,20 @@ final class TactiTwin_Lineup_Service {
             $candidate[] = $profiles[ (string) $player_id ];
         }
 
-        $context = ( new TactiTwin_Profile_Service() )->game_state_what_if(
-            $team_id,
-            $opponent_id,
+        $profile_service = new TactiTwin_Profile_Service();
+        $matchup_profiles = $profile_service->matchup_profiles( $team_id, $opponent_id, $limit );
+        $matchup_scan = TactiTwin_Matchup_Scan::evaluate(
+            $matchup_profiles['team'],
+            $matchup_profiles['opponent'],
+            $language
+        );
+        $context = TactiTwin_Context_What_If::evaluate(
+            $matchup_profiles['team'],
+            $matchup_profiles['opponent'],
+            $matchup_scan,
             $our_score,
             $opponent_score,
             $minute,
-            $limit,
             $language,
             $our_players,
             $opponent_players
@@ -85,12 +92,22 @@ final class TactiTwin_Lineup_Service {
         $phase = TactiTwin_Phase_Unit_Comparison::interpret( $phase_raw, $language );
         $result['phase_unit_interactions'] = $phase;
 
+        $opponent_matchup = TactiTwin_Opponent_Lineup_Matchup::evaluate(
+            $result,
+            $matchup_profiles['team'],
+            $matchup_profiles['opponent'],
+            $matchup_scan,
+            $language
+        );
+        $result['opponent_conditioned_matchup'] = $opponent_matchup;
+
         $result['recommendations'] = array_values(
             array_unique(
                 array_merge(
                     $result['recommendations'] ?? array(),
                     $unit['recommendations'] ?? array(),
-                    $phase['recommendations'] ?? array()
+                    $phase['recommendations'] ?? array(),
+                    $opponent_matchup['recommendations'] ?? array()
                 )
             )
         );
