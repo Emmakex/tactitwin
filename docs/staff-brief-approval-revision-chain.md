@@ -15,6 +15,7 @@ The revision contains:
 - sequential revision number for the exact team/opponent pairing;
 - parent approved snapshot UUID;
 - parent content SHA-256;
+- approved/current snapshot content SHA-256 binding;
 - reviewed structural change count;
 - stable reviewed change IDs;
 - changed sections;
@@ -39,7 +40,9 @@ On `TactiTwin > Staff Brief`:
 6. an optional approval note may be added;
 7. approval recomputes the latest parent and diff before persisting;
 8. the expected parent UUID and expected diff digest submitted by the page must still match;
-9. only then is the new immutable snapshot written.
+9. snapshot content is frozen and its `content_sha256` is calculated;
+10. the revision is bound to that exact content digest and re-sealed;
+11. only then is the new immutable snapshot written.
 
 ## Stale-review protection
 
@@ -56,12 +59,14 @@ This is optimistic concurrency for the approval chain; it is not a distributed l
 
 ## Integrity model
 
-Two independent SHA-256 checks now exist for v1.19 snapshots:
+Two linked SHA-256 checks exist for v1.19 snapshots:
 
 1. `content_sha256` — existing v1.17 digest for the exact frozen Staff Brief + Match Plan + Contingency Playbook source;
-2. `revision_sha256` — digest for the revision lineage, reviewed diff and approval note.
+2. `revision_sha256` — digest for the revision lineage, reviewed diff, approval note and `approved_content_sha256` binding.
 
-`TactiTwin_Staff_Brief_Snapshot::verify()` validates both when revision metadata is present. A legacy snapshot without revision metadata continues to validate using its original content digest only.
+The revision's `approved_content_sha256` must equal the snapshot's `content_sha256`. Therefore an independently valid revision record cannot be swapped into a different valid Staff Brief snapshot without failing snapshot verification.
+
+`TactiTwin_Staff_Brief_Snapshot::verify()` validates the content digest, revision digest and content binding whenever revision metadata is present. A legacy snapshot without revision metadata continues to validate using its original content digest only.
 
 The reviewed diff also has its own `reviewed_diff_sha256`, calculated from machine data only. Localized labels are excluded, so ES/EN produce the same digest for the same structural changes.
 
