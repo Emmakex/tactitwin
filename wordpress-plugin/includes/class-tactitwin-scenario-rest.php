@@ -37,6 +37,7 @@ final class TactiTwin_Scenario_REST {
                 'opponent-side-bias'              => 'side_bias',
                 'defensive-transition-after-loss' => 'defensive_transition',
                 'attack-vs-low-block'             => 'low_block',
+                'exploit-opponent-weak-side'      => 'weak_side',
                 'full-matchup-scan'               => 'full_scan',
             ) as $route => $callback
         ) {
@@ -68,10 +69,7 @@ final class TactiTwin_Scenario_REST {
     public static function high_press( WP_REST_Request $request ) {
         return self::scenario_response(
             static fn() => ( new TactiTwin_Profile_Service() )->build_up_vs_high_press(
-                (int) $request['team_id'],
-                (int) $request['opponent_id'],
-                (int) $request['limit'],
-                self::request_language( $request )
+                (int) $request['team_id'], (int) $request['opponent_id'], (int) $request['limit'], self::request_language( $request )
             )
         );
     }
@@ -79,10 +77,7 @@ final class TactiTwin_Scenario_REST {
     public static function side_bias( WP_REST_Request $request ) {
         return self::scenario_response(
             static fn() => ( new TactiTwin_Profile_Service() )->opponent_side_bias(
-                (int) $request['team_id'],
-                (int) $request['opponent_id'],
-                (int) $request['limit'],
-                self::request_language( $request )
+                (int) $request['team_id'], (int) $request['opponent_id'], (int) $request['limit'], self::request_language( $request )
             )
         );
     }
@@ -90,10 +85,7 @@ final class TactiTwin_Scenario_REST {
     public static function defensive_transition( WP_REST_Request $request ) {
         return self::scenario_response(
             static fn() => ( new TactiTwin_Profile_Service() )->defensive_transition_after_loss(
-                (int) $request['team_id'],
-                (int) $request['opponent_id'],
-                (int) $request['limit'],
-                self::request_language( $request )
+                (int) $request['team_id'], (int) $request['opponent_id'], (int) $request['limit'], self::request_language( $request )
             )
         );
     }
@@ -101,10 +93,15 @@ final class TactiTwin_Scenario_REST {
     public static function low_block( WP_REST_Request $request ) {
         return self::scenario_response(
             static fn() => ( new TactiTwin_Profile_Service() )->attack_vs_low_block(
-                (int) $request['team_id'],
-                (int) $request['opponent_id'],
-                (int) $request['limit'],
-                self::request_language( $request )
+                (int) $request['team_id'], (int) $request['opponent_id'], (int) $request['limit'], self::request_language( $request )
+            )
+        );
+    }
+
+    public static function weak_side( WP_REST_Request $request ) {
+        return self::scenario_response(
+            static fn() => ( new TactiTwin_Profile_Service() )->exploit_opponent_weak_side(
+                (int) $request['team_id'], (int) $request['opponent_id'], (int) $request['limit'], self::request_language( $request )
             )
         );
     }
@@ -112,10 +109,7 @@ final class TactiTwin_Scenario_REST {
     public static function full_scan( WP_REST_Request $request ) {
         return self::scenario_response(
             static fn() => ( new TactiTwin_Profile_Service() )->full_matchup_scan(
-                (int) $request['team_id'],
-                (int) $request['opponent_id'],
-                (int) $request['limit'],
-                self::request_language( $request )
+                (int) $request['team_id'], (int) $request['opponent_id'], (int) $request['limit'], self::request_language( $request )
             )
         );
     }

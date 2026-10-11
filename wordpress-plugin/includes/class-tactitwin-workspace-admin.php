@@ -48,6 +48,9 @@ final class TactiTwin_Workspace_Admin {
                 case 'attack-vs-low-block':
                     $scenario = $service->attack_vs_low_block( $team_id, $opponent_id, $sample, $language );
                     break;
+                case 'exploit-opponent-weak-side':
+                    $scenario = $service->exploit_opponent_weak_side( $team_id, $opponent_id, $sample, $language );
+                    break;
                 case 'build-up-vs-high-press':
                     $scenario = $service->build_up_vs_high_press( $team_id, $opponent_id, $sample, $language );
                     break;
@@ -130,6 +133,7 @@ final class TactiTwin_Workspace_Admin {
                                     <option value="opponent-side-bias"><?php echo esc_html__( 'Opponent Side Bias', 'tactitwin' ); ?></option>
                                     <option value="defensive-transition-after-loss"><?php echo esc_html__( 'Defensive Transition After Loss', 'tactitwin' ); ?></option>
                                     <option value="attack-vs-low-block"><?php echo esc_html__( 'Attack vs Low Block', 'tactitwin' ); ?></option>
+                                    <option value="exploit-opponent-weak-side"><?php echo esc_html__( 'Exploit Opponent Weak Side', 'tactitwin' ); ?></option>
                                 </select>
                             </td>
                         </tr>
@@ -255,6 +259,15 @@ final class TactiTwin_Workspace_Admin {
             self::card( __( 'Box shot share', 'tactitwin' ), ( $evidence['our_box_shot_share_pct'] ?? 0 ) . '%', '' );
             self::card( __( 'xG per shot', 'tactitwin' ), (string) ( $evidence['our_xg_per_shot'] ?? 0 ), '' );
             self::card( __( 'Opponent concession channel', 'tactitwin' ), ucfirst( TactiTwin_I18n::channel_label( (string) ( $evidence['opponent_most_conceded_channel'] ?? 'central' ), $language ) ), '' );
+            return;
+        }
+
+        if ( 'exploit-opponent-weak-side' === $scenario_id ) {
+            self::card( __( 'Best matchup channel', 'tactitwin' ), ucfirst( TactiTwin_I18n::channel_label( (string) ( $evidence['best_matchup_channel'] ?? 'central' ), $language ) ), '' );
+            self::card( __( 'Opponent most conceded channel', 'tactitwin' ), ucfirst( TactiTwin_I18n::channel_label( (string) ( $evidence['opponent_most_conceded_channel'] ?? 'central' ), $language ) ), '' );
+            self::card( __( 'Our dominant channel', 'tactitwin' ), ucfirst( TactiTwin_I18n::channel_label( (string) ( $evidence['our_dominant_channel'] ?? 'central' ), $language ) ), '' );
+            self::card( __( 'Switching gain', 'tactitwin' ), (string) ( $evidence['potential_switching_gain_points'] ?? 0 ), __( 'matchup points', 'tactitwin' ) );
+            self::card( __( 'Channel balance', 'tactitwin' ), ( $evidence['channel_balance_score'] ?? 0 ) . '/100', '' );
             return;
         }
 

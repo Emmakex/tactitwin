@@ -12,6 +12,7 @@ final class TactiTwin_Matchup_Scan {
             TactiTwin_Side_Bias_Scenario::evaluate( $team_profile, $opponent_profile, $language ),
             TactiTwin_Defensive_Transition_Scenario::evaluate( $team_profile, $opponent_profile, $language ),
             TactiTwin_Low_Block_Scenario::evaluate( $team_profile, $opponent_profile, $language ),
+            TactiTwin_Weak_Side_Scenario::evaluate( $team_profile, $opponent_profile, $language ),
         );
 
         usort(
