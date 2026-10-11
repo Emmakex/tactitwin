@@ -141,6 +141,86 @@ final class TactiTwin_Profile_Service {
         int $our_players = 11,
         int $opponent_players = 11
     ): array {
+        $components = $this->contingency_components(
+            $team_id,
+            $opponent_id,
+            $our_score,
+            $opponent_score,
+            $minute,
+            $limit,
+            $language,
+            $our_players,
+            $opponent_players
+        );
+
+        return TactiTwin_Contingency_Playbook::compose(
+            $components['match_plan'],
+            $components['context'],
+            $components['scan'],
+            $components['language']
+        );
+    }
+
+    public function live_contingency_playbook(
+        int $team_id,
+        int $opponent_id,
+        int $our_score,
+        int $opponent_score,
+        int $minute,
+        array $observations,
+        int $limit = 5,
+        string $language = 'en',
+        int $our_players = 11,
+        int $opponent_players = 11
+    ): array {
+        $components = $this->contingency_components(
+            $team_id,
+            $opponent_id,
+            $our_score,
+            $opponent_score,
+            $minute,
+            $limit,
+            $language,
+            $our_players,
+            $opponent_players
+        );
+        $playbook = TactiTwin_Contingency_Playbook::compose(
+            $components['match_plan'],
+            $components['context'],
+            $components['scan'],
+            $components['language']
+        );
+
+        return TactiTwin_Live_Observation::apply(
+            $playbook,
+            $components['scan'],
+            $observations,
+            $components['language']
+        );
+    }
+
+    public function matchup_profiles( int $team_id, int $opponent_id, int $limit ): array {
+        if ( $team_id === $opponent_id ) {
+            throw new InvalidArgumentException( 'Team and opponent must be different.' );
+        }
+
+        return array(
+            'team'     => $this->team_profile( $team_id, $limit ),
+            'opponent' => $this->team_profile( $opponent_id, $limit ),
+        );
+    }
+
+    private function contingency_components(
+        int $team_id,
+        int $opponent_id,
+        int $our_score,
+        int $opponent_score,
+        int $minute,
+        int $limit,
+        string $language,
+        int $our_players,
+        int $opponent_players
+    ): array {
         $language = TactiTwin_I18n::normalize_language( $language );
         $profiles = $this->matchup_profiles( $team_id, $opponent_id, $limit );
         $scan = TactiTwin_Matchup_Scan::evaluate( $profiles['team'], $profiles['opponent'], $language );
@@ -157,17 +237,12 @@ final class TactiTwin_Profile_Service {
             $opponent_players
         );
 
-        return TactiTwin_Contingency_Playbook::compose( $match_plan, $context, $scan, $language );
-    }
-
-    public function matchup_profiles( int $team_id, int $opponent_id, int $limit ): array {
-        if ( $team_id === $opponent_id ) {
-            throw new InvalidArgumentException( 'Team and opponent must be different.' );
-        }
-
         return array(
-            'team'     => $this->team_profile( $team_id, $limit ),
-            'opponent' => $this->team_profile( $opponent_id, $limit ),
+            'language' => $language,
+            'profiles' => $profiles,
+            'scan' => $scan,
+            'match_plan' => $match_plan,
+            'context' => $context,
         );
     }
 }
