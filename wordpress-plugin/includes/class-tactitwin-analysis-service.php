@@ -27,7 +27,9 @@ final class TactiTwin_Analysis_Service {
 
         $events = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT team_source_id, event_type_name, outcome_name, xg, location_x, location_y, end_location_x, end_location_y
+                "SELECT event_index, period, minute, second, possession, possession_team_source_id,
+                        team_source_id, event_type_name, outcome_name, xg,
+                        location_x, location_y, end_location_x, end_location_y
                  FROM {$event_table}
                  WHERE source = %s AND source_match_id = %s
                  ORDER BY event_index ASC", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -41,8 +43,9 @@ final class TactiTwin_Analysis_Service {
             throw new RuntimeException( 'Match events are not imported yet.' );
         }
 
-        $metrics = TactiTwin_Match_Metrics::calculate( $events );
-        $team_ids = array_values(
+        $metrics     = TactiTwin_Match_Metrics::calculate( $events );
+        $transitions = TactiTwin_Transition_Metrics::calculate( $events );
+        $team_ids    = array_values(
             array_filter(
                 array_unique(
                     array(
@@ -52,6 +55,26 @@ final class TactiTwin_Analysis_Service {
                 )
             )
         );
+
+        foreach ( $team_ids as $team_id ) {
+            if ( ! isset( $metrics[ $team_id ] ) ) {
+                $metrics[ $team_id ] = array( 'team_source_id' => $team_id );
+            }
+
+            $transition = $transitions[ $team_id ] ?? array();
+            $zones      = $transition['turnovers_by_zone'] ?? array();
+            unset( $transition['turnovers_by_zone'] );
+
+            $metrics[ $team_id ] = array_merge(
+                $metrics[ $team_id ],
+                $transition,
+                array(
+                    'turnovers_own_third'    => (int) ( $zones['own_third'] ?? 0 ),
+                    'turnovers_middle_third' => (int) ( $zones['middle_third'] ?? 0 ),
+                    'turnovers_final_third'  => (int) ( $zones['final_third'] ?? 0 ),
+                )
+            );
+        }
 
         $names = array();
         foreach ( $team_ids as $team_id ) {
