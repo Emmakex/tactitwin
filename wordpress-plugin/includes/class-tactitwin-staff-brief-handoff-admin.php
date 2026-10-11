@@ -82,8 +82,27 @@ final class TactiTwin_Staff_Brief_Handoff_Admin {
         }
         $language = is_array( $result ) ? TactiTwin_I18n::normalize_language( (string) ( $result['language'] ?? 'en' ) ) : TactiTwin_I18n::current_language();
         $recent = array();
+        $diff = array();
         try {
-            $recent = ( new TactiTwin_Staff_Brief_Snapshot_Service() )->recent( 5 );
+            $service = new TactiTwin_Staff_Brief_Snapshot_Service();
+            $recent = $service->recent( 5 );
+            if ( is_array( $result ) && ! empty( $result['brief'] ) && is_array( $result['brief'] ) ) {
+                $brief = $result['brief'];
+                $team_id = (string) ( $brief['team']['source_id'] ?? '' );
+                $opponent_id = (string) ( $brief['opponent']['source_id'] ?? '' );
+                $current_uuid = (string) ( $result['approved_snapshot_uuid'] ?? '' );
+                $previous = $service->latest_for_matchup( $team_id, $opponent_id, $current_uuid );
+                if ( ! empty( $previous ) ) {
+                    if ( '' !== $current_uuid ) {
+                        $current_snapshot = $service->snapshot( $current_uuid );
+                        if ( ! empty( $current_snapshot ) ) {
+                            $diff = TactiTwin_Staff_Brief_Version_Diff::snapshots( $previous, $current_snapshot, $language );
+                        }
+                    } else {
+                        $diff = TactiTwin_Staff_Brief_Version_Diff::current_against_snapshot( $brief, $previous, $language );
+                    }
+                }
+            }
         } catch ( Throwable $e ) {
             if ( ! $error ) {
                 $error = $e->getMessage();
@@ -96,6 +115,7 @@ final class TactiTwin_Staff_Brief_Handoff_Admin {
             <p><?php echo esc_html( self::text( 'intro', $language ) ); ?></p>
             <?php if ( $error ) : ?><div class="notice notice-error inline"><p><?php echo esc_html( (string) $error ); ?></p></div><?php endif; ?>
             <?php if ( is_array( $result ) && ! empty( $result['brief'] ) ) : ?>
+                <?php self::render_diff( $diff, $language ); ?>
                 <div style="background:#fff;border:1px solid #dcdcde;padding:16px;margin:12px 0;">
                     <?php if ( empty( $result['approved_snapshot_uuid'] ) ) : ?>
                         <p><strong><?php echo esc_html( self::text( 'ready', $language ) ); ?></strong></p>
@@ -121,6 +141,46 @@ final class TactiTwin_Staff_Brief_Handoff_Admin {
             <?php endif; ?>
         </div>
         <?php
+    }
+
+    private static function render_diff( array $diff, string $language ): void {
+        if ( empty( $diff ) ) {
+            return;
+        }
+        $changed = 'changed' === (string) ( $diff['status'] ?? '' );
+        $border = $changed ? '#dba617' : '#00a32a';
+        ?>
+        <div style="background:#fff;border-left:4px solid <?php echo esc_attr( $border ); ?>;padding:14px 16px;margin:12px 0;">
+            <h3 style="margin-top:0;"><?php echo esc_html( self::text( 'diff_title', $language ) ); ?></h3>
+            <p><?php echo esc_html( $changed ? sprintf( self::text( 'diff_count', $language ), (int) ( $diff['change_count'] ?? 0 ) ) : self::text( 'diff_none', $language ) ); ?></p>
+            <?php if ( ! empty( $diff['from']['snapshot_uuid'] ) ) : ?><p class="description"><?php echo esc_html( self::text( 'compared_with', $language ) ); ?> <code><?php echo esc_html( (string) $diff['from']['snapshot_uuid'] ); ?></code> · <?php echo esc_html( (string) ( $diff['from']['approved_at'] ?? '' ) ); ?></p><?php endif; ?>
+            <?php if ( $changed ) : ?>
+                <ul style="list-style:disc;padding-left:22px;">
+                    <?php foreach ( $diff['changes'] ?? array() as $change ) : ?>
+                        <li style="margin-bottom:6px;"><strong><?php echo esc_html( (string) ( $change['label'] ?? $change['id'] ?? '' ) ); ?></strong><?php echo esc_html( self::change_context( $change, $language ) ); ?></li>
+                    <?php endforeach; ?>
+                </ul>
+                <details><summary><?php echo esc_html( self::text( 'diff_details', $language ) ); ?></summary><pre style="white-space:pre-wrap;max-height:360px;overflow:auto;background:#f6f7f7;padding:12px;"><?php echo esc_html( wp_json_encode( $diff['changes'] ?? array(), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) ); ?></pre></details>
+            <?php endif; ?>
+            <p class="description"><?php echo esc_html( self::text( 'diff_guardrail', $language ) ); ?></p>
+        </div>
+        <?php
+    }
+
+    private static function change_context( array $change, string $language ): string {
+        $context = is_array( $change['context'] ?? null ) ? $change['context'] : array();
+        if ( ! empty( $context['plan_id'] ) ) {
+            return ' · ' . self::text( 'plan', $language ) . ' ' . (string) $context['plan_id'] . self::changed_fields_suffix( $context, $language );
+        }
+        if ( ! empty( $context['scenario_id'] ) ) {
+            return ' · ' . (string) $context['scenario_id'] . self::changed_fields_suffix( $context, $language );
+        }
+        return '';
+    }
+
+    private static function changed_fields_suffix( array $context, string $language ): string {
+        $fields = is_array( $context['changed_fields'] ?? null ) ? $context['changed_fields'] : array();
+        return empty( $fields ) ? '' : ' · ' . self::text( 'fields', $language ) . ': ' . implode( ', ', array_map( 'strval', $fields ) );
     }
 
     private static function render_live_origin(): void {
@@ -169,9 +229,11 @@ final class TactiTwin_Staff_Brief_Handoff_Admin {
         $catalog = array(
             'en' => array(
                 'title'=>'Approved Staff Brief handoff','intro'=>'Approve the exact pre-match brief to freeze its Match Plan and Playbook. A Live Session started from it keeps that immutable origin.','ready'=>'This generated brief is ready for explicit staff approval.','approve'=>'Approve and freeze this brief','approved'=>'Approved immutable snapshot','start'=>'Start / open Live Session','recent'=>'Recent approved briefs','snapshot'=>'Snapshot','matchup'=>'Matchup','approved_at'=>'Approved at','origin'=>'Live Session origin: approved Staff Brief','integrity_ok'=>'integrity verified','integrity_bad'=>'integrity failed',
+                'diff_title'=>'Changes since last approval','diff_none'=>'No tracked Staff Brief field changed since the previous approved version.','diff_count'=>'%d tracked changes detected before approval.','compared_with'=>'Compared with','diff_details'=>'Technical before/after details','diff_guardrail'=>'This is a structural audit diff only. It does not score the changes, recalculate tactics, reorder evidence or activate a plan.','plan'=>'Plan','fields'=>'fields',
             ),
             'es' => array(
                 'title'=>'Handoff del Staff Brief aprobado','intro'=>'Aprueba el brief prepartido exacto para congelar su Match Plan y Playbook. Una Live Session iniciada desde él conserva ese origen inmutable.','ready'=>'Este brief generado está listo para aprobación explícita del staff.','approve'=>'Aprobar y congelar este brief','approved'=>'Snapshot inmutable aprobado','start'=>'Iniciar / abrir Live Session','recent'=>'Briefs aprobados recientes','snapshot'=>'Snapshot','matchup'=>'Partido','approved_at'=>'Aprobado','origin'=>'Origen de Live Session: Staff Brief aprobado','integrity_ok'=>'integridad verificada','integrity_bad'=>'fallo de integridad',
+                'diff_title'=>'Cambios desde la última aprobación','diff_none'=>'No cambió ningún campo controlado del Staff Brief desde la versión aprobada anterior.','diff_count'=>'Se detectaron %d cambios controlados antes de aprobar.','compared_with'=>'Comparado con','diff_details'=>'Detalle técnico antes/después','diff_guardrail'=>'Es solo un diff estructural de auditoría. No puntúa los cambios, no recalcula táctica, no reordena evidencia ni activa un plan.','plan'=>'Plan','fields'=>'campos',
             ),
         );
         return $catalog[ $language ][ $key ] ?? $catalog['en'][ $key ] ?? $key;
