@@ -20,6 +20,7 @@ define( 'TACTITWIN_DIR', plugin_dir_path( __FILE__ ) );
 
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-i18n.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-db.php';
+require_once TACTITWIN_DIR . 'includes/class-tactitwin-schema-guard.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-statsbomb-client.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-statsbomb-normalizer.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-statsbomb-importer.php';
@@ -83,6 +84,7 @@ require_once TACTITWIN_DIR . 'includes/class-tactitwin.php';
 
 register_activation_hook( __FILE__, array( 'TactiTwin', 'activate' ) );
 
+TactiTwin_Schema_Guard::register();
 TactiTwin_I18n::register();
 TactiTwin_Analysis_REST::register();
 TactiTwin_Scenario_REST::register();
