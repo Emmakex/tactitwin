@@ -25,16 +25,28 @@ final class TactiTwin_Precedent_Aware_Match_Plan_Service {
                 '',
                 100
             );
+            $library = ( new TactiTwin_Opponent_Context_Similarity_Service() )->enrich_library(
+                $library,
+                $opponent_id,
+                $limit,
+                $language,
+                $profiles['opponent']
+            );
             $catalog = TactiTwin_Pre_Match_Precedent_Catalog::build(
                 $library,
                 $scan,
                 $language,
                 $contexts_per_scenario
             );
-            $plan['historical_precedent_catalog'] = TactiTwin_Precedent_Quality_Attachment::catalog(
+            $catalog = TactiTwin_Precedent_Quality_Attachment::catalog(
                 $catalog,
                 $library,
                 (string) $opponent_id,
+                $language
+            );
+            $plan['historical_precedent_catalog'] = TactiTwin_Precedent_Similarity_Attachment::catalog(
+                $catalog,
+                $library,
                 $language
             );
         } catch ( Throwable $e ) {
@@ -69,11 +81,15 @@ final class TactiTwin_Precedent_Aware_Match_Plan_Service {
             'reweights_tactical_scores' => false,
             'changes_recommendations' => false,
             'quality_calibration' => true,
+            'opponent_context_similarity' => true,
+            'quality_similarity_combined_score' => false,
             'quality_changes_tactical_scores' => false,
             'quality_changes_recommendations' => false,
+            'similarity_changes_tactical_scores' => false,
+            'similarity_changes_recommendations' => false,
             'note' => 'es' === $language
-                ? 'Los precedentes v1.9 se adjuntan como evidencia prepartido separada por contexto y v1.10 calibra su calidad. No modifican prioridades, fases, triggers ni recomendaciones del Plan de Partido.'
-                : 'v1.9 precedents are attached as pre-match evidence separated by context and v1.10 calibrates their quality. They do not alter Match Plan priorities, phases, triggers or recommendations.',
+                ? 'Los precedentes prepartido mantienen el contexto, muestran calidad v1.10 y similitud táctica del rival v1.11 por separado. No modifican prioridades, fases, triggers ni recomendaciones.'
+                : 'Pre-match precedents preserve context and expose v1.10 quality plus v1.11 opponent tactical similarity separately. They do not alter priorities, phases, triggers or recommendations.',
         );
 
         return $plan;
