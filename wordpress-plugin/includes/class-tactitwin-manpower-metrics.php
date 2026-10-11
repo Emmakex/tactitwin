@@ -13,9 +13,12 @@ final class TactiTwin_Manpower_Metrics {
             return array();
         }
 
-        $players   = array_fill_keys( $team_ids, 11 );
-        $dismissed = array();
-        $results   = array();
+        $players       = array_fill_keys( $team_ids, 11 );
+        $active        = array_fill_keys( $team_ids, array() );
+        $lineup_known  = array_fill_keys( $team_ids, false );
+        $dismissed     = array();
+        $results       = array();
+
         foreach ( $team_ids as $team_id ) {
             $results[ $team_id ] = self::empty_team_states( $team_id );
         }
@@ -34,17 +37,37 @@ final class TactiTwin_Manpower_Metrics {
             self::allocate_time( $results, $players, $team_ids, $clock - $previous_clock );
 
             $team_id = (string) ( $event['team_source_id'] ?? '' );
+            $type    = (string) ( $event['event_type_name'] ?? '' );
+
+            if ( 'Starting XI' === $type && isset( $active[ $team_id ] ) ) {
+                self::initialize_lineup( $event, $team_id, $active, $lineup_known, $players );
+            }
+
             if ( isset( $results[ $team_id ] ) ) {
                 $state = self::state_for( $team_id, $players, $team_ids );
                 self::record_event( $results[ $team_id ][ $state ], $event );
             }
 
-            if ( self::is_dismissal( $event ) && isset( $players[ $team_id ] ) ) {
+            if ( 'Substitution' === $type && isset( $active[ $team_id ] ) ) {
+                self::apply_substitution( $event, $team_id, $active, $lineup_known );
+            }
+
+            if (
+                self::is_dismissal( $event )
+                && isset( $players[ $team_id ] )
+                && self::dismissal_affects_pitch( $event, $team_id, $active, $lineup_known )
+            ) {
                 $player_id = (string) ( $event['player_source_id'] ?? '' );
-                $key = '' !== $player_id ? $team_id . ':' . $player_id : $team_id . ':' . (string) ( $event['event_index'] ?? $clock );
+                $key       = '' !== $player_id
+                    ? $team_id . ':' . $player_id
+                    : $team_id . ':' . (string) ( $event['event_index'] ?? $clock );
+
                 if ( ! isset( $dismissed[ $key ] ) ) {
                     $dismissed[ $key ] = true;
                     $players[ $team_id ] = max( 7, $players[ $team_id ] - 1 );
+                    if ( '' !== $player_id ) {
+                        unset( $active[ $team_id ][ $player_id ] );
+                    }
                 }
             }
 
@@ -140,6 +163,78 @@ final class TactiTwin_Manpower_Metrics {
         return '';
     }
 
+    private static function initialize_lineup(
+        array $event,
+        string $team_id,
+        array &$active,
+        array &$lineup_known,
+        array &$players
+    ): void {
+        $raw    = self::raw_event( $event );
+        $lineup = $raw['tactics']['lineup'] ?? array();
+        if ( ! is_array( $lineup ) || empty( $lineup ) ) {
+            return;
+        }
+
+        $on_pitch = array();
+        foreach ( $lineup as $entry ) {
+            $player_id = (string) ( $entry['player']['id'] ?? '' );
+            if ( '' !== $player_id ) {
+                $on_pitch[ $player_id ] = true;
+            }
+        }
+
+        if ( count( $on_pitch ) >= 7 ) {
+            $active[ $team_id ]       = $on_pitch;
+            $lineup_known[ $team_id ] = true;
+            $players[ $team_id ]      = min( 11, count( $on_pitch ) );
+        }
+    }
+
+    private static function apply_substitution(
+        array $event,
+        string $team_id,
+        array &$active,
+        array $lineup_known
+    ): void {
+        if ( empty( $lineup_known[ $team_id ] ) ) {
+            return;
+        }
+
+        $outgoing = (string) ( $event['player_source_id'] ?? '' );
+        $raw      = self::raw_event( $event );
+        $incoming = (string) ( $raw['substitution']['replacement']['id'] ?? '' );
+
+        if ( '' !== $outgoing ) {
+            unset( $active[ $team_id ][ $outgoing ] );
+        }
+        if ( '' !== $incoming ) {
+            $active[ $team_id ][ $incoming ] = true;
+        }
+    }
+
+    private static function dismissal_affects_pitch(
+        array $event,
+        string $team_id,
+        array $active,
+        array $lineup_known
+    ): bool {
+        $player_id = (string) ( $event['player_source_id'] ?? '' );
+        if ( '' === $player_id ) {
+            return false;
+        }
+
+        if ( ! empty( $lineup_known[ $team_id ] ) ) {
+            return isset( $active[ $team_id ][ $player_id ] );
+        }
+
+        if ( 'Foul Committed' === (string) ( $event['event_type_name'] ?? '' ) ) {
+            return true;
+        }
+
+        return '' !== (string) ( $event['position_name'] ?? '' );
+    }
+
     private static function record_event( array &$bucket, array $event ): void {
         ++$bucket['events'];
         $type    = (string) ( $event['event_type_name'] ?? '' );
@@ -178,23 +273,28 @@ final class TactiTwin_Manpower_Metrics {
     }
 
     private static function is_dismissal( array $event ): bool {
-        $raw = $event['raw_json'] ?? '';
-        if ( is_array( $raw ) ) {
-            $row = $raw;
-        } else {
-            $row = json_decode( (string) $raw, true );
-        }
-        if ( ! is_array( $row ) ) {
+        $raw = self::raw_event( $event );
+        if ( empty( $raw ) ) {
             return false;
         }
 
         $card = (string) (
-            $row['foul_committed']['card']['name']
-            ?? $row['bad_behaviour']['card']['name']
+            $raw['foul_committed']['card']['name']
+            ?? $raw['bad_behaviour']['card']['name']
             ?? ''
         );
 
         return in_array( $card, array( 'Red Card', 'Second Yellow' ), true );
+    }
+
+    private static function raw_event( array $event ): array {
+        $raw = $event['raw_json'] ?? array();
+        if ( is_array( $raw ) ) {
+            return $raw;
+        }
+
+        $decoded = json_decode( (string) $raw, true );
+        return is_array( $decoded ) ? $decoded : array();
     }
 
     private static function finalize( array $bucket ): array {
