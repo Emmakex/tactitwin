@@ -6,7 +6,7 @@ TactiTwin is a football tactical analysis and match-scenario simulation project.
 
 ## Product direction
 
-`public/open data -> normalized football model -> tactical analysis -> scenario engine -> lineup decisions -> match plan -> Plan A/B/C -> live staff observations -> persistent match-day timeline -> post-match review -> full-match evidence -> time-aligned segment evidence -> before/after transition deltas -> context-aware transition review -> context-matched intervention library -> historical precedent retrieval`
+`public/open data -> normalized football model -> tactical analysis -> scenario engine -> lineup decisions -> match plan -> Plan A/B/C -> live staff observations -> persistent match-day timeline -> post-match review -> full-match evidence -> time-aligned segment evidence -> before/after transition deltas -> context-aware transition review -> context-matched intervention library -> historical precedent retrieval -> precedent-aware match planning`
 
 TactiTwin is not intended to predict a final score with certainty. It is a decision-support system for exploring tactical risks, opportunities and "what if" scenarios before, during and after a match while retaining evidence, confidence and method boundaries.
 
@@ -32,6 +32,7 @@ The first phase focuses on:
 - Context annotation for goals, manpower and substitutions around those transitions.
 - Cross-match intervention memory grouped by comparable tactical context.
 - Exact-context historical precedent retrieval inside What-if preparation.
+- Historical precedent evidence inside Match Plan and Plan A/B/C while preserving context boundaries.
 - WordPress administration UI and REST endpoints.
 
 Initial data-source targets:
@@ -66,10 +67,12 @@ The current WordPress plugin supports:
 - Context-aware transition review that flags goals, dismissals, recorded manpower/score changes and substitutions that may confound a before/after comparison.
 - Intervention Library grouping repeated interventions across closed linked sessions when scenario, destination plan/mode, minute band, score state and manpower state match.
 - Historical Tactical Precedents inside What-if, using exact minute-band + score-state + manpower-state matching and current matchup relevance.
+- Pre-match precedent catalog inside Match Plan, keeping minute/score/manpower contexts separate rather than averaging them together.
+- Exact-context precedent distribution into Plan A/B/C by historical destination plan, with Plan B additionally requiring the current armed/live scenario.
 
 ### Match-day decision workflow
 
-`Match Plan -> Contingency Playbook -> Live Playbook -> Live Session -> Session Review -> Evidence Review -> Segment Evidence -> Transition Deltas -> Context-Aware Review -> Intervention Library -> Historical Precedents`
+`Match Plan -> Pre-match Precedent Catalog -> Contingency Playbook -> Exact Plan A/B/C Precedents -> Live Playbook -> Live Session -> Session Review -> Evidence Review -> Segment Evidence -> Transition Deltas -> Context-Aware Review -> Intervention Library -> Historical Precedents`
 
 Plan B is never activated merely because historical data predicted an opponent behaviour. A supported manual observation from the staff can activate Plan B when Plan C is not already required by score/manpower context. Plan C keeps precedence for configured score/manpower contingencies.
 
@@ -89,7 +92,9 @@ Live Sessions persist the exact playbook JSON submitted at each staff update. Po
 
 **v1.8 — Historical Precedent Retrieval** connects that intervention memory to the What-if Lab. It retrieves only groups that exactly match the current minute band, score state and manpower state, joins them to scenarios in the current Full Matchup Scan and orders them using current scenario relevance plus historical sample maturity/volume/cleaner share. There is no fuzzy fallback.
 
-The What-if result now includes `historical_precedents`, while existing risk/opportunity scores, recommendations and decision triggers remain unchanged. v1.8 explicitly reports `reweights_tactical_scores=false` and `changes_recommendations=false`.
+**v1.9 — Precedent-Aware Match Planning** carries that memory into the Match Plan and Plan A/B/C workflow. Pre-match planning keeps every historical minute/score/manpower context separate for each current scenario. During Contingency and Live Playbook use, exact-context precedents are assigned only to the same historical destination plan; Plan B also requires the same currently armed or live-activated scenario.
+
+v1.9 does not recompute one cross-context historical average. It exposes `cross_context_metric_aggregation=false`, `reweights_tactical_scores=false` and `changes_recommendations=false`.
 
 No layer currently claims causal coaching impact.
 
@@ -103,6 +108,7 @@ Even exact-context historical precedents can differ in opponent quality, fatigue
 
 Examples include:
 
+- `GET /wp-json/tactitwin/v1/planning/match-plan`
 - `GET /wp-json/tactitwin/v1/planning/what-if`
 - `GET /wp-json/tactitwin/v1/planning/contingency-playbook`
 - `POST /wp-json/tactitwin/v1/planning/live-playbook`
@@ -112,7 +118,7 @@ Examples include:
 - `POST /wp-json/tactitwin/v1/planning/live-sessions/{session_uuid}/link-match`
 - `GET /wp-json/tactitwin/v1/planning/intervention-library?team_id={team_id}`
 
-The What-if route accepts optional `precedent_limit` (1–10, default 5) and returns `historical_precedents` as a separate explanatory evidence layer.
+What-if accepts optional `precedent_limit` (1–10, default 5). Match Plan accepts `precedent_context_limit` (1–10, default 3). Contingency and Live Playbook accept `precedent_limit` (1–10, default 5).
 
 ## Product milestones
 
@@ -132,6 +138,7 @@ The What-if route accepts optional `precedent_limit` (1–10, default 5) and ret
 - **v1.6 — Context-Aware Transition Review**
 - **v1.7 — Context-Matched Intervention Library**
 - **v1.8 — Historical Precedent Retrieval**
+- **v1.9 — Precedent-Aware Match Planning**
 
 ## Repository workflow
 
@@ -139,4 +146,4 @@ Development flows through feature branches and pull requests into `main`, with a
 
 ## Status
 
-Active coach-usable MVP development. The current product spans pre-match tactical analysis, lineup decision support, contingency planning, explicit live staff observation, persistent match-day audit trails, full-match and time-aligned post-match evidence, before/after transition review, explicit context/confounder annotations, a cross-match intervention memory and exact-context precedent retrieval inside What-if preparation.
+Active coach-usable MVP development. The current product spans pre-match tactical analysis, lineup decision support, contingency planning, explicit live staff observation, persistent match-day audit trails, full-match and time-aligned post-match evidence, before/after transition review, explicit context/confounder annotations, a cross-match intervention memory, exact-context precedent retrieval and precedent-aware Match Plan / Plan A/B/C evidence.

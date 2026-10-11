@@ -1,0 +1,125 @@
+<?php
+
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
+final class TactiTwin_Playbook_Precedent_Attachment {
+    public static function attach( array $playbook, array $precedents, string $language = 'en', int $per_plan_limit = 3 ): array {
+        $language = TactiTwin_I18n::normalize_language( $language );
+        $per_plan_limit = max( 1, min( 10, $per_plan_limit ) );
+
+        if ( 'contingency-playbook' !== (string) ( $playbook['playbook_id'] ?? '' ) ) {
+            throw new InvalidArgumentException( 'Playbook precedent attachment requires a TactiTwin Contingency Playbook.' );
+        }
+        if ( 'historical-precedent-retrieval' !== (string) ( $precedents['precedent_id'] ?? '' ) ) {
+            throw new InvalidArgumentException( 'Playbook precedent attachment requires v1.8 historical precedent retrieval.' );
+        }
+
+        $items = is_array( $precedents['items'] ?? null ) ? $precedents['items'] : array();
+        $result = $playbook;
+        $active = is_array( $playbook['active_plan'] ?? null ) ? $playbook['active_plan'] : array();
+        $active_b_scenario = 'B' === (string) ( $active['id'] ?? '' )
+            ? (string) ( $active['scenario_id'] ?? '' )
+            : '';
+
+        $distribution = array();
+        foreach ( array( 'plan_a'=>'A', 'plan_b'=>'B', 'plan_c'=>'C' ) as $plan_key => $plan_id ) {
+            if ( ! isset( $result['plans'][ $plan_key ] ) || ! is_array( $result['plans'][ $plan_key ] ) ) {
+                continue;
+            }
+
+            $scenario_filter = '';
+            if ( 'B' === $plan_id ) {
+                $scenario_filter = '' !== $active_b_scenario
+                    ? $active_b_scenario
+                    : (string) ( $result['plans'][ $plan_key ]['scenario_id'] ?? '' );
+            }
+
+            $matched = array_values(
+                array_filter(
+                    $items,
+                    static function( array $item ) use ( $plan_id, $scenario_filter ): bool {
+                        if ( strtoupper( (string) ( $item['to_plan'] ?? '' ) ) !== $plan_id ) {
+                            return false;
+                        }
+                        if ( 'B' === $plan_id && '' !== $scenario_filter ) {
+                            return (string) ( $item['scenario_id'] ?? '' ) === $scenario_filter;
+                        }
+                        return true;
+                    }
+                )
+            );
+
+            $total = count( $matched );
+            $returned = array_slice( $matched, 0, $per_plan_limit );
+            $result['plans'][ $plan_key ]['historical_precedents'] = array(
+                'status' => $total > 0 ? 'available' : 'no-match',
+                'plan_id' => $plan_id,
+                'scenario_filter' => '' !== $scenario_filter ? $scenario_filter : null,
+                'matched_count' => $total,
+                'returned_count' => count( $returned ),
+                'items' => $returned,
+                'summary' => self::plan_summary( $plan_id, $scenario_filter, $total, $language ),
+                'method' => array(
+                    'source' => 'v1.8 exact-context historical precedent retrieval',
+                    'destination_plan_match_required' => true,
+                    'plan_b_scenario_match_required' => 'B' === $plan_id,
+                    'reweights_tactical_scores' => false,
+                    'changes_recommendations' => false,
+                ),
+            );
+            $distribution[ $plan_id ] = $total;
+        }
+
+        $result['historical_precedents'] = $precedents;
+        $result['historical_precedents']['plan_distribution'] = $distribution;
+        $result['method']['historical_precedents'] = array(
+            'attached' => true,
+            'exact_context_required' => true,
+            'destination_plan_match_required' => true,
+            'plan_b_scenario_match_required' => true,
+            'reweights_tactical_scores' => false,
+            'changes_recommendations' => false,
+            'note' => self::text( 'method', $language ),
+        );
+
+        return $result;
+    }
+
+    private static function plan_summary( string $plan_id, string $scenario, int $count, string $language ): array {
+        if ( 0 === $count ) {
+            return array(
+                'B' === $plan_id && '' !== $scenario
+                    ? sprintf( self::text( 'none_b', $language ), $scenario )
+                    : sprintf( self::text( 'none_plan', $language ), $plan_id ),
+            );
+        }
+
+        return array(
+            'B' === $plan_id && '' !== $scenario
+                ? sprintf( self::text( 'count_b', $language ), $count, $scenario )
+                : sprintf( self::text( 'count_plan', $language ), $count, $plan_id ),
+        );
+    }
+
+    private static function text( string $key, string $language ): string {
+        $catalog = array(
+            'en' => array(
+                'method' => 'v1.9 distributes exact-context v1.8 precedents to Plan A/B/C only when their historical destination plan matches. Plan B additionally requires the historical scenario to match the currently armed or live-activated Plan B scenario.',
+                'none_plan' => 'No exact-context historical transitions into Plan %s were found.',
+                'none_b' => 'No exact-context historical transitions into Plan B were found for scenario %s.',
+                'count_plan' => '%d exact-context historical transitions into Plan %s are available.',
+                'count_b' => '%d exact-context historical transitions into Plan B are available for scenario %s.',
+            ),
+            'es' => array(
+                'method' => 'v1.9 distribuye los precedentes de contexto exacto de v1.8 entre Plan A/B/C solo cuando coincide el plan histórico de destino. Plan B exige además que el escenario histórico coincida con el Plan B actualmente armado o activado en directo.',
+                'none_plan' => 'No se encontraron transiciones históricas de contexto exacto hacia el Plan %s.',
+                'none_b' => 'No se encontraron transiciones históricas de contexto exacto hacia el Plan B para el escenario %s.',
+                'count_plan' => 'Hay %d transiciones históricas de contexto exacto hacia el Plan %s.',
+                'count_b' => 'Hay %d transiciones históricas de contexto exacto hacia el Plan B para el escenario %s.',
+            ),
+        );
+        return $catalog[ $language ][ $key ] ?? $catalog['en'][ $key ] ?? $key;
+    }
+}
