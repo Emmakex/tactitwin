@@ -34,6 +34,10 @@ final class TactiTwin_Intervention_Library_REST {
                         'default'=>50,
                         'sanitize_callback'=>'absint',
                     ),
+                    'learning_scope' => array(
+                        'default'=>'all',
+                        'sanitize_callback'=>'sanitize_key',
+                    ),
                 ),
             )
         );
@@ -46,7 +50,8 @@ final class TactiTwin_Intervention_Library_REST {
                 (int) $request['team_id'],
                 '' === $language ? null : $language,
                 (string) ( $request['scenario_id'] ?? '' ),
-                (int) ( $request['limit'] ?? 50 )
+                (int) ( $request['limit'] ?? 50 ),
+                (string) ( $request['learning_scope'] ?? 'all' )
             );
             return new WP_REST_Response( array( 'ok'=>true, 'result'=>$result ), 200 );
         } catch ( Throwable $e ) {
