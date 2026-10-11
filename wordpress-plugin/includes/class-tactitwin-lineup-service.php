@@ -58,7 +58,7 @@ final class TactiTwin_Lineup_Service {
             $opponent_players
         );
 
-        return TactiTwin_Lineup_What_If::compare(
+        $result = TactiTwin_Lineup_What_If::compare(
             $baseline,
             $candidate,
             $baseline_formation,
@@ -66,6 +66,25 @@ final class TactiTwin_Lineup_Service {
             $language,
             $context
         );
+
+        $unit_raw = ( new TactiTwin_Unit_Service() )->compare_lineup_networks(
+            $team_id,
+            $baseline_player_ids,
+            $candidate_player_ids,
+            $limit
+        );
+        $unit = TactiTwin_Unit_Comparison::interpret( $unit_raw, $language );
+        $result['unit_interactions'] = $unit;
+        $result['recommendations'] = array_values(
+            array_unique(
+                array_merge(
+                    $result['recommendations'] ?? array(),
+                    $unit['recommendations'] ?? array()
+                )
+            )
+        );
+
+        return $result;
     }
 
     public function recent_starting_lineup( int $team_id ): array {
