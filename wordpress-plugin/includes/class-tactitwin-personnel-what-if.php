@@ -146,7 +146,9 @@ final class TactiTwin_Personnel_What_If {
             array( 'turnovers', 5.0 ),
         );
         $distance = 0.0;
-        foreach ( $vectors as array( $key, $scale ) ) {
+        foreach ( $vectors as $vector ) {
+            $key   = (string) $vector[0];
+            $scale = (float) $vector[1];
             $a = (float) ( $out['per_90'][ $key ] ?? 0 );
             $b = (float) ( $in['per_90'][ $key ] ?? 0 );
             $distance += min( 1.0, abs( $a - $b ) / $scale );
