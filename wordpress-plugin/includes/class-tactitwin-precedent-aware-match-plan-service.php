@@ -25,11 +25,17 @@ final class TactiTwin_Precedent_Aware_Match_Plan_Service {
                 '',
                 100
             );
-            $plan['historical_precedent_catalog'] = TactiTwin_Pre_Match_Precedent_Catalog::build(
+            $catalog = TactiTwin_Pre_Match_Precedent_Catalog::build(
                 $library,
                 $scan,
                 $language,
                 $contexts_per_scenario
+            );
+            $plan['historical_precedent_catalog'] = TactiTwin_Precedent_Quality_Attachment::catalog(
+                $catalog,
+                $library,
+                (string) $opponent_id,
+                $language
             );
         } catch ( Throwable $e ) {
             $plan['historical_precedent_catalog'] = array(
@@ -62,9 +68,12 @@ final class TactiTwin_Precedent_Aware_Match_Plan_Service {
             'cross_context_metric_aggregation' => false,
             'reweights_tactical_scores' => false,
             'changes_recommendations' => false,
+            'quality_calibration' => true,
+            'quality_changes_tactical_scores' => false,
+            'quality_changes_recommendations' => false,
             'note' => 'es' === $language
-                ? 'Los precedentes v1.9 se adjuntan como evidencia prepartido separada por contexto. No modifican prioridades, fases, triggers ni recomendaciones del Plan de Partido.'
-                : 'v1.9 precedents are attached as pre-match evidence separated by context. They do not alter Match Plan priorities, phases, triggers or recommendations.',
+                ? 'Los precedentes v1.9 se adjuntan como evidencia prepartido separada por contexto y v1.10 calibra su calidad. No modifican prioridades, fases, triggers ni recomendaciones del Plan de Partido.'
+                : 'v1.9 precedents are attached as pre-match evidence separated by context and v1.10 calibrates their quality. They do not alter Match Plan priorities, phases, triggers or recommendations.',
         );
 
         return $plan;
