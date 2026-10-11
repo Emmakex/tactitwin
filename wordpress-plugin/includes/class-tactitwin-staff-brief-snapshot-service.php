@@ -5,11 +5,52 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 final class TactiTwin_Staff_Brief_Snapshot_Service {
-    public function approve( array $brief, int $approved_by, int $sample_size = 5 ): array {
+    public function approval_review( array $brief, string $language = 'en', string $approval_note = '' ): array {
+        $team_id = (string) ( $brief['team']['source_id'] ?? '' );
+        $opponent_id = (string) ( $brief['opponent']['source_id'] ?? '' );
+        if ( '' === $team_id || '' === $opponent_id ) {
+            throw new InvalidArgumentException( 'Staff Brief approval requires a valid team/opponent matchup.' );
+        }
+
+        $previous = $this->latest_for_matchup( $team_id, $opponent_id );
+        $revision_number = $this->count_for_matchup( $team_id, $opponent_id ) + 1;
+
+        return TactiTwin_Staff_Brief_Revision_Chain::build(
+            $brief,
+            $previous,
+            $revision_number,
+            $language,
+            $approval_note
+        );
+    }
+
+    public function approve( array $brief, int $approved_by, int $sample_size = 5, array $review_context = array() ): array {
         global $wpdb;
         $uuid = self::new_uuid();
         $approved_at = current_time( 'mysql', true );
-        $snapshot = TactiTwin_Staff_Brief_Snapshot::freeze( $brief, $uuid, $approved_by, $approved_at, $sample_size );
+        $language = TactiTwin_I18n::normalize_language( (string) ( $brief['language'] ?? 'en' ) );
+        $approval_note = trim( (string) ( $review_context['approval_note'] ?? '' ) );
+        $revision = $this->approval_review( $brief, $language, $approval_note );
+
+        if ( ! empty( $review_context['enforce_review_guard'] ) ) {
+            $expected_parent = self::normalize_uuid( (string) ( $review_context['expected_parent_snapshot_uuid'] ?? '' ) );
+            $actual_parent = self::normalize_uuid( (string) ( $revision['parent_snapshot_uuid'] ?? '' ) );
+            if ( $expected_parent !== $actual_parent ) {
+                throw new RuntimeException( 'The previously reviewed Staff Brief version changed before approval. Review the latest diff and approve again.' );
+            }
+
+            $expected_diff = strtolower( trim( (string) ( $review_context['expected_diff_sha256'] ?? '' ) ) );
+            $actual_diff = strtolower( trim( (string) ( $revision['reviewed_diff_sha256'] ?? '' ) ) );
+            if ( $expected_diff !== $actual_diff ) {
+                throw new RuntimeException( 'The Staff Brief diff changed before approval. Review the latest changes and approve again.' );
+            }
+
+            if ( ! empty( $revision['requires_change_acknowledgement'] ) && empty( $review_context['acknowledged_changes'] ) ) {
+                throw new RuntimeException( 'Acknowledge the displayed Staff Brief changes before approving this revision.' );
+            }
+        }
+
+        $snapshot = TactiTwin_Staff_Brief_Snapshot::freeze( $brief, $uuid, $approved_by, $approved_at, $sample_size, $revision );
         $table = TactiTwin_DB::table( 'staff_brief_snapshots' );
         $ok = $wpdb->insert(
             $table,
@@ -56,6 +97,7 @@ final class TactiTwin_Staff_Brief_Snapshot_Service {
         $snapshot['storage'] = array(
             'id' => (int) $row['id'],
             'integrity_valid' => TactiTwin_Staff_Brief_Snapshot::verify( $snapshot ),
+            'revision_chain_present' => ! empty( $snapshot['revision'] ),
         );
         return $snapshot;
     }
@@ -104,6 +146,23 @@ final class TactiTwin_Staff_Brief_Snapshot_Service {
             ) ?: array();
         }
         return empty( $row['snapshot_uuid'] ) ? array() : $this->snapshot( (string) $row['snapshot_uuid'] );
+    }
+
+    public function count_for_matchup( string $team_id, string $opponent_id ): int {
+        global $wpdb;
+        $team_id = trim( $team_id );
+        $opponent_id = trim( $opponent_id );
+        if ( '' === $team_id || '' === $opponent_id ) {
+            return 0;
+        }
+        $table = TactiTwin_DB::table( 'staff_brief_snapshots' );
+        return (int) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT COUNT(*) FROM {$table} WHERE team_source_id = %s AND opponent_source_id = %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                $team_id,
+                $opponent_id
+            )
+        );
     }
 
     public function handoff( string $snapshot_uuid, int $created_by, string $source_match_id = '', string $title = '' ): array {
