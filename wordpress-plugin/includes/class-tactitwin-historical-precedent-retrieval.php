@@ -114,7 +114,7 @@ final class TactiTwin_Historical_Precedent_Retrieval {
             'matched_group_count' => $total,
             'returned_group_count' => count( $items ),
             'items' => $items,
-            'learning_review_coverage' => TactiTwin_Intervention_Library_Service::precedent_learning_coverage( $items ),
+            'learning_review_coverage' => self::learning_review_coverage( $items ),
             'summary' => self::summary( $items, $context, $language ),
             'method' => array(
                 'type' => 'exact-context-historical-precedent-retrieval',
@@ -175,6 +175,25 @@ final class TactiTwin_Historical_Precedent_Retrieval {
         if ( 'cleaner' === $basis ) return (int) ( $sample['cleaner'] ?? 0 );
         if ( 'context-comparable' === $basis ) return (int) ( $sample['context_comparable'] ?? 0 );
         return min( 1, (int) ( $sample['context_comparable'] ?? 0 ) );
+    }
+
+    private static function learning_review_coverage( array $items ): array {
+        $counts = array( 'all-signed' => 0, 'mixed' => 0, 'unsigned' => 0, 'invalid' => 0 );
+        foreach ( $items as $item ) {
+            $status = (string) ( $item['learning_review']['status'] ?? 'unsigned' );
+            if ( ! isset( $counts[ $status ] ) ) {
+                $status = 'unsigned';
+            }
+            ++$counts[ $status ];
+        }
+        return array(
+            'returned_groups' => count( $items ),
+            'all_signed_groups' => $counts['all-signed'],
+            'mixed_groups' => $counts['mixed'],
+            'unsigned_groups' => $counts['unsigned'],
+            'invalid_groups' => $counts['invalid'],
+            'affects_retrieval_score' => false,
+        );
     }
 
     private static function minute_band( int $minute ): string {
