@@ -9,6 +9,7 @@ require_once TACTITWIN_DIR . 'includes/class-tactitwin-opponent-context-distance
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-opponent-context-similarity-service.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-precedent-similarity-attachment.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-evidence-suitability-ranker.php';
+require_once TACTITWIN_DIR . 'includes/class-tactitwin-evidence-ranking-robustness.php';
 
 final class TactiTwin_Precedent_Aware_What_If_Service {
     public function evaluate(
@@ -72,7 +73,12 @@ final class TactiTwin_Precedent_Aware_What_If_Service {
                 $library,
                 $language
             );
-            $result['historical_precedents'] = TactiTwin_Evidence_Suitability_Ranker::retrieval(
+            $precedents = TactiTwin_Evidence_Suitability_Ranker::retrieval(
+                $precedents,
+                $language,
+                10
+            );
+            $result['historical_precedents'] = TactiTwin_Evidence_Ranking_Robustness::retrieval(
                 $precedents,
                 $language,
                 $precedent_limit
@@ -105,17 +111,22 @@ final class TactiTwin_Precedent_Aware_What_If_Service {
             'quality_calibration' => true,
             'opponent_context_similarity' => true,
             'evidence_suitability_ranking' => true,
+            'evidence_ranking_robustness' => true,
             'quality_similarity_combined_score' => true,
             'combined_score_scope' => 'historical evidence ordering only',
+            'robustness_scope' => 'diagnostic sensitivity of historical evidence ordering only',
             'quality_changes_tactical_scores' => false,
             'quality_changes_recommendations' => false,
             'similarity_changes_tactical_scores' => false,
             'similarity_changes_recommendations' => false,
             'suitability_changes_tactical_scores' => false,
             'suitability_changes_recommendations' => false,
+            'robustness_changes_suitability_scores' => false,
+            'robustness_changes_tactical_scores' => false,
+            'robustness_changes_recommendations' => false,
             'note' => 'es' === $language
-                ? 'v1.12 ordena los precedentes de contexto exacto por idoneidad de evidencia usando relevancia actual, calidad v1.10 y similitud v1.11. El score combinado solo ordena evidencia histórica y no modifica scores ni recomendaciones del What-if.'
-                : 'v1.12 orders exact-context precedents by evidence suitability using current relevance, v1.10 quality and v1.11 similarity. The combined score only orders historical evidence and does not alter What-if scores or recommendations.',
+                ? 'v1.13 añade un diagnóstico de sensibilidad sobre el ranking v1.12 usando cinco perfiles transparentes de pesos. Conserva el orden base y solo informa de su estabilidad; no modifica scores ni recomendaciones del What-if.'
+                : 'v1.13 adds a sensitivity diagnostic over the v1.12 ranking using five transparent weight profiles. It preserves the baseline order and only reports its stability; it does not alter What-if scores or recommendations.',
         );
 
         return $result;
