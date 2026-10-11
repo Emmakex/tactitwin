@@ -36,6 +36,89 @@ final class TactiTwin_Formation_Model {
         );
     }
 
+    /**
+     * Orders a provider Starting XI into TactiTwin's canonical role order.
+     *
+     * The assignment is solved globally rather than greedily so two similar
+     * players cannot both claim the same best role. Position family and
+     * left/right information are kept separate and explainable.
+     */
+    public static function assign_players_to_roles( array $players, string $formation ): array {
+        $template = self::template( $formation );
+        $roles    = $template['roles'];
+
+        if ( 11 !== count( $players ) || 11 !== count( $roles ) ) {
+            throw new InvalidArgumentException( 'Formation assignment requires exactly 11 players and 11 roles.' );
+        }
+
+        $states = array(
+            0 => array(
+                'score'      => 0.0,
+                'assignment' => array(),
+            ),
+        );
+
+        foreach ( array_values( $players ) as $player_index => $player ) {
+            $next = array();
+            foreach ( $states as $mask => $state ) {
+                foreach ( $roles as $role_index => $role ) {
+                    $bit = 1 << $role_index;
+                    if ( $mask & $bit ) {
+                        continue;
+                    }
+
+                    $new_mask  = $mask | $bit;
+                    $new_score = (float) $state['score'] + self::assignment_score(
+                        (string) ( $player['position_name'] ?? '' ),
+                        (string) $role
+                    );
+                    $assignment = $state['assignment'];
+                    $assignment[ $role_index ] = $player_index;
+
+                    if ( ! isset( $next[ $new_mask ] ) || $new_score > (float) $next[ $new_mask ]['score'] ) {
+                        $next[ $new_mask ] = array(
+                            'score'      => $new_score,
+                            'assignment' => $assignment,
+                        );
+                    }
+                }
+            }
+            $states = $next;
+        }
+
+        $full_mask = ( 1 << count( $roles ) ) - 1;
+        if ( ! isset( $states[ $full_mask ] ) ) {
+            throw new RuntimeException( 'Unable to assign the Starting XI to formation roles.' );
+        }
+
+        $assignment = $states[ $full_mask ]['assignment'];
+        ksort( $assignment );
+        $ordered = array();
+        $slots   = array();
+
+        foreach ( $roles as $role_index => $role ) {
+            $player_index = (int) $assignment[ $role_index ];
+            $player       = $players[ $player_index ];
+            $fit          = self::role_compatibility( (string) ( $player['position_name'] ?? '' ), (string) $role );
+            $ordered[]    = $player;
+            $slots[]      = array(
+                'role'                => (string) $role,
+                'player_source_id'    => (string) ( $player['player_source_id'] ?? '' ),
+                'player_name'         => (string) ( $player['player_name'] ?? '' ),
+                'historical_position' => (string) ( $player['position_name'] ?? '' ),
+                'role_fit'            => $fit,
+                'assignment_score'    => round( self::assignment_score( (string) ( $player['position_name'] ?? '' ), (string) $role ), 1 ),
+            );
+        }
+
+        return array(
+            'players'     => $ordered,
+            'slots'       => $slots,
+            'total_score' => round( (float) $states[ $full_mask ]['score'], 1 ),
+            'method'      => 'global-position-family-and-side-assignment',
+        );
+    }
+
     public static function structural_delta( string $baseline, string $candidate ): array {
         $a = self::template( $baseline );
         $b = self::template( $candidate );
@@ -45,6 +128,22 @@ final class TactiTwin_Formation_Model {
             $delta[ $key ] = round( (float) ( $b['structure'][ $key ] ?? 0 ) - (float) ( $a['structure'][ $key ] ?? 0 ), 1 );
         }
         return $delta;
+    }
+
+    private static function assignment_score( string $position_name, string $role ): float {
+        $fit   = self::role_compatibility( $position_name, $role );
+        $score = (float) $fit['score'];
+
+        $position_side = self::position_side( $position_name );
+        $role_side     = self::role_side( $role );
+
+        if ( in_array( $position_side, array( 'left', 'right' ), true ) && in_array( $role_side, array( 'left', 'right' ), true ) ) {
+            $score += $position_side === $role_side ? 18.0 : -22.0;
+        } elseif ( 'center' === $position_side && 'center' === $role_side ) {
+            $score += 8.0;
+        }
+
+        return max( 0.0, $score );
     }
 
     private static function templates(): array {
@@ -153,6 +252,34 @@ final class TactiTwin_Formation_Model {
             return 'striker';
         }
         return 'unknown';
+    }
+
+    private static function position_side( string $position ): string {
+        $position = strtolower( trim( $position ) );
+        if ( str_contains( $position, 'right' ) ) {
+            return 'right';
+        }
+        if ( str_contains( $position, 'left' ) ) {
+            return 'left';
+        }
+        return 'center';
+    }
+
+    private static function role_side( string $role ): string {
+        $role = strtoupper( trim( $role ) );
+        if ( str_starts_with( $role, 'R' ) && ! in_array( $role, array( 'RM' ), true ) ) {
+            return 'right';
+        }
+        if ( str_starts_with( $role, 'L' ) && ! in_array( $role, array( 'LM' ), true ) ) {
+            return 'left';
+        }
+        if ( in_array( $role, array( 'RM' ), true ) ) {
+            return 'right';
+        }
+        if ( in_array( $role, array( 'LM' ), true ) ) {
+            return 'left';
+        }
+        return 'center';
     }
 
     private static function compatibility_score( string $historical, string $expected ): float {
