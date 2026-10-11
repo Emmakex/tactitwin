@@ -60,8 +60,8 @@ $es = TactiTwin_Lineup_What_If::compare( $baseline, $candidate, '4-3-3', '4-2-3-
 
 tt_lineup_assert( 'lineup-formation-what-if' === $en['scenario_id'], 'scenario id returned' );
 tt_lineup_assert( 1 === $en['changes']['personnel_changes'], 'single personnel change detected' );
-tt_lineup_assert( '7' === $en['changes']['outgoing'][0]['player_source_id'], 'outgoing player detected' );
-tt_lineup_assert( '12' === $en['changes']['incoming'][0]['player_source_id'], 'incoming player detected' );
+tt_lineup_assert( '7' === (string) $en['changes']['outgoing'][0]['player_source_id'], 'outgoing player detected' );
+tt_lineup_assert( '12' === (string) $en['changes']['incoming'][0]['player_source_id'], 'incoming player detected' );
 tt_lineup_assert( $en['delta']['structure']['double_pivot'] > 0, 'double pivot structural increase detected' );
 tt_lineup_assert( $en['delta']['dimensions']['attacking_threat'] > 0, 'more attacking threat detected' );
 tt_lineup_assert( 'high' === $en['coverage']['status'], 'strong sample classified high' );
