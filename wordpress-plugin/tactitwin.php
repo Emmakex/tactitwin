@@ -17,6 +17,10 @@ define( 'TACTITWIN_VERSION', '0.1.0-dev' );
 define( 'TACTITWIN_FILE', __FILE__ );
 define( 'TACTITWIN_DIR', plugin_dir_path( __FILE__ ) );
 
+require_once TACTITWIN_DIR . 'includes/class-tactitwin-db.php';
+require_once TACTITWIN_DIR . 'includes/class-tactitwin-statsbomb-client.php';
+require_once TACTITWIN_DIR . 'includes/class-tactitwin-statsbomb-normalizer.php';
+require_once TACTITWIN_DIR . 'includes/class-tactitwin-statsbomb-importer.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin.php';
 
 register_activation_hook( __FILE__, array( 'TactiTwin', 'activate' ) );
