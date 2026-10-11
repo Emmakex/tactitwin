@@ -40,6 +40,13 @@ final class TactiTwin_Precedent_Aware_What_If_Service {
                 '',
                 100
             );
+            $library = ( new TactiTwin_Opponent_Context_Similarity_Service() )->enrich_library(
+                $library,
+                $opponent_id,
+                $limit,
+                $language,
+                $profiles['opponent']
+            );
             $precedents = TactiTwin_Historical_Precedent_Retrieval::retrieve(
                 $library,
                 $scan,
@@ -47,10 +54,15 @@ final class TactiTwin_Precedent_Aware_What_If_Service {
                 $language,
                 $precedent_limit
             );
-            $result['historical_precedents'] = TactiTwin_Precedent_Quality_Attachment::retrieval(
+            $precedents = TactiTwin_Precedent_Quality_Attachment::retrieval(
                 $precedents,
                 $library,
                 (string) $opponent_id,
+                $language
+            );
+            $result['historical_precedents'] = TactiTwin_Precedent_Similarity_Attachment::retrieval(
+                $precedents,
+                $library,
                 $language
             );
         } catch ( Throwable $e ) {
@@ -79,11 +91,15 @@ final class TactiTwin_Precedent_Aware_What_If_Service {
             'reweights_tactical_scores' => false,
             'changes_recommendations' => false,
             'quality_calibration' => true,
+            'opponent_context_similarity' => true,
+            'quality_similarity_combined_score' => false,
             'quality_changes_tactical_scores' => false,
             'quality_changes_recommendations' => false,
+            'similarity_changes_tactical_scores' => false,
+            'similarity_changes_recommendations' => false,
             'note' => 'es' === $language
-                ? 'Los precedentes v1.8 se adjuntan como evidencia histórica explicativa y v1.10 calibra su calidad de forma independiente. Ninguna de las dos capas modifica los scores ni las recomendaciones del What-if.'
-                : 'v1.8 precedents are attached as explanatory historical evidence and v1.10 independently calibrates their quality. Neither layer changes What-if scores or recommendations.',
+                ? 'Los precedentes se muestran con calidad v1.10 y similitud táctica del rival v1.11 como ejes separados. Ninguna capa modifica scores ni recomendaciones del What-if.'
+                : 'Precedents expose v1.10 evidence quality and v1.11 opponent tactical similarity as separate axes. Neither layer changes What-if scores or recommendations.',
         );
 
         return $result;
