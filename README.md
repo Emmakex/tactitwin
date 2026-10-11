@@ -6,7 +6,7 @@ TactiTwin is a football tactical analysis and match-scenario simulation project.
 
 ## Product direction
 
-`public/open data -> normalized football model -> tactical analysis -> scenario engine -> lineup decisions -> match plan -> Plan A/B/C -> evidence suitability/robustness -> evidence decision brief -> evidence conflict signals -> match-day staff brief -> imported match target -> exact fixture identity -> version diff -> approval revision chain -> approved immutable brief snapshot -> live session handoff -> live staff observations -> persistent match-day timeline -> post-match review -> full-match evidence -> time-aligned segment evidence -> before/after transition deltas -> context-aware transition review -> context-matched intervention library -> historical precedent retrieval`
+`public/open data -> normalized football model -> tactical analysis -> scenario engine -> lineup decisions -> match plan -> Plan A/B/C -> evidence suitability/robustness -> evidence decision brief -> evidence conflict signals -> match-day staff brief -> imported match target -> match-centric planning context -> exact fixture identity -> version diff -> approval revision chain -> approved immutable brief snapshot -> live session handoff -> live staff observations -> persistent match-day timeline -> post-match review -> full-match evidence -> time-aligned segment evidence -> before/after transition deltas -> context-aware transition review -> context-matched intervention library -> historical precedent retrieval`
 
 TactiTwin is not intended to predict a final score with certainty. It is a decision-support system for exploring tactical risks, opportunities and "what if" scenarios before, during and after a match while retaining evidence, confidence and method boundaries.
 
@@ -41,6 +41,7 @@ The first phase focuses on:
 - Named evidence-conflict signals that expose disagreements between existing evidence dimensions without creating another score.
 - A printable Match-Day Staff Brief that composes existing tactical and evidence outputs into one bench/meeting surface.
 - Imported-match targeting from the normalized match store.
+- One shared match-centric planning context across the main WordPress planning surfaces.
 - Exact fixture identity for Staff Brief versioning and approval scope.
 - Explicit Staff Brief approval with immutable SHA-256 snapshots and direct Live Session handoff.
 - Structural Staff Brief version comparison before reapproval.
@@ -71,7 +72,8 @@ The current WordPress plugin supports:
 - Plan A / B / C contingency playbook.
 - A dedicated pre-match Staff Brief surface using a neutral 0–0, minute-1, 11v11 reference context.
 - Browser print / Save-as-PDF output for the Staff Brief without adding a server-side PDF dependency.
-- Selection of a canonical imported match as the Staff Brief target, with automatic participant/opponent resolution.
+- Selection of a canonical imported match as the planning target, with automatic participant/opponent resolution.
+- A persistent per-user match context reused across Scenario Lab, Match Plan, What-if, Live Playbook and Staff Brief.
 - Optional exact target-fixture binding from provider match ID or scheduled fixture metadata.
 - Explicit approval/freeze of the exact Staff Brief source Match Plan and Contingency Playbook.
 - Immutable approved Staff Brief snapshots with UUID + SHA-256 integrity checks.
@@ -103,7 +105,7 @@ The current WordPress plugin supports:
 
 ### Match-day decision workflow
 
-`Imported Match Target -> Match Plan -> Pre-match Precedent Catalog -> Evidence Quality + Opponent Similarity -> Evidence Suitability Ranking -> Ranking Robustness -> Evidence Decision Brief -> Evidence Conflict Signals -> Plan A/B/C -> Match-Day Staff Brief -> Exact Fixture Identity -> Version Diff -> Explicit Approval -> Approval Revision Chain -> Immutable Snapshot -> Live Session Handoff -> Live Playbook -> Session Review -> Evidence Review -> Segment Evidence -> Transition Deltas -> Context-Aware Review -> Intervention Library -> Historical Precedents`
+`Imported Match Target -> Match-Centric Planning Context -> Match Plan -> Pre-match Precedent Catalog -> Evidence Quality + Opponent Similarity -> Evidence Suitability Ranking -> Ranking Robustness -> Evidence Decision Brief -> Evidence Conflict Signals -> Plan A/B/C -> Match-Day Staff Brief -> Exact Fixture Identity -> Version Diff -> Explicit Approval -> Approval Revision Chain -> Immutable Snapshot -> Live Session Handoff -> Live Playbook -> Session Review -> Evidence Review -> Segment Evidence -> Transition Deltas -> Context-Aware Review -> Intervention Library -> Historical Precedents`
 
 Plan B is never activated merely because historical data predicted an opponent behaviour. A supported manual observation from the staff can activate Plan B when Plan C is not already required by score/manpower context. Plan C keeps precedence for configured score/manpower contingencies.
 
@@ -120,6 +122,8 @@ With v1.19.1, the revision is bound to both the exact approved snapshot UUID and
 With v1.20, a Staff Brief can be bound to one exact fixture. Provider match IDs form the preferred identity; when no provider ID exists, a deterministic scheduled composite can use date plus available competition/season/kick-off/week context. Version diff, approval history and revision numbering stay inside that fixture scope, so two separate matches against the same opponent cannot share one new fixture-bound approval chain. Legacy snapshots remain valid and isolated in their original matchup-only scope.
 
 With v1.21, the Staff Brief can select a real match already stored in `tactitwin_matches`. TactiTwin resolves the selected team perspective and opponent from that persisted row before tactical calculation, then derives the v1.20 fixture identity from the stored provider match identity. Browser fields are convenience only; the server-side normalized match record remains authoritative. Manual fixture binding remains available as a fallback.
+
+With v1.22, that imported match becomes a persistent per-user planning context. Scenario Lab, Match Plan, What-if, Live Playbook and Staff Brief all receive the same re-resolved team/opponent pair from the canonical match row. Staff Brief additionally receives the same `target_match_id`, so the v1.21 resolver and v1.20 fixture-integrity chain remain the source of truth for approval and Live Session handoff.
 
 Live Sessions persist the exact playbook JSON submitted at each staff update. Post-match review therefore reconstructs the historical decision state from immutable snapshots rather than recalculating the past with newer code or newer data.
 
@@ -167,6 +171,8 @@ Live Sessions persist the exact playbook JSON submitted at each staff update. Po
 
 **v1.21 — Imported Match Target Resolution** adds a canonical imported-match selector to the Staff Brief workflow. The normalized match row supplies provider identity and schedule context, while server-side participant validation resolves the correct opponent before Match Plan generation. It is an input-resolution layer only and does not alter tactical calculations.
 
+**v1.22 — Match-Centric Planning Context** promotes that canonical match target into a shared per-user planning context. The same match + team perspective is reused by Scenario Lab, Match Plan, What-if, Live Playbook and Staff Brief. Every submitted action re-resolves the normalized match row server-side, and manual selection explicitly clears the shared context.
+
 v1.12 does not use the legacy v1.8 `retrieval_score` or v1.9 `support_order_score` inside its formula, avoiding double counting of historical maturity, volume and cleaner-share evidence already represented by v1.10. Legacy scores and original ranks remain visible for audit.
 
 v1.13 is a sensitivity diagnostic, not a second ranking engine. A stable result means the evidence priority is less dependent on the tested weighting assumptions; it does not imply causal certainty or guarantee that repeating an intervention will produce the same result.
@@ -186,6 +192,8 @@ v1.19/v1.19.1 form an approval-lineage and integrity layer. They record which pr
 v1.20 is a fixture-scope/audit layer. It answers which exact match a new Staff Brief revision belongs to and does not change tactical calculations, recommendations, evidence ordering or plan activation.
 
 v1.21 is a canonical input-resolution layer. It chooses which persisted match the Staff Brief is preparing for and validates the team/opponent relationship before analysis; it does not create a new tactical signal or score.
+
+v1.22 is a workflow-consistency layer. It reuses one canonical match target across planning surfaces and revalidates it server-side before each calculation; it does not change any tactical score, recommendation, evidence order or plan activation.
 
 No layer currently claims causal coaching impact.
 
@@ -214,6 +222,8 @@ For new fixture-bound Staff Briefs, revision lineage is scoped to the determinis
 Fixture identity is an audit key, not proof that upstream fixture metadata is authentic. Provider validation and source provenance remain separate responsibilities.
 
 An imported match target is trusted only as a persisted normalized TactiTwin record. v1.21 re-resolves that row server-side and verifies participants before analysis; it does not trust browser-populated fixture fields as canonical input.
+
+The v1.22 planning context stores only a user-scoped working selection. On every supported admin submission, TactiTwin re-resolves the current normalized match record before passing team/opponent IDs to the tactical module. The local `tactitwin_matches.id` is a locator, not a cross-installation football identity.
 
 ## Key REST surfaces
 
@@ -265,6 +275,7 @@ Staff Brief approval, version audit, fixture binding and Live Session handoff ar
 - **v1.19.1 — Approval Revision Snapshot Binding**
 - **v1.20 — Exact Fixture Identity**
 - **v1.21 — Imported Match Target Resolution**
+- **v1.22 — Match-Centric Planning Context**
 
 ## Repository workflow
 
@@ -272,4 +283,4 @@ Development flows through feature branches and pull requests into `main`, with a
 
 ## Status
 
-Active coach-usable MVP development. The current product spans imported-match target selection, pre-match tactical analysis, lineup decision support, contingency planning, a printable and exact-fixture-bindable Match-Day Staff Brief, immutable staff-approved pre-match snapshots, fixture-scoped structural preapproval version diffs, immutable approval revision lineage, stale-review protection, direct Live Session handoff, explicit live staff observation, persistent match-day audit trails, full-match and time-aligned post-match evidence, before/after transition review, explicit context/confounder annotations, a cross-match intervention memory, exact-context precedent retrieval, precedent-aware Match Plan / Plan A/B/C evidence, evidence-quality calibration, transparent opponent-context similarity, auditable evidence-suitability ranking, deterministic ranking-robustness diagnostics, compact staff-facing evidence decision briefs and explicit evidence-conflict signals.
+Active coach-usable MVP development. The current product spans canonical imported-match targeting, a shared per-user match-centric planning context, pre-match tactical analysis, lineup decision support, contingency planning, a printable and exact-fixture-bindable Match-Day Staff Brief, immutable staff-approved pre-match snapshots, fixture-scoped structural preapproval version diffs, immutable approval revision lineage, stale-review protection, direct Live Session handoff, explicit live staff observation, persistent match-day audit trails, full-match and time-aligned post-match evidence, before/after transition review, explicit context/confounder annotations, a cross-match intervention memory, exact-context precedent retrieval, precedent-aware Match Plan / Plan A/B/C evidence, evidence-quality calibration, transparent opponent-context similarity, auditable evidence-suitability ranking, deterministic ranking-robustness diagnostics, compact staff-facing evidence decision briefs and explicit evidence-conflict signals.
