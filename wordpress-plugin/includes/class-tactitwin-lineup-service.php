@@ -121,14 +121,29 @@ final class TactiTwin_Lineup_Service {
         }
 
         $provider_formation = (string) ( $raw['tactics']['formation'] ?? '' );
+        $formation          = self::formation_from_provider( $provider_formation );
+        $assignment         = null;
+
+        if ( null !== $formation ) {
+            $assignment = TactiTwin_Formation_Model::assign_players_to_roles( $players, $formation );
+            $players    = $assignment['players'];
+        }
 
         return array(
-            'team_id' => $team_id,
-            'match_id' => (string) $row['source_match_id'],
-            'match_date' => (string) $row['match_date'],
+            'team_id'            => $team_id,
+            'match_id'           => (string) $row['source_match_id'],
+            'match_date'         => (string) $row['match_date'],
             'provider_formation' => $provider_formation,
-            'formation' => self::formation_from_provider( $provider_formation ),
-            'players' => $players,
+            'formation'          => $formation,
+            'players'            => $players,
+            'role_assignment'    => null === $assignment ? array(
+                'method' => 'provider-order-unmapped-formation',
+                'slots'  => array(),
+            ) : array(
+                'method'      => (string) $assignment['method'],
+                'total_score' => (float) $assignment['total_score'],
+                'slots'       => $assignment['slots'],
+            ),
         );
     }
 
