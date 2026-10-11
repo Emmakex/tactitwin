@@ -73,6 +73,39 @@ final class TactiTwin_Staff_Brief_Snapshot_Service {
         ) ?: array();
     }
 
+    public function latest_for_matchup( string $team_id, string $opponent_id, string $exclude_snapshot_uuid = '' ): array {
+        global $wpdb;
+        $team_id = trim( $team_id );
+        $opponent_id = trim( $opponent_id );
+        $exclude_snapshot_uuid = self::normalize_uuid( $exclude_snapshot_uuid );
+        if ( '' === $team_id || '' === $opponent_id ) {
+            return array();
+        }
+
+        $table = TactiTwin_DB::table( 'staff_brief_snapshots' );
+        if ( '' !== $exclude_snapshot_uuid ) {
+            $row = $wpdb->get_row(
+                $wpdb->prepare(
+                    "SELECT snapshot_uuid FROM {$table} WHERE team_source_id = %s AND opponent_source_id = %s AND snapshot_uuid <> %s ORDER BY id DESC LIMIT 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                    $team_id,
+                    $opponent_id,
+                    $exclude_snapshot_uuid
+                ),
+                ARRAY_A
+            ) ?: array();
+        } else {
+            $row = $wpdb->get_row(
+                $wpdb->prepare(
+                    "SELECT snapshot_uuid FROM {$table} WHERE team_source_id = %s AND opponent_source_id = %s ORDER BY id DESC LIMIT 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                    $team_id,
+                    $opponent_id
+                ),
+                ARRAY_A
+            ) ?: array();
+        }
+        return empty( $row['snapshot_uuid'] ) ? array() : $this->snapshot( (string) $row['snapshot_uuid'] );
+    }
+
     public function handoff( string $snapshot_uuid, int $created_by, string $source_match_id = '', string $title = '' ): array {
         $snapshot = $this->snapshot( $snapshot_uuid );
         if ( empty( $snapshot ) ) {
