@@ -26,6 +26,7 @@ require_once TACTITWIN_DIR . 'includes/class-tactitwin-statsbomb-importer.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-match-metrics.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-transition-metrics.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-game-state-metrics.php';
+require_once TACTITWIN_DIR . 'includes/class-tactitwin-manpower-metrics.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-analysis-service.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-analysis-rest.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-team-profile.php';
