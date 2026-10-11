@@ -23,7 +23,15 @@ final class TactiTwin_Post_Match_Review_Service {
         $bundle = $this->linked_match_bundle( $session );
         $review['objective_evidence'] = $this->objective_evidence( $session, $review, $snapshots, $language, $bundle );
         $review['segment_evidence'] = $this->segment_evidence( $session, $snapshots, $language, $bundle );
-        $review['transition_window_deltas'] = $this->transition_window_deltas( $session, $snapshots, $language, $bundle );
+        $transition_deltas = $this->transition_window_deltas( $session, $snapshots, $language, $bundle );
+        $review['transition_window_deltas'] = $transition_deltas;
+        $review['context_aware_transition_review'] = $this->context_aware_transition_review(
+            $session,
+            $snapshots,
+            $language,
+            $bundle,
+            $transition_deltas
+        );
 
         return $review;
     }
@@ -147,6 +155,48 @@ final class TactiTwin_Post_Match_Review_Service {
             return array(
                 'status'=>'unavailable','source_match_id'=>(string) ( $bundle['match_id'] ?? '' ),
                 'message'=>'es' === $language ? 'No se pudieron construir las ventanas antes/después: ' . $e->getMessage() : 'Could not build before/after transition windows: ' . $e->getMessage(),
+            );
+        }
+    }
+
+    private function context_aware_transition_review(
+        array $session,
+        array $snapshots,
+        string $language,
+        array $bundle,
+        array $transition_deltas
+    ): array {
+        if ( 'available' !== (string) ( $transition_deltas['status'] ?? '' ) ) {
+            return array(
+                'status'=>(string) ( $transition_deltas['status'] ?? 'unavailable' ),
+                'source_match_id'=>$transition_deltas['source_match_id'] ?? null,
+                'message'=>$transition_deltas['message'] ?? ( 'es' === $language ? 'La revisión contextual no está disponible.' : 'Context-aware transition review is not available.' ),
+            );
+        }
+        if ( 'available' !== (string) ( $bundle['status'] ?? '' ) || empty( $bundle['events'] ) ) {
+            return array(
+                'status'=>'unavailable',
+                'source_match_id'=>(string) ( $bundle['match_id'] ?? '' ),
+                'message'=>'es' === $language ? 'Faltan eventos para anotar el contexto de las transiciones.' : 'Match events are unavailable for transition context annotation.',
+            );
+        }
+
+        try {
+            $result = TactiTwin_Context_Aware_Transition_Review::annotate(
+                $transition_deltas,
+                $snapshots,
+                $bundle['events'],
+                (string) ( $session['team_source_id'] ?? '' ),
+                (string) ( $session['opponent_source_id'] ?? '' ),
+                $language
+            );
+            $result['status'] = 'available';
+            return $result;
+        } catch ( Throwable $e ) {
+            return array(
+                'status'=>'unavailable',
+                'source_match_id'=>(string) ( $bundle['match_id'] ?? '' ),
+                'message'=>'es' === $language ? 'No se pudo anotar el contexto de las transiciones: ' . $e->getMessage() : 'Could not annotate transition context: ' . $e->getMessage(),
             );
         }
     }

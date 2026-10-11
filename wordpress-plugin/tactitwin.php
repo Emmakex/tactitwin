@@ -56,6 +56,7 @@ require_once TACTITWIN_DIR . 'includes/class-tactitwin-post-match-review.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-objective-post-match-evidence.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-time-aligned-evidence.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-transition-window-deltas.php';
+require_once TACTITWIN_DIR . 'includes/class-tactitwin-context-aware-transition-review.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-post-match-review-service.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-personnel-what-if.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-unit-comparison.php';
