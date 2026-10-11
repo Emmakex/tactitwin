@@ -100,6 +100,7 @@ final class TactiTwin_Precedent_Planning_Admin {
                     <?php if ( isset( $scenario['ranking_robustness']['top_stability_pct'] ) ) : ?>
                         <p><strong><?php echo esc_html( self::robustness_summary_label( $scenario['ranking_robustness'], $language ) ); ?></strong></p>
                     <?php endif; ?>
+                    <?php self::decision_brief_card( $scenario['decision_brief'] ?? array(), $language ); ?>
                     <table class="widefat striped">
                         <thead><tr><th><?php echo esc_html( self::label( 'context', $language ) ); ?></th><th><?php echo esc_html( self::label( 'plan', $language ) ); ?></th><th><?php echo esc_html( self::label( 'suitability', $language ) ); ?></th><th><?php echo esc_html( self::label( 'robustness', $language ) ); ?></th><th><?php echo esc_html( self::label( 'quality', $language ) ); ?></th><th><?php echo esc_html( self::label( 'similarity', $language ) ); ?></th><th><?php echo esc_html( self::label( 'sample', $language ) ); ?></th><th><?php echo esc_html( self::label( 'signals', $language ) ); ?></th></tr></thead>
                         <tbody>
@@ -137,6 +138,7 @@ final class TactiTwin_Precedent_Planning_Admin {
                     <div style="background:#fff;border:1px solid #dcdcde;padding:16px;">
                         <h3 style="margin-top:0;">Plan <?php echo esc_html( $id ); ?></h3>
                         <?php foreach ( $precedents['summary'] ?? array() as $summary ) : ?><p><?php echo esc_html( (string) $summary ); ?></p><?php endforeach; ?>
+                        <?php self::decision_brief_card( $precedents['decision_brief'] ?? array(), $language, true ); ?>
                         <?php if ( empty( $precedents['items'] ) ) : ?>
                             <p class="description"><?php echo esc_html( self::label( 'no_items', $language ) ); ?></p>
                         <?php else : ?>
@@ -152,6 +154,45 @@ final class TactiTwin_Precedent_Planning_Admin {
             <p class="description"><?php echo esc_html( self::label( 'guardrail_evidence', $language ) ); ?></p>
         </div>
         <?php
+    }
+
+    private static function decision_brief_card( array $brief, string $language, bool $compact = false ): void {
+        if ( 'available' !== (string) ( $brief['status'] ?? '' ) || empty( $brief['primary'] ) ) {
+            return;
+        }
+        $primary = $brief['primary'];
+        $alternative = is_array( $brief['alternative'] ?? null ) ? $brief['alternative'] : null;
+        $scores = is_array( $primary['scores'] ?? null ) ? $primary['scores'] : array();
+        ?>
+        <div style="background:#f6f7f7;border-left:4px solid #2271b1;padding:12px 14px;margin:12px 0 16px;">
+            <strong><?php echo esc_html( self::label( 'decision_brief', $language ) ); ?></strong>
+            <p style="margin:8px 0 4px;"><strong><?php echo esc_html( self::label( 'primary_precedent', $language ) . ': ' . (string) ( $primary['scenario_name'] ?? $primary['scenario_id'] ?? '-' ) ); ?></strong></p>
+            <p style="margin:4px 0;">
+                <?php echo esc_html(
+                    self::label( 'suitability', $language ) . ' ' . self::score_text( $scores['evidence_suitability'] ?? null ) . ' · '
+                    . self::label( 'quality', $language ) . ' ' . self::score_text( $scores['evidence_quality'] ?? null ) . ' · '
+                    . self::label( 'similarity', $language ) . ' ' . self::score_text( $scores['opponent_similarity'] ?? null )
+                ); ?>
+            </p>
+            <?php if ( ! $compact && ! empty( $primary['why_it_fits'] ) ) : ?>
+                <ul style="margin:6px 0 6px 20px;list-style:disc;">
+                    <?php foreach ( array_slice( $primary['why_it_fits'], 0, 4 ) as $reason ) : ?><li><?php echo esc_html( (string) $reason ); ?></li><?php endforeach; ?>
+                </ul>
+            <?php endif; ?>
+            <?php if ( $alternative ) : ?>
+                <p style="margin:6px 0;"><strong><?php echo esc_html( self::label( 'alternative', $language ) . ': ' . (string) ( $alternative['scenario_name'] ?? $alternative['scenario_id'] ?? '-' ) ); ?></strong><?php if ( ! empty( $brief['comparison']['alternative_strength_label'] ) ) : ?> — <?php echo esc_html( (string) $brief['comparison']['alternative_strength_label'] ); ?><?php endif; ?></p>
+            <?php endif; ?>
+            <?php if ( ! empty( $brief['what_could_invalidate'] ) ) : ?>
+                <details style="margin-top:6px;"><summary><?php echo esc_html( self::label( 'invalidators', $language ) ); ?></summary><ul style="margin-left:20px;list-style:disc;">
+                    <?php foreach ( array_slice( $brief['what_could_invalidate'], 0, $compact ? 3 : 5 ) as $flag ) : ?><li><?php echo esc_html( (string) $flag ); ?></li><?php endforeach; ?>
+                </ul></details>
+            <?php endif; ?>
+        </div>
+        <?php
+    }
+
+    private static function score_text( $value ): string {
+        return is_numeric( $value ) ? (string) $value . '/100' : '—';
     }
 
     private static function context_label( array $context, string $language ): string {
@@ -249,10 +290,11 @@ final class TactiTwin_Precedent_Planning_Admin {
                 'current_relevance'=>'Current scenario relevance','suitability'=>'Evidence suitability','robustness'=>'Ranking robustness','quality'=>'Evidence quality','quality_mean'=>'Mean evidence quality',
                 'similarity'=>'Opponent similarity','similarity_mean'=>'Mean opponent similarity','top_margin'=>'top margin','rank_range'=>'ranks','top_frequency'=>'top',
                 'context'=>'Historical context','plan'=>'Destination plan','sample'=>'Sample','signals'=>'Median historical deltas',
+                'decision_brief'=>'Evidence decision brief','primary_precedent'=>'Primary precedent','alternative'=>'Alternative','invalidators'=>'What could invalidate this analogy',
                 'playbook_title'=>'Exact-context precedents for Plan A/B/C',
                 'playbook_intro'=>'Only historical transitions into the same destination plan are shown. Plan B also requires the current live scenario.',
                 'no_items'=>'No exact-context precedents for this plan.',
-                'guardrail_evidence'=>'Suitability orders already matched historical evidence; robustness tests how sensitive that order is to transparent weight changes. Neither layer changes tactical scores, priorities, active plan or recommendations.',
+                'guardrail_evidence'=>'Suitability orders already matched historical evidence; robustness tests how sensitive that order is; the decision brief only summarizes it. None of these layers changes tactical scores, priorities, active plan or recommendations.',
             ),
             'es'=>array(
                 'catalog_title'=>'Precedentes tácticos históricos',
@@ -260,10 +302,11 @@ final class TactiTwin_Precedent_Planning_Admin {
                 'current_relevance'=>'Relevancia actual del escenario','suitability'=>'Idoneidad de evidencia','robustness'=>'Robustez del ranking','quality'=>'Calidad de evidencia','quality_mean'=>'Calidad media de evidencia',
                 'similarity'=>'Similitud del rival','similarity_mean'=>'Similitud media del rival','top_margin'=>'margen del primero','rank_range'=>'rangos','top_frequency'=>'primero',
                 'context'=>'Contexto histórico','plan'=>'Plan de destino','sample'=>'Muestra','signals'=>'Medianas históricas de delta',
+                'decision_brief'=>'Brief de evidencia para decisión','primary_precedent'=>'Precedente principal','alternative'=>'Alternativa','invalidators'=>'Qué podría invalidar esta analogía',
                 'playbook_title'=>'Precedentes de contexto exacto para Plan A/B/C',
                 'playbook_intro'=>'Solo se muestran transiciones históricas hacia el mismo plan de destino. Plan B exige además el escenario vivo actual.',
                 'no_items'=>'No hay precedentes de contexto exacto para este plan.',
-                'guardrail_evidence'=>'La idoneidad ordena evidencia histórica ya coincidente; la robustez comprueba cuánto depende ese orden de cambios transparentes en los pesos. Ninguna capa cambia scores tácticos, prioridades, plan activo ni recomendaciones.',
+                'guardrail_evidence'=>'La idoneidad ordena evidencia histórica ya coincidente; la robustez comprueba cuánto depende ese orden de los pesos; el brief solo lo resume. Ninguna de estas capas cambia scores tácticos, prioridades, plan activo ni recomendaciones.',
             ),
         );
         return $labels[ $language ][ $key ] ?? $labels['en'][ $key ] ?? $key;
