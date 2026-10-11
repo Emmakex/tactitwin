@@ -114,7 +114,65 @@ final class TactiTwin_Team_Profile {
             'final_third_channel_share_against' => $channels_against,
             'turnover_zone_share'               => $turnover_zones,
             'opponent_context'                  => $opponent_context,
+            'game_states'                       => self::aggregate_game_states( $samples ),
         );
+    }
+
+    private static function aggregate_game_states( array $samples ): array {
+        $states = array( 'leading', 'drawing', 'trailing' );
+        $sum_keys = array(
+            'seconds', 'events', 'passes', 'completed_passes', 'shots', 'xg', 'goals',
+            'progressive_actions', 'final_third_entries', 'box_entries', 'pressures',
+            'high_pressures', 'recoveries', 'high_recoveries',
+        );
+        $result = array();
+
+        foreach ( $states as $state ) {
+            $result[ $state ] = array_fill_keys( $sum_keys, 0.0 );
+            $result[ $state ]['matches_observed'] = 0;
+        }
+
+        foreach ( $samples as $sample ) {
+            $team_states = $sample['team_metrics']['game_states'] ?? array();
+            foreach ( $states as $state ) {
+                $state_metrics = $team_states[ $state ] ?? array();
+                $seconds       = (float) ( $state_metrics['seconds'] ?? 0 );
+                if ( $seconds > 0.0 ) {
+                    ++$result[ $state ]['matches_observed'];
+                }
+                foreach ( $sum_keys as $key ) {
+                    $result[ $state ][ $key ] += (float) ( $state_metrics[ $key ] ?? 0 );
+                }
+            }
+        }
+
+        foreach ( $states as $state ) {
+            $seconds = (float) $result[ $state ]['seconds'];
+            $minutes = $seconds / 60.0;
+            $factor  = $minutes > 0.0 ? 90.0 / $minutes : 0.0;
+
+            $result[ $state ]['seconds'] = round( $seconds, 1 );
+            $result[ $state ]['minutes'] = round( $minutes, 2 );
+            $result[ $state ]['xg']      = round( (float) $result[ $state ]['xg'], 3 );
+            $result[ $state ]['pass_completion_pct'] = self::percentage(
+                (float) $result[ $state ]['completed_passes'],
+                (float) $result[ $state ]['passes']
+            );
+            $result[ $state ]['per_90'] = array(
+                'shots'               => round( $result[ $state ]['shots'] * $factor, 2 ),
+                'xg'                  => round( $result[ $state ]['xg'] * $factor, 3 ),
+                'goals'               => round( $result[ $state ]['goals'] * $factor, 2 ),
+                'progressive_actions' => round( $result[ $state ]['progressive_actions'] * $factor, 2 ),
+                'final_third_entries' => round( $result[ $state ]['final_third_entries'] * $factor, 2 ),
+                'box_entries'         => round( $result[ $state ]['box_entries'] * $factor, 2 ),
+                'pressures'           => round( $result[ $state ]['pressures'] * $factor, 2 ),
+                'high_pressures'      => round( $result[ $state ]['high_pressures'] * $factor, 2 ),
+                'recoveries'          => round( $result[ $state ]['recoveries'] * $factor, 2 ),
+                'high_recoveries'     => round( $result[ $state ]['high_recoveries'] * $factor, 2 ),
+            );
+        }
+
+        return $result;
     }
 
     private static function channel_share( array $totals ): array {
