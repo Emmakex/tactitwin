@@ -38,6 +38,7 @@ require_once TACTITWIN_DIR . 'includes/class-tactitwin-weak-side-scenario.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-matchup-scan.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-match-plan.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-game-state-what-if.php';
+require_once TACTITWIN_DIR . 'includes/class-tactitwin-context-what-if.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-profile-service.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-data-preparation-service.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-scenario-rest.php';
