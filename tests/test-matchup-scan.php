@@ -6,6 +6,7 @@ require_once __DIR__ . '/../wordpress-plugin/includes/class-tactitwin-high-press
 require_once __DIR__ . '/../wordpress-plugin/includes/class-tactitwin-side-bias-scenario.php';
 require_once __DIR__ . '/../wordpress-plugin/includes/class-tactitwin-defensive-transition-scenario.php';
 require_once __DIR__ . '/../wordpress-plugin/includes/class-tactitwin-low-block-scenario.php';
+require_once __DIR__ . '/../wordpress-plugin/includes/class-tactitwin-weak-side-scenario.php';
 require_once __DIR__ . '/../wordpress-plugin/includes/class-tactitwin-matchup-scan.php';
 
 function tt_scan_assert( $condition, string $message ): void {
@@ -67,10 +68,10 @@ $opponent = array(
 $result = TactiTwin_Matchup_Scan::evaluate( $team, $opponent, 'en' );
 
 tt_scan_assert( 'full-matchup-scan' === $result['scenario_id'], 'scan id returned' );
-tt_scan_assert( 4 === $result['evidence']['scenario_count'], 'four scenarios executed' );
-tt_scan_assert( 4 === count( $result['subscenarios'] ), 'subscenarios retained' );
-tt_scan_assert( 4 === count( $result['evidence']['scenario_ranking'] ), 'ranking contains all scenarios' );
-tt_scan_assert( 4 === count( $result['recommendations'] ), 'one primary recommendation retained per scenario' );
+tt_scan_assert( 5 === $result['evidence']['scenario_count'], 'five scenarios executed' );
+tt_scan_assert( 5 === count( $result['subscenarios'] ), 'subscenarios retained' );
+tt_scan_assert( 5 === count( $result['evidence']['scenario_ranking'] ), 'ranking contains all scenarios' );
+tt_scan_assert( 5 === count( $result['recommendations'] ), 'one primary recommendation retained per scenario' );
 tt_scan_assert( 'Build-up vs High Press' === $result['risk']['top_scenario'], 'highest risk scenario identified' );
 for ( $i = 1; $i < count( $result['evidence']['scenario_ranking'] ); $i++ ) {
     tt_scan_assert(
