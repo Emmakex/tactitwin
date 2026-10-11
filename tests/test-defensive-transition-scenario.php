@@ -1,6 +1,7 @@
 <?php
 
 define( 'ABSPATH', __DIR__ );
+require_once __DIR__ . '/../wordpress-plugin/includes/class-tactitwin-i18n.php';
 require_once __DIR__ . '/../wordpress-plugin/includes/class-tactitwin-defensive-transition-scenario.php';
 
 function tt_def_transition_assert( $condition, string $message ): void {
