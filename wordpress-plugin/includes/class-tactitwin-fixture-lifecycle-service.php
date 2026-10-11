@@ -25,6 +25,7 @@ final class TactiTwin_Fixture_Lifecycle_Service {
         $snapshot_service = new TactiTwin_Staff_Brief_Snapshot_Service();
         $approved_snapshot = $snapshot_service->latest_for_fixture( $fixture_key );
         $session = $this->latest_session_for_fixture( $fixture_key );
+        $signed_review = ( new TactiTwin_Post_Match_Review_Signoff_Service() )->latest_for_fixture( $fixture_key );
 
         $fixture_source_match_id = trim( (string) ( $fixture['source_match_id'] ?? '' ) );
         $session_source_match_id = trim( (string) ( $session['source_match_id'] ?? '' ) );
@@ -49,6 +50,7 @@ final class TactiTwin_Fixture_Lifecycle_Service {
                 'fixture_source_match_id' => $fixture_source_match_id,
                 'session_source_match_id' => $session_source_match_id,
                 'evidence_event_count' => $evidence_events,
+                'signed_review' => $signed_review,
             )
         );
     }
@@ -61,6 +63,7 @@ final class TactiTwin_Fixture_Lifecycle_Service {
         $temporary_staff_brief = is_array( $signals['temporary_staff_brief'] ?? null ) ? $signals['temporary_staff_brief'] : array();
         $approved_snapshot = is_array( $signals['approved_snapshot'] ?? null ) ? $signals['approved_snapshot'] : array();
         $session = is_array( $signals['session'] ?? null ) ? $signals['session'] : array();
+        $signed_review = is_array( $signals['signed_review'] ?? null ) ? $signals['signed_review'] : array();
         $fixture_source_match_id = trim( (string) ( $signals['fixture_source_match_id'] ?? '' ) );
         $session_source_match_id = trim( (string) ( $signals['session_source_match_id'] ?? '' ) );
         $evidence_event_count = max( 0, (int) ( $signals['evidence_event_count'] ?? 0 ) );
@@ -102,7 +105,9 @@ final class TactiTwin_Fixture_Lifecycle_Service {
             }
         }
 
-        if ( 'closed' === $session_state && 'available' === $evidence_state ) {
+        if ( ! empty( $signed_review ) ) {
+            $review_state = 'signed_off';
+        } elseif ( 'closed' === $session_state && 'available' === $evidence_state ) {
             $review_state = 'available_on_demand';
         } elseif ( 'closed' !== $session_state ) {
             $review_state = 'waiting_for_closed_session';
@@ -160,8 +165,12 @@ final class TactiTwin_Fixture_Lifecycle_Service {
             ),
             'post_match_review' => array(
                 'state' => $review_state,
-                'provenance' => 'computed_on_demand',
-                'persistent' => false,
+                'provenance' => ! empty( $signed_review ) ? 'post_match_review_snapshot' : 'computed_on_demand',
+                'persistent' => ! empty( $signed_review ),
+                'review_uuid' => (string) ( $signed_review['review_uuid'] ?? '' ),
+                'revision_number' => (int) ( $signed_review['revision_number'] ?? 0 ),
+                'signed_at' => (string) ( $signed_review['signed_at'] ?? '' ),
+                'content_sha256' => (string) ( $signed_review['content_sha256'] ?? '' ),
             ),
         );
 
@@ -169,11 +178,11 @@ final class TactiTwin_Fixture_Lifecycle_Service {
             'fixture_key' => (string) ( $signals['fixture_key'] ?? '' ),
             'phase' => $phase,
             'stages' => $stages,
-            'next_action' => self::next_action( $context_selected, $planning_state, $match_plan_state, $staff_brief_state, $session_state, $evidence_state ),
+            'next_action' => self::next_action( $context_selected, $planning_state, $match_plan_state, $staff_brief_state, $session_state, $evidence_state, $review_state ),
             'method' => array(
-                'name' => 'fixture-lifecycle-v1.24',
+                'name' => 'fixture-lifecycle-v1.25',
                 'no_progress_score' => true,
-                'review_completion_not_persisted' => true,
+                'review_signoff_persisted' => true,
                 'temporary_outputs_explicit' => true,
                 'temporary_match_plan_fixture_bound' => false,
             ),
@@ -186,7 +195,8 @@ final class TactiTwin_Fixture_Lifecycle_Service {
         string $match_plan_state,
         string $staff_brief_state,
         string $session_state,
-        string $evidence_state
+        string $evidence_state,
+        string $review_state
     ): array {
         if ( ! $context_selected ) {
             return array( 'id' => 'select_match', 'page' => 'tactitwin' );
@@ -208,6 +218,9 @@ final class TactiTwin_Fixture_Lifecycle_Service {
         }
         if ( 'active' === $session_state ) {
             return array( 'id' => 'continue_live_session', 'page' => 'tactitwin-live-sessions' );
+        }
+        if ( 'signed_off' === $review_state ) {
+            return array( 'id' => 'learn_from_match', 'page' => 'tactitwin-intervention-library' );
         }
         if ( 'available' !== $evidence_state ) {
             return array( 'id' => 'prepare_evidence', 'page' => 'tactitwin-evidence-review' );
