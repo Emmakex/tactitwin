@@ -70,20 +70,22 @@ final class TactiTwin_Profile_Service {
 
     public function build_up_vs_high_press( int $team_id, int $opponent_id, int $limit = 5 ): array {
         $profiles = $this->matchup_profiles( $team_id, $opponent_id, $limit );
-
         return TactiTwin_High_Press_Scenario::evaluate( $profiles['team'], $profiles['opponent'] );
     }
 
     public function opponent_side_bias( int $team_id, int $opponent_id, int $limit = 5 ): array {
         $profiles = $this->matchup_profiles( $team_id, $opponent_id, $limit );
-
         return TactiTwin_Side_Bias_Scenario::evaluate( $profiles['team'], $profiles['opponent'] );
     }
 
     public function defensive_transition_after_loss( int $team_id, int $opponent_id, int $limit = 5 ): array {
         $profiles = $this->matchup_profiles( $team_id, $opponent_id, $limit );
-
         return TactiTwin_Defensive_Transition_Scenario::evaluate( $profiles['team'], $profiles['opponent'] );
+    }
+
+    public function full_matchup_scan( int $team_id, int $opponent_id, int $limit = 5 ): array {
+        $profiles = $this->matchup_profiles( $team_id, $opponent_id, $limit );
+        return TactiTwin_Matchup_Scan::evaluate( $profiles['team'], $profiles['opponent'] );
     }
 
     private function matchup_profiles( int $team_id, int $opponent_id, int $limit ): array {
