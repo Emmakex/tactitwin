@@ -40,7 +40,7 @@ final class TactiTwin_Game_State_Admin {
 
         try {
             $preparation = ( new TactiTwin_Data_Preparation_Service() )->prepare_matchup( $team_id, $opponent_id, $sample );
-            $scenario    = ( new TactiTwin_Profile_Service() )->game_state_what_if(
+            $scenario    = ( new TactiTwin_Precedent_Aware_What_If_Service() )->evaluate(
                 $team_id,
                 $opponent_id,
                 $our_score,
@@ -49,7 +49,8 @@ final class TactiTwin_Game_State_Admin {
                 $sample,
                 $language,
                 $our_players,
-                $opponent_players
+                $opponent_players,
+                5
             );
 
             set_transient(
@@ -127,9 +128,10 @@ final class TactiTwin_Game_State_Admin {
     }
 
     private static function render_result( array $scenario ): void {
-        $language = TactiTwin_I18n::normalize_language( (string) ( $scenario['language'] ?? 'en' ) );
-        $history  = $scenario['historical_behavior'] ?? array();
-        $manpower = $scenario['coverage']['manpower'] ?? array();
+        $language   = TactiTwin_I18n::normalize_language( (string) ( $scenario['language'] ?? 'en' ) );
+        $history    = $scenario['historical_behavior'] ?? array();
+        $manpower   = $scenario['coverage']['manpower'] ?? array();
+        $precedents = $scenario['historical_precedents'] ?? array();
         ?>
         <hr style="margin:32px 0;">
         <div style="max-width:1000px;">
@@ -168,9 +170,45 @@ final class TactiTwin_Game_State_Admin {
                 <?php self::history_row( self::label( 'theirs_manpower', $language ), $history['opponent_reciprocal_manpower_state'] ?? array() ); ?>
             </tbody></table>
 
+            <?php self::render_precedents( $precedents, $language ); ?>
+
             <details style="margin-top:22px;"><summary><strong><?php echo esc_html( self::label( 'technical', $language ) ); ?></strong></summary><pre style="white-space:pre-wrap;background:#fff;padding:16px;border:1px solid #dcdcde;"><?php echo esc_html( wp_json_encode( $scenario, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) ); ?></pre></details>
         </div>
         <?php
+    }
+
+    private static function render_precedents( array $precedents, string $language ): void {
+        ?>
+        <h3 style="margin-top:28px;"><?php echo esc_html( self::label( 'precedents', $language ) ); ?></h3>
+        <?php foreach ( $precedents['summary'] ?? array() as $line ) : ?><p><?php echo esc_html( (string) $line ); ?></p><?php endforeach; ?>
+        <?php if ( 'available' !== (string) ( $precedents['status'] ?? '' ) || empty( $precedents['items'] ) ) : ?>
+            <div class="notice notice-info inline"><p><?php echo esc_html( self::label( 'precedents_none', $language ) ); ?></p></div>
+            <?php return; ?>
+        <?php endif; ?>
+        <table class="widefat striped">
+            <thead><tr><th><?php echo esc_html( self::label( 'precedent_scenario', $language ) ); ?></th><th><?php echo esc_html( self::label( 'precedent_sample', $language ) ); ?></th><th><?php echo esc_html( self::label( 'precedent_signal', $language ) ); ?></th></tr></thead>
+            <tbody>
+            <?php foreach ( $precedents['items'] as $item ) : ?>
+                <tr>
+                    <td><strong><?php echo esc_html( (string) ( $item['scenario_name'] ?? $item['scenario_id'] ?? '' ) ); ?></strong><br><?php echo esc_html( (string) ( $item['to_plan'] ?? '' ) . ' / ' . (string) ( $item['to_mode'] ?? '' ) ); ?><br><?php echo esc_html( self::label( 'precedent_relevance', $language ) . ': ' . (string) ( $item['scenario_relevance'] ?? 0 ) . '/100' ); ?></td>
+                    <td><?php echo esc_html( (string) ( $item['sample']['maturity_label'] ?? $item['sample']['maturity'] ?? '' ) ); ?><br><?php echo esc_html( self::label( 'precedent_cleaner', $language ) . ': ' . (string) ( $item['sample']['cleaner'] ?? 0 ) ); ?><br><?php echo esc_html( self::label( 'precedent_comparable', $language ) . ': ' . (string) ( $item['sample']['context_comparable'] ?? 0 ) ); ?></td>
+                    <td>
+                        <?php foreach ( array_slice( $item['metrics'] ?? array(), 0, 4 ) as $metric ) : ?>
+                            <div style="margin-bottom:6px;"><code><?php echo esc_html( (string) ( $metric['metric'] ?? '' ) ); ?></code><br><?php echo esc_html( self::label( 'precedent_median', $language ) . ': ' . self::delta( $metric['median_delta'] ?? null ) . ' · ' . self::label( 'precedent_direction', $language ) . ': ' . (string) ( $metric['direction'] ?? '' ) ); ?></div>
+                        <?php endforeach; ?>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+        <p class="description"><?php echo esc_html( self::label( 'precedent_guardrail', $language ) ); ?></p>
+        <?php
+    }
+
+    private static function delta( $value ): string {
+        if ( null === $value ) return '—';
+        $number = (float) $value;
+        return ( $number > 0 ? '+' : '' ) . number_format_i18n( $number, 2 );
     }
 
     private static function history_row( string $label, array $history ): void {
@@ -202,19 +240,23 @@ final class TactiTwin_Game_State_Admin {
         $labels = array(
             'en' => array(
                 'title' => 'TactiTwin What-if Lab',
-                'intro' => 'Choose a hypothetical minute, exact scoreline and player count. TactiTwin conditions the plan on historically observed score-state and numerical-state behaviour.',
+                'intro' => 'Choose a hypothetical minute, exact scoreline and player count. TactiTwin conditions the plan on historically observed score-state and numerical-state behaviour, then retrieves exact-context tactical precedents as separate evidence.',
                 'language' => 'Language', 'team' => 'Our team', 'opponent' => 'Opponent', 'score' => 'Hypothetical score', 'players' => 'Players on pitch', 'players_help' => 'Use 11v11 normally, or reduce either side after a hypothetical dismissal.', 'minute' => 'Minute', 'sample' => 'Recent matches', 'run' => 'Run What-if',
                 'state' => 'Game state', 'manpower' => 'Numerical state', 'historical_condition' => 'historical conditioning', 'risk' => 'Opponent intensity', 'opportunity' => 'Our intensity', 'coverage' => 'Score-state coverage', 'manpower_coverage' => 'Manpower coverage',
                 'recommendations' => 'Context-adjusted tactical response', 'triggers' => 'Decision triggers', 'if' => 'If observed', 'then' => 'Response', 'history' => 'Historical score-state behaviour', 'manpower_history' => 'Historical numerical-state behaviour',
-                'shots90' => 'Shots/90', 'box90' => 'Box entries/90', 'press90' => 'High pressures/90', 'minutes' => 'Observed minutes', 'ours' => 'Our team in selected score state', 'theirs' => 'Opponent in reciprocal score state', 'ours_manpower' => 'Our team in selected numerical state', 'theirs_manpower' => 'Opponent in reciprocal numerical state', 'technical' => 'Technical evidence',
+                'shots90' => 'Shots/90', 'box90' => 'Box entries/90', 'press90' => 'High pressures/90', 'minutes' => 'Observed minutes', 'ours' => 'Our team in selected score state', 'theirs' => 'Opponent in reciprocal score state', 'ours_manpower' => 'Our team in selected numerical state', 'theirs_manpower' => 'Opponent in reciprocal numerical state',
+                'precedents' => 'Historical tactical precedents', 'precedents_none' => 'No exact-context intervention precedents are available for this hypothesis yet.', 'precedent_scenario' => 'Scenario / intervention', 'precedent_sample' => 'Historical sample', 'precedent_signal' => 'Observed deltas', 'precedent_relevance' => 'Current relevance', 'precedent_cleaner' => 'Cleaner cases', 'precedent_comparable' => 'Comparable cases', 'precedent_median' => 'Median Δ', 'precedent_direction' => 'Direction', 'precedent_guardrail' => 'Precedents are explanatory historical evidence only; v1.8 does not modify What-if scores or recommendations.',
+                'technical' => 'Technical evidence',
             ),
             'es' => array(
                 'title' => 'TactiTwin What-if Lab',
-                'intro' => 'Elige minuto, marcador exacto y número de jugadores. TactiTwin condiciona el plan según el comportamiento histórico por estado del marcador y estado numérico.',
+                'intro' => 'Elige minuto, marcador exacto y número de jugadores. TactiTwin condiciona el plan según el comportamiento histórico por marcador y estado numérico y recupera precedentes tácticos de contexto exacto como evidencia separada.',
                 'language' => 'Idioma', 'team' => 'Nuestro equipo', 'opponent' => 'Rival', 'score' => 'Marcador hipotético', 'players' => 'Jugadores en campo', 'players_help' => 'Usa 11v11 normalmente o reduce cualquiera de los equipos tras una expulsión hipotética.', 'minute' => 'Minuto', 'sample' => 'Partidos recientes', 'run' => 'Ejecutar What-if',
                 'state' => 'Estado del partido', 'manpower' => 'Estado numérico', 'historical_condition' => 'condicionamiento histórico', 'risk' => 'Intensidad rival', 'opportunity' => 'Nuestra intensidad', 'coverage' => 'Cobertura del marcador', 'manpower_coverage' => 'Cobertura numérica',
                 'recommendations' => 'Respuesta táctica adaptada al contexto', 'triggers' => 'Disparadores de decisión', 'if' => 'Si observamos', 'then' => 'Respuesta', 'history' => 'Comportamiento histórico por estado del marcador', 'manpower_history' => 'Comportamiento histórico por estado numérico',
-                'shots90' => 'Tiros/90', 'box90' => 'Entradas al área/90', 'press90' => 'Presiones altas/90', 'minutes' => 'Minutos observados', 'ours' => 'Nuestro equipo en el estado de marcador seleccionado', 'theirs' => 'Rival en el estado de marcador recíproco', 'ours_manpower' => 'Nuestro equipo en el estado numérico seleccionado', 'theirs_manpower' => 'Rival en el estado numérico recíproco', 'technical' => 'Evidencia técnica',
+                'shots90' => 'Tiros/90', 'box90' => 'Entradas al área/90', 'press90' => 'Presiones altas/90', 'minutes' => 'Minutos observados', 'ours' => 'Nuestro equipo en el estado de marcador seleccionado', 'theirs' => 'Rival en el estado de marcador recíproco', 'ours_manpower' => 'Nuestro equipo en el estado numérico seleccionado', 'theirs_manpower' => 'Rival en el estado numérico recíproco',
+                'precedents' => 'Precedentes tácticos históricos', 'precedents_none' => 'Todavía no hay precedentes de intervención con contexto exacto para esta hipótesis.', 'precedent_scenario' => 'Escenario / intervención', 'precedent_sample' => 'Muestra histórica', 'precedent_signal' => 'Deltas observados', 'precedent_relevance' => 'Relevancia actual', 'precedent_cleaner' => 'Casos más limpios', 'precedent_comparable' => 'Casos comparables', 'precedent_median' => 'Mediana Δ', 'precedent_direction' => 'Dirección', 'precedent_guardrail' => 'Los precedentes son solo evidencia histórica explicativa; v1.8 no modifica los scores ni las recomendaciones del What-if.',
+                'technical' => 'Evidencia técnica',
             ),
         );
         return $labels[ $language ][ $key ] ?? $labels['en'][ $key ] ?? $key;
