@@ -13,7 +13,7 @@ final class TactiTwin_Context_Matched_Intervention_Library {
     ): array {
         $language = TactiTwin_I18n::normalize_language( $language );
         $team_id = trim( $team_id );
-        $scenario_filter = sanitize_key( $scenario_filter );
+        $scenario_filter = self::key( $scenario_filter );
         if ( '' === $team_id ) {
             throw new InvalidArgumentException( 'An intervention library requires a team identifier.' );
         }
@@ -28,7 +28,7 @@ final class TactiTwin_Context_Matched_Intervention_Library {
                 continue;
             }
 
-            $scenario = sanitize_key( (string) ( $transition['to_scenario'] ?? '' ) );
+            $scenario = self::key( (string) ( $transition['to_scenario'] ?? '' ) );
             if ( '' === $scenario ) {
                 $scenario = 'generic-transition';
             }
@@ -47,7 +47,7 @@ final class TactiTwin_Context_Matched_Intervention_Library {
             $dimensions = array(
                 'scenario_id' => $scenario,
                 'to_plan' => strtoupper( (string) ( $transition['to_plan'] ?? '' ) ),
-                'to_mode' => sanitize_key( (string) ( $transition['to_mode'] ?? '' ) ),
+                'to_mode' => self::key( (string) ( $transition['to_mode'] ?? '' ) ),
                 'minute_band' => self::minute_band( (int) ( $transition['minute'] ?? 0 ) ),
                 'score_state' => self::score_state( $snapshot_context ),
                 'manpower_state' => self::manpower_state( $snapshot_context ),
@@ -282,6 +282,13 @@ final class TactiTwin_Context_Matched_Intervention_Library {
         if ( $up / $count >= 0.6 ) return 'mostly-up';
         if ( $down / $count >= 0.6 ) return 'mostly-down';
         return 'mixed';
+    }
+
+    private static function key( string $value ): string {
+        $value = strtolower( trim( $value ) );
+        $value = preg_replace( '/[^a-z0-9_-]+/', '-', $value );
+        $value = preg_replace( '/-+/', '-', (string) $value );
+        return trim( (string) $value, '-' );
     }
 
     private static function summary( array $groups, int $eligible, int $excluded, string $language ): array {
