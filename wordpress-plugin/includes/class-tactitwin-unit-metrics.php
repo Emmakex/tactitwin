@@ -216,11 +216,12 @@ final class TactiTwin_Unit_Metrics {
 
     private static function record_pressure_recovery_sequences(
         array &$pairs,
-        array $recent_pressures,
+        array &$recent_pressures,
         string $recovery_player_id,
         float $clock
     ): void {
-        foreach ( $recent_pressures as $pressure_player_id => $pressure ) {
+        foreach ( array_keys( $recent_pressures ) as $pressure_player_id ) {
+            $pressure = $recent_pressures[ $pressure_player_id ] ?? array();
             if ( (string) $pressure_player_id === $recovery_player_id ) {
                 continue;
             }
@@ -231,6 +232,7 @@ final class TactiTwin_Unit_Metrics {
             $pair = &self::ensure_pair( $pairs, (string) $pressure_player_id, $recovery_player_id );
             ++$pair['pressure_recovery_sequences'];
             unset( $pair );
+            unset( $recent_pressures[ $pressure_player_id ] );
         }
     }
 
