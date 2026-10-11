@@ -13,6 +13,7 @@ final class TactiTwin_Precedent_Aware_Match_Plan_Service {
         int $contexts_per_scenario = 3
     ): array {
         $language = TactiTwin_I18n::normalize_language( $language );
+        $contexts_per_scenario = max( 1, min( 10, $contexts_per_scenario ) );
         $profile_service = new TactiTwin_Profile_Service();
         $profiles = $profile_service->matchup_profiles( $team_id, $opponent_id, $limit );
         $scan = TactiTwin_Matchup_Scan::evaluate( $profiles['team'], $profiles['opponent'], $language );
@@ -36,7 +37,7 @@ final class TactiTwin_Precedent_Aware_Match_Plan_Service {
                 $library,
                 $scan,
                 $language,
-                $contexts_per_scenario
+                10
             );
             $catalog = TactiTwin_Precedent_Quality_Attachment::catalog(
                 $catalog,
@@ -44,10 +45,15 @@ final class TactiTwin_Precedent_Aware_Match_Plan_Service {
                 (string) $opponent_id,
                 $language
             );
-            $plan['historical_precedent_catalog'] = TactiTwin_Precedent_Similarity_Attachment::catalog(
+            $catalog = TactiTwin_Precedent_Similarity_Attachment::catalog(
                 $catalog,
                 $library,
                 $language
+            );
+            $plan['historical_precedent_catalog'] = TactiTwin_Evidence_Suitability_Ranker::catalog(
+                $catalog,
+                $language,
+                $contexts_per_scenario
             );
         } catch ( Throwable $e ) {
             $plan['historical_precedent_catalog'] = array(
@@ -58,7 +64,7 @@ final class TactiTwin_Precedent_Aware_Match_Plan_Service {
                     'current_scenario_count' => count( $scan['evidence']['scenario_ranking'] ?? array() ),
                     'scenarios_with_history' => 0,
                     'context_group_count' => 0,
-                    'contexts_per_scenario_limit' => max( 1, min( 10, $contexts_per_scenario ) ),
+                    'contexts_per_scenario_limit' => $contexts_per_scenario,
                 ),
                 'scenarios' => array(),
                 'summary' => array(
@@ -82,14 +88,18 @@ final class TactiTwin_Precedent_Aware_Match_Plan_Service {
             'changes_recommendations' => false,
             'quality_calibration' => true,
             'opponent_context_similarity' => true,
-            'quality_similarity_combined_score' => false,
+            'evidence_suitability_ranking' => true,
+            'quality_similarity_combined_score' => true,
+            'combined_score_scope' => 'historical context ordering within each scenario only',
             'quality_changes_tactical_scores' => false,
             'quality_changes_recommendations' => false,
             'similarity_changes_tactical_scores' => false,
             'similarity_changes_recommendations' => false,
+            'suitability_changes_tactical_scores' => false,
+            'suitability_changes_recommendations' => false,
             'note' => 'es' === $language
-                ? 'Los precedentes prepartido mantienen el contexto, muestran calidad v1.10 y similitud táctica del rival v1.11 por separado. No modifican prioridades, fases, triggers ni recomendaciones.'
-                : 'Pre-match precedents preserve context and expose v1.10 quality plus v1.11 opponent tactical similarity separately. They do not alter priorities, phases, triggers or recommendations.',
+                ? 'v1.12 ordena los contextos históricos dentro de cada escenario por idoneidad de evidencia usando relevancia actual, calidad v1.10 y similitud v1.11. No reordena escenarios ni modifica prioridades, fases, triggers o recomendaciones.'
+                : 'v1.12 orders historical contexts within each scenario by evidence suitability using current relevance, v1.10 quality and v1.11 similarity. It does not reorder scenarios or alter priorities, phases, triggers or recommendations.',
         );
 
         return $plan;

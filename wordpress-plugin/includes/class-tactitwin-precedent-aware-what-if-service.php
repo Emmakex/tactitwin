@@ -8,6 +8,7 @@ require_once TACTITWIN_DIR . 'includes/class-tactitwin-historical-team-profile-s
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-opponent-context-distance.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-opponent-context-similarity-service.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-precedent-similarity-attachment.php';
+require_once TACTITWIN_DIR . 'includes/class-tactitwin-evidence-suitability-ranker.php';
 
 final class TactiTwin_Precedent_Aware_What_If_Service {
     public function evaluate(
@@ -23,6 +24,7 @@ final class TactiTwin_Precedent_Aware_What_If_Service {
         int $precedent_limit = 5
     ): array {
         $language = TactiTwin_I18n::normalize_language( $language );
+        $precedent_limit = max( 1, min( 10, $precedent_limit ) );
         $profile_service = new TactiTwin_Profile_Service();
         $profiles = $profile_service->matchup_profiles( $team_id, $opponent_id, $limit );
         $scan = TactiTwin_Matchup_Scan::evaluate( $profiles['team'], $profiles['opponent'], $language );
@@ -57,7 +59,7 @@ final class TactiTwin_Precedent_Aware_What_If_Service {
                 $scan,
                 $result['hypothesis'] ?? array(),
                 $language,
-                $precedent_limit
+                10
             );
             $precedents = TactiTwin_Precedent_Quality_Attachment::retrieval(
                 $precedents,
@@ -65,10 +67,15 @@ final class TactiTwin_Precedent_Aware_What_If_Service {
                 (string) $opponent_id,
                 $language
             );
-            $result['historical_precedents'] = TactiTwin_Precedent_Similarity_Attachment::retrieval(
+            $precedents = TactiTwin_Precedent_Similarity_Attachment::retrieval(
                 $precedents,
                 $library,
                 $language
+            );
+            $result['historical_precedents'] = TactiTwin_Evidence_Suitability_Ranker::retrieval(
+                $precedents,
+                $language,
+                $precedent_limit
             );
         } catch ( Throwable $e ) {
             $result['historical_precedents'] = array(
@@ -97,14 +104,18 @@ final class TactiTwin_Precedent_Aware_What_If_Service {
             'changes_recommendations' => false,
             'quality_calibration' => true,
             'opponent_context_similarity' => true,
-            'quality_similarity_combined_score' => false,
+            'evidence_suitability_ranking' => true,
+            'quality_similarity_combined_score' => true,
+            'combined_score_scope' => 'historical evidence ordering only',
             'quality_changes_tactical_scores' => false,
             'quality_changes_recommendations' => false,
             'similarity_changes_tactical_scores' => false,
             'similarity_changes_recommendations' => false,
+            'suitability_changes_tactical_scores' => false,
+            'suitability_changes_recommendations' => false,
             'note' => 'es' === $language
-                ? 'Los precedentes se muestran con calidad v1.10 y similitud táctica del rival v1.11 como ejes separados. Ninguna capa modifica scores ni recomendaciones del What-if.'
-                : 'Precedents expose v1.10 evidence quality and v1.11 opponent tactical similarity as separate axes. Neither layer changes What-if scores or recommendations.',
+                ? 'v1.12 ordena los precedentes de contexto exacto por idoneidad de evidencia usando relevancia actual, calidad v1.10 y similitud v1.11. El score combinado solo ordena evidencia histórica y no modifica scores ni recomendaciones del What-if.'
+                : 'v1.12 orders exact-context precedents by evidence suitability using current relevance, v1.10 quality and v1.11 similarity. The combined score only orders historical evidence and does not alter What-if scores or recommendations.',
         );
 
         return $result;
