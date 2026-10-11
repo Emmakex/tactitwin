@@ -61,6 +61,8 @@ require_once TACTITWIN_DIR . 'includes/class-tactitwin-post-match-review-service
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-context-matched-intervention-library.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-intervention-library-service.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-historical-precedent-retrieval.php';
+require_once TACTITWIN_DIR . 'includes/class-tactitwin-pre-match-precedent-catalog.php';
+require_once TACTITWIN_DIR . 'includes/class-tactitwin-playbook-precedent-attachment.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-personnel-what-if.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-unit-comparison.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-phase-unit-comparison.php';
@@ -68,6 +70,8 @@ require_once TACTITWIN_DIR . 'includes/class-tactitwin-opponent-lineup-matchup.p
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-lineup-what-if.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-profile-service.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-precedent-aware-what-if-service.php';
+require_once TACTITWIN_DIR . 'includes/class-tactitwin-precedent-aware-match-plan-service.php';
+require_once TACTITWIN_DIR . 'includes/class-tactitwin-precedent-aware-contingency-service.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-personnel-service.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-unit-service.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-phase-unit-service.php';
