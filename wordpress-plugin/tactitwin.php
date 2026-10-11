@@ -29,10 +29,12 @@ require_once TACTITWIN_DIR . 'includes/class-tactitwin-high-press-scenario.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-profile-service.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-data-preparation-service.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-scenario-rest.php';
+require_once TACTITWIN_DIR . 'includes/class-tactitwin-workspace-admin.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin.php';
 
 register_activation_hook( __FILE__, array( 'TactiTwin', 'activate' ) );
 
 TactiTwin_Analysis_REST::register();
 TactiTwin_Scenario_REST::register();
+TactiTwin_Workspace_Admin::register();
 TactiTwin::instance();
