@@ -77,11 +77,13 @@ final class TactiTwin_Staff_Brief_Version_Diff {
         self::array_change( $changes, 'material-evidence-watch-changed', 'evidence', 'material_signals', self::material_signals( $previous ), self::material_signals( $current ), $language );
 
         $sections = array_values( array_unique( array_map( static fn( array $change ): string => (string) $change['section'], $changes ) ) );
+        $fixture_key = class_exists( 'TactiTwin_Fixture_Identity' ) ? TactiTwin_Fixture_Identity::key_from_brief( $current ) : '';
 
         return array(
             'diff_id' => 'staff-brief-version-diff',
             'status' => empty( $changes ) ? 'unchanged' : 'changed',
             'language' => $language,
+            'fixture_key' => $fixture_key,
             'team' => $current['team'] ?? array(),
             'opponent' => $current['opponent'] ?? array(),
             'from' => $from,
@@ -91,6 +93,7 @@ final class TactiTwin_Staff_Brief_Version_Diff {
             'changes' => $changes,
             'method' => array(
                 'type' => 'deterministic-structural-staff-brief-version-diff',
+                'fixture_scoped_when_available' => '' !== $fixture_key,
                 'creates_change_score' => false,
                 'recalculates_tactical_models' => false,
                 'changes_tactical_scores' => false,
@@ -287,16 +290,19 @@ final class TactiTwin_Staff_Brief_Version_Diff {
         if ( '' === $a_team || '' === $a_opp || $a_team !== $b_team || $a_opp !== $b_opp ) {
             throw new InvalidArgumentException( 'Staff Brief versions must describe the same team/opponent pairing.' );
         }
+        if ( class_exists( 'TactiTwin_Fixture_Identity' ) ) {
+            TactiTwin_Fixture_Identity::assert_same_scope( $a, $b );
+        }
     }
 
     private static function text( string $key, string $language ): string {
         $catalog = array(
             'en' => array(
-                'method'=>'v1.18 performs a deterministic structural comparison between Staff Brief versions. It reports changed fields only and does not create a change score, recalculate tactical models or alter either version.',
+                'method'=>'v1.18 performs a deterministic structural comparison between Staff Brief versions. With v1.20 fixture identity available, comparison is also restricted to the exact fixture. It reports changed fields only and does not create a change score, recalculate tactical models or alter either version.',
                 'headline-changed'=>'Headline changed','coverage-changed'=>'Coverage changed','priority-order-changed'=>'Priority order changed','priority-membership-changed'=>'Priority membership changed','priority-changed'=>'Priority details changed','plan-changed'=>'Plan changed','opening-checks-changed'=>'Opening checks changed','halftime-checks-changed'=>'Halftime checks changed','decision-tree-changed'=>'Decision tree changed','material-evidence-watch-changed'=>'Material evidence warnings changed',
             ),
             'es' => array(
-                'method'=>'v1.18 realiza una comparación estructural determinista entre versiones del Staff Brief. Solo informa campos cambiados y no crea un score de cambio, no recalcula modelos tácticos ni modifica ninguna versión.',
+                'method'=>'v1.18 realiza una comparación estructural determinista entre versiones del Staff Brief. Con identidad de fixture v1.20 disponible, la comparación también queda restringida al partido exacto. Solo informa campos cambiados y no crea un score de cambio, no recalcula modelos tácticos ni modifica ninguna versión.',
                 'headline-changed'=>'Cambió el titular','coverage-changed'=>'Cambió la cobertura','priority-order-changed'=>'Cambió el orden de prioridades','priority-membership-changed'=>'Cambió la composición de prioridades','priority-changed'=>'Cambió el detalle de una prioridad','plan-changed'=>'Cambió el plan','opening-checks-changed'=>'Cambió el checklist inicial','halftime-checks-changed'=>'Cambió el checklist del descanso','decision-tree-changed'=>'Cambió el árbol de decisión','material-evidence-watch-changed'=>'Cambiaron las alertas materiales de evidencia',
             ),
         );
