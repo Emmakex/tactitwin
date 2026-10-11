@@ -1,5 +1,28 @@
 # TactiTwin Roadmap
 
+## Current implemented decision-support line
+
+The repository has already evolved beyond the original first-pass roadmap into an auditable pre-match / live / post-match workflow.
+
+Implemented milestones now include:
+
+- v1.10 evidence quality and recency calibration;
+- v1.11 opponent tactical-context distance;
+- v1.12 evidence suitability ranking;
+- v1.13 evidence ranking robustness;
+- v1.14 Evidence Decision Brief;
+- v1.15 Evidence Conflict Signals;
+- v1.16 Match-Day Staff Brief;
+- v1.17 immutable approved Staff Brief snapshot + Live Session handoff;
+- v1.18 structural Staff Brief version diff;
+- v1.19 immutable approval revision chain + stale-review protection;
+- v1.19.1 snapshot-identity binding for approval revisions;
+- **v1.20 exact fixture identity**, so approval history, diffs and handoff are scoped to one football match rather than only a team/opponent pairing.
+
+### v1.20 exit criterion
+
+Two different matches against the same opponent must never share one Staff Brief revision chain when fixture identity is available. The exact fixture must remain integrity-bound through Staff Brief generation, version comparison, approval snapshot and Live Session handoff, while older snapshots remain valid.
+
 ## v0.1 — Core + Data Layer
 
 Goal: make the WordPress plugin installable and prove one public-data path end to end.

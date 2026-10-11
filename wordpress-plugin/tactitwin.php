@@ -79,6 +79,7 @@ require_once TACTITWIN_DIR . 'includes/class-tactitwin-evidence-suitability-rank
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-evidence-ranking-robustness.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-evidence-decision-brief.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-evidence-conflict-signals.php';
+require_once TACTITWIN_DIR . 'includes/class-tactitwin-fixture-identity.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-match-day-staff-brief.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-staff-brief-snapshot.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-staff-brief-version-diff.php';
@@ -118,6 +119,7 @@ require_once TACTITWIN_DIR . 'includes/class-tactitwin-intervention-library-admi
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-precedent-planning-admin.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-staff-brief-admin.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-staff-brief-handoff-admin.php';
+require_once TACTITWIN_DIR . 'includes/class-tactitwin-fixture-identity-admin.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-personnel-admin.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-unit-admin.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-lineup-admin.php';
@@ -154,6 +156,7 @@ TactiTwin_Intervention_Library_Admin::register();
 TactiTwin_Precedent_Planning_Admin::register();
 TactiTwin_Staff_Brief_Admin::register();
 TactiTwin_Staff_Brief_Handoff_Admin::register();
+TactiTwin_Fixture_Identity_Admin::register();
 TactiTwin_Personnel_Admin::register();
 TactiTwin_Unit_Admin::register();
 TactiTwin_Lineup_Admin::register();

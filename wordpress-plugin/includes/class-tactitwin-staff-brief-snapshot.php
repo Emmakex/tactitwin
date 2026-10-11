@@ -44,6 +44,7 @@ final class TactiTwin_Staff_Brief_Snapshot {
         $language = TactiTwin_I18n::normalize_language( (string) ( $staff_brief['language'] ?? 'en' ) );
         $team = is_array( $staff_brief['team'] ?? null ) ? $staff_brief['team'] : array();
         $opponent = is_array( $staff_brief['opponent'] ?? null ) ? $staff_brief['opponent'] : array();
+        $fixture = self::fixture_from_brief( $staff_brief );
 
         $snapshot = array(
             'snapshot_id' => 'match-day-staff-brief-snapshot',
@@ -66,12 +67,17 @@ final class TactiTwin_Staff_Brief_Snapshot {
                 'stores_exact_playbook_source' => true,
                 'hash_algorithm' => 'sha256',
                 'revision_chain_included' => ! empty( $revision ),
+                'fixture_identity_included' => ! empty( $fixture ),
                 'changes_tactical_scores' => false,
                 'changes_recommendations' => false,
                 'changes_plan_activation' => false,
             ),
         );
 
+        if ( ! empty( $fixture ) ) {
+            $snapshot['fixture_key'] = (string) $fixture['fixture_key'];
+            $snapshot['fixture'] = $fixture;
+        }
         if ( ! empty( $revision ) ) {
             $snapshot['revision'] = $revision;
         }
@@ -94,6 +100,36 @@ final class TactiTwin_Staff_Brief_Snapshot {
             return false;
         }
 
+        $stored_brief = is_array( $snapshot['content']['staff_brief'] ?? null ) ? $snapshot['content']['staff_brief'] : array();
+        try {
+            $fixture = self::fixture_from_brief( $stored_brief );
+        } catch ( Throwable $e ) {
+            return false;
+        }
+        $declared_fixture_key = strtolower( trim( (string) ( $snapshot['fixture_key'] ?? '' ) ) );
+        if ( ! empty( $fixture ) ) {
+            if ( '' === $declared_fixture_key || ! hash_equals( (string) $fixture['fixture_key'], $declared_fixture_key ) ) {
+                return false;
+            }
+            if ( ! is_array( $snapshot['fixture'] ?? null ) ) {
+                return false;
+            }
+            try {
+                $top_fixture = TactiTwin_Fixture_Identity::normalize(
+                    $snapshot['fixture'],
+                    (string) ( $snapshot['team']['source_id'] ?? '' ),
+                    (string) ( $snapshot['opponent']['source_id'] ?? '' )
+                );
+            } catch ( Throwable $e ) {
+                return false;
+            }
+            if ( ! hash_equals( (string) $fixture['fixture_key'], (string) $top_fixture['fixture_key'] ) ) {
+                return false;
+            }
+        } elseif ( '' !== $declared_fixture_key || isset( $snapshot['fixture'] ) ) {
+            return false;
+        }
+
         if ( isset( $snapshot['revision'] ) ) {
             if ( ! is_array( $snapshot['revision'] ) || ! TactiTwin_Staff_Brief_Revision_Chain::verify( $snapshot['revision'] ) ) {
                 return false;
@@ -105,6 +141,13 @@ final class TactiTwin_Staff_Brief_Snapshot {
             }
             $bound_content = strtolower( trim( (string) ( $snapshot['revision']['approved_content_sha256'] ?? '' ) ) );
             if ( '' === $bound_content || ! hash_equals( $expected, $bound_content ) ) {
+                return false;
+            }
+            $revision_fixture = strtolower( trim( (string) ( $snapshot['revision']['fixture_key'] ?? '' ) ) );
+            if ( '' !== $declared_fixture_key && ( '' === $revision_fixture || ! hash_equals( $declared_fixture_key, $revision_fixture ) ) ) {
+                return false;
+            }
+            if ( '' === $declared_fixture_key && '' !== $revision_fixture ) {
                 return false;
             }
         }
@@ -168,6 +211,14 @@ final class TactiTwin_Staff_Brief_Snapshot {
         ) {
             throw new InvalidArgumentException( 'Staff Brief, Match Plan and Playbook must describe the same matchup.' );
         }
+        self::fixture_from_brief( $staff_brief );
+    }
+
+    private static function fixture_from_brief( array $brief ): array {
+        if ( ! class_exists( 'TactiTwin_Fixture_Identity' ) ) {
+            return array();
+        }
+        return TactiTwin_Fixture_Identity::from_brief( $brief );
     }
 
     private static function hash_content( array $content ): string {

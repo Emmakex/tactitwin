@@ -12,8 +12,14 @@ final class TactiTwin_Staff_Brief_Snapshot_Service {
             throw new InvalidArgumentException( 'Staff Brief approval requires a valid team/opponent matchup.' );
         }
 
-        $previous = $this->latest_for_matchup( $team_id, $opponent_id );
-        $revision_number = $this->count_for_matchup( $team_id, $opponent_id ) + 1;
+        $fixture_key = TactiTwin_Fixture_Identity::key_from_brief( $brief );
+        if ( '' !== $fixture_key ) {
+            $previous = $this->latest_for_fixture( $fixture_key );
+            $revision_number = $this->count_for_fixture( $fixture_key ) + 1;
+        } else {
+            $previous = $this->latest_for_matchup( $team_id, $opponent_id );
+            $revision_number = $this->count_for_matchup( $team_id, $opponent_id ) + 1;
+        }
 
         return TactiTwin_Staff_Brief_Revision_Chain::build(
             $brief,
@@ -51,11 +57,13 @@ final class TactiTwin_Staff_Brief_Snapshot_Service {
         }
 
         $snapshot = TactiTwin_Staff_Brief_Snapshot::freeze( $brief, $uuid, $approved_by, $approved_at, $sample_size, $revision );
+        $fixture_key = (string) ( $snapshot['fixture_key'] ?? '' );
         $table = TactiTwin_DB::table( 'staff_brief_snapshots' );
         $ok = $wpdb->insert(
             $table,
             array(
                 'snapshot_uuid' => $uuid,
+                'fixture_key' => $fixture_key,
                 'team_source_id' => (string) ( $snapshot['team']['source_id'] ?? '' ),
                 'opponent_source_id' => (string) ( $snapshot['opponent']['source_id'] ?? '' ),
                 'language' => (string) $snapshot['language'],
@@ -65,7 +73,7 @@ final class TactiTwin_Staff_Brief_Snapshot_Service {
                 'approved_at' => $approved_at,
                 'snapshot_json' => wp_json_encode( $snapshot, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ),
             ),
-            array( '%s','%s','%s','%s','%d','%s','%d','%s','%s' )
+            array( '%s','%s','%s','%s','%s','%d','%s','%d','%s','%s' )
         );
         if ( false === $ok ) {
             throw new RuntimeException( 'Could not persist the approved Staff Brief snapshot.' );
@@ -82,7 +90,7 @@ final class TactiTwin_Staff_Brief_Snapshot_Service {
         $table = TactiTwin_DB::table( 'staff_brief_snapshots' );
         $row = $wpdb->get_row(
             $wpdb->prepare(
-                "SELECT id, snapshot_uuid, team_source_id, opponent_source_id, language, sample_size, content_sha256, approved_by, approved_at, snapshot_json FROM {$table} WHERE snapshot_uuid = %s LIMIT 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                "SELECT id, snapshot_uuid, fixture_key, team_source_id, opponent_source_id, language, sample_size, content_sha256, approved_by, approved_at, snapshot_json FROM {$table} WHERE snapshot_uuid = %s LIMIT 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
                 $snapshot_uuid
             ),
             ARRAY_A
@@ -94,8 +102,14 @@ final class TactiTwin_Staff_Brief_Snapshot_Service {
         if ( ! is_array( $snapshot ) ) {
             throw new RuntimeException( 'Stored Staff Brief snapshot JSON is invalid.' );
         }
+        $row_fixture_key = strtolower( trim( (string) ( $row['fixture_key'] ?? '' ) ) );
+        $snapshot_fixture_key = strtolower( trim( (string) ( $snapshot['fixture_key'] ?? '' ) ) );
+        if ( $row_fixture_key !== $snapshot_fixture_key ) {
+            throw new RuntimeException( 'Stored Staff Brief fixture index does not match the immutable snapshot payload.' );
+        }
         $snapshot['storage'] = array(
             'id' => (int) $row['id'],
+            'fixture_key' => $row_fixture_key,
             'integrity_valid' => TactiTwin_Staff_Brief_Snapshot::verify( $snapshot ),
             'revision_chain_present' => ! empty( $snapshot['revision'] ),
         );
@@ -108,11 +122,55 @@ final class TactiTwin_Staff_Brief_Snapshot_Service {
         $table = TactiTwin_DB::table( 'staff_brief_snapshots' );
         return $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT id, snapshot_uuid, team_source_id, opponent_source_id, language, sample_size, content_sha256, approved_by, approved_at FROM {$table} ORDER BY id DESC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                "SELECT id, snapshot_uuid, fixture_key, team_source_id, opponent_source_id, language, sample_size, content_sha256, approved_by, approved_at FROM {$table} ORDER BY id DESC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
                 $limit
             ),
             ARRAY_A
         ) ?: array();
+    }
+
+    public function latest_for_fixture( string $fixture_key, string $exclude_snapshot_uuid = '' ): array {
+        global $wpdb;
+        $fixture_key = strtolower( trim( $fixture_key ) );
+        $exclude_snapshot_uuid = self::normalize_uuid( $exclude_snapshot_uuid );
+        if ( 1 !== preg_match( '/^[a-f0-9]{64}$/', $fixture_key ) ) {
+            return array();
+        }
+        $table = TactiTwin_DB::table( 'staff_brief_snapshots' );
+        if ( '' !== $exclude_snapshot_uuid ) {
+            $row = $wpdb->get_row(
+                $wpdb->prepare(
+                    "SELECT snapshot_uuid FROM {$table} WHERE fixture_key = %s AND snapshot_uuid <> %s ORDER BY id DESC LIMIT 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                    $fixture_key,
+                    $exclude_snapshot_uuid
+                ),
+                ARRAY_A
+            ) ?: array();
+        } else {
+            $row = $wpdb->get_row(
+                $wpdb->prepare(
+                    "SELECT snapshot_uuid FROM {$table} WHERE fixture_key = %s ORDER BY id DESC LIMIT 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                    $fixture_key
+                ),
+                ARRAY_A
+            ) ?: array();
+        }
+        return empty( $row['snapshot_uuid'] ) ? array() : $this->snapshot( (string) $row['snapshot_uuid'] );
+    }
+
+    public function count_for_fixture( string $fixture_key ): int {
+        global $wpdb;
+        $fixture_key = strtolower( trim( $fixture_key ) );
+        if ( 1 !== preg_match( '/^[a-f0-9]{64}$/', $fixture_key ) ) {
+            return 0;
+        }
+        $table = TactiTwin_DB::table( 'staff_brief_snapshots' );
+        return (int) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT COUNT(*) FROM {$table} WHERE fixture_key = %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                $fixture_key
+            )
+        );
     }
 
     public function latest_for_matchup( string $team_id, string $opponent_id, string $exclude_snapshot_uuid = '' ): array {
@@ -124,11 +182,19 @@ final class TactiTwin_Staff_Brief_Snapshot_Service {
             return array();
         }
 
+        if ( '' !== $exclude_snapshot_uuid ) {
+            $excluded = $this->snapshot( $exclude_snapshot_uuid );
+            $fixture_key = strtolower( trim( (string) ( $excluded['fixture_key'] ?? '' ) ) );
+            if ( '' !== $fixture_key ) {
+                return $this->latest_for_fixture( $fixture_key, $exclude_snapshot_uuid );
+            }
+        }
+
         $table = TactiTwin_DB::table( 'staff_brief_snapshots' );
         if ( '' !== $exclude_snapshot_uuid ) {
             $row = $wpdb->get_row(
                 $wpdb->prepare(
-                    "SELECT snapshot_uuid FROM {$table} WHERE team_source_id = %s AND opponent_source_id = %s AND snapshot_uuid <> %s ORDER BY id DESC LIMIT 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                    "SELECT snapshot_uuid FROM {$table} WHERE fixture_key = '' AND team_source_id = %s AND opponent_source_id = %s AND snapshot_uuid <> %s ORDER BY id DESC LIMIT 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
                     $team_id,
                     $opponent_id,
                     $exclude_snapshot_uuid
@@ -138,7 +204,7 @@ final class TactiTwin_Staff_Brief_Snapshot_Service {
         } else {
             $row = $wpdb->get_row(
                 $wpdb->prepare(
-                    "SELECT snapshot_uuid FROM {$table} WHERE team_source_id = %s AND opponent_source_id = %s ORDER BY id DESC LIMIT 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                    "SELECT snapshot_uuid FROM {$table} WHERE fixture_key = '' AND team_source_id = %s AND opponent_source_id = %s ORDER BY id DESC LIMIT 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
                     $team_id,
                     $opponent_id
                 ),
@@ -158,7 +224,7 @@ final class TactiTwin_Staff_Brief_Snapshot_Service {
         $table = TactiTwin_DB::table( 'staff_brief_snapshots' );
         return (int) $wpdb->get_var(
             $wpdb->prepare(
-                "SELECT COUNT(*) FROM {$table} WHERE team_source_id = %s AND opponent_source_id = %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                "SELECT COUNT(*) FROM {$table} WHERE fixture_key = '' AND team_source_id = %s AND opponent_source_id = %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
                 $team_id,
                 $opponent_id
             )
@@ -172,6 +238,10 @@ final class TactiTwin_Staff_Brief_Snapshot_Service {
         }
         if ( ! TactiTwin_Staff_Brief_Snapshot::verify( $snapshot ) ) {
             throw new RuntimeException( 'Approved Staff Brief snapshot failed integrity verification.' );
+        }
+
+        if ( '' === trim( $source_match_id ) && is_array( $snapshot['fixture'] ?? null ) ) {
+            $source_match_id = (string) ( $snapshot['fixture']['source_match_id'] ?? '' );
         }
 
         $live = new TactiTwin_Live_Session_Service();

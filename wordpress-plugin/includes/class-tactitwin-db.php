@@ -5,7 +5,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 final class TactiTwin_DB {
-    public const SCHEMA_VERSION = '0.3.0';
+    public const SCHEMA_VERSION = '0.4.0';
 
     public static function install(): void {
         global $wpdb;
@@ -134,6 +134,7 @@ final class TactiTwin_DB {
             "CREATE TABLE {$staff_brief_snapshots} (
                 id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
                 snapshot_uuid varchar(64) NOT NULL,
+                fixture_key char(64) NOT NULL DEFAULT '',
                 team_source_id varchar(64) NOT NULL,
                 opponent_source_id varchar(64) NOT NULL,
                 language varchar(8) NOT NULL DEFAULT 'en',
@@ -144,6 +145,7 @@ final class TactiTwin_DB {
                 snapshot_json longtext NOT NULL,
                 PRIMARY KEY  (id),
                 UNIQUE KEY snapshot_uuid (snapshot_uuid),
+                KEY fixture_key (fixture_key),
                 KEY team_opponent (team_source_id, opponent_source_id),
                 KEY approved_at (approved_at)
             ) {$charset};"
