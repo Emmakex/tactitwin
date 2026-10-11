@@ -115,27 +115,49 @@ final class TactiTwin_Team_Profile {
             'turnover_zone_share'               => $turnover_zones,
             'opponent_context'                  => $opponent_context,
             'game_states'                       => self::aggregate_game_states( $samples ),
+            'manpower_states'                   => self::aggregate_manpower_states( $samples ),
         );
     }
 
     private static function aggregate_game_states( array $samples ): array {
-        $states = array( 'leading', 'drawing', 'trailing' );
-        $sum_keys = array(
-            'seconds', 'events', 'passes', 'completed_passes', 'shots', 'xg', 'goals',
-            'progressive_actions', 'final_third_entries', 'box_entries', 'pressures',
-            'high_pressures', 'recoveries', 'high_recoveries',
+        return self::aggregate_context_states(
+            $samples,
+            'game_states',
+            array( 'leading', 'drawing', 'trailing' ),
+            true
         );
-        $result = array();
+    }
 
+    private static function aggregate_manpower_states( array $samples ): array {
+        return self::aggregate_context_states(
+            $samples,
+            'manpower_states',
+            array( 'superior', 'equal', 'inferior' ),
+            false
+        );
+    }
+
+    private static function aggregate_context_states( array $samples, string $context_key, array $states, bool $include_goals ): array {
+        $sum_keys = array(
+            'seconds', 'events', 'passes', 'completed_passes', 'shots', 'xg',
+            'progressive_actions', 'final_third_entries', 'box_entries', 'pressures', 'high_pressures',
+        );
+        if ( $include_goals ) {
+            $sum_keys[] = 'goals';
+            $sum_keys[] = 'recoveries';
+            $sum_keys[] = 'high_recoveries';
+        }
+
+        $result = array();
         foreach ( $states as $state ) {
             $result[ $state ] = array_fill_keys( $sum_keys, 0.0 );
             $result[ $state ]['matches_observed'] = 0;
         }
 
         foreach ( $samples as $sample ) {
-            $team_states = $sample['team_metrics']['game_states'] ?? array();
+            $context_states = $sample['team_metrics'][ $context_key ] ?? array();
             foreach ( $states as $state ) {
-                $state_metrics = $team_states[ $state ] ?? array();
+                $state_metrics = $context_states[ $state ] ?? array();
                 $seconds       = (float) ( $state_metrics['seconds'] ?? 0 );
                 if ( $seconds > 0.0 ) {
                     ++$result[ $state ]['matches_observed'];
@@ -161,15 +183,18 @@ final class TactiTwin_Team_Profile {
             $result[ $state ]['per_90'] = array(
                 'shots'               => round( $result[ $state ]['shots'] * $factor, 2 ),
                 'xg'                  => round( $result[ $state ]['xg'] * $factor, 3 ),
-                'goals'               => round( $result[ $state ]['goals'] * $factor, 2 ),
                 'progressive_actions' => round( $result[ $state ]['progressive_actions'] * $factor, 2 ),
                 'final_third_entries' => round( $result[ $state ]['final_third_entries'] * $factor, 2 ),
                 'box_entries'         => round( $result[ $state ]['box_entries'] * $factor, 2 ),
                 'pressures'           => round( $result[ $state ]['pressures'] * $factor, 2 ),
                 'high_pressures'      => round( $result[ $state ]['high_pressures'] * $factor, 2 ),
-                'recoveries'          => round( $result[ $state ]['recoveries'] * $factor, 2 ),
-                'high_recoveries'     => round( $result[ $state ]['high_recoveries'] * $factor, 2 ),
             );
+
+            if ( $include_goals ) {
+                $result[ $state ]['per_90']['goals'] = round( $result[ $state ]['goals'] * $factor, 2 );
+                $result[ $state ]['per_90']['recoveries'] = round( $result[ $state ]['recoveries'] * $factor, 2 );
+                $result[ $state ]['per_90']['high_recoveries'] = round( $result[ $state ]['high_recoveries'] * $factor, 2 );
+            }
         }
 
         return $result;
