@@ -5,7 +5,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 final class TactiTwin_DB {
-    public const SCHEMA_VERSION = '0.1.0';
+    public const SCHEMA_VERSION = '0.2.0';
 
     public static function install(): void {
         global $wpdb;
@@ -14,11 +14,13 @@ final class TactiTwin_DB {
 
         $charset = $wpdb->get_charset_collate();
 
-        $competitions = $wpdb->prefix . 'tactitwin_competitions';
-        $teams        = $wpdb->prefix . 'tactitwin_teams';
-        $players      = $wpdb->prefix . 'tactitwin_players';
-        $matches      = $wpdb->prefix . 'tactitwin_matches';
-        $events       = $wpdb->prefix . 'tactitwin_events';
+        $competitions   = $wpdb->prefix . 'tactitwin_competitions';
+        $teams          = $wpdb->prefix . 'tactitwin_teams';
+        $players        = $wpdb->prefix . 'tactitwin_players';
+        $matches        = $wpdb->prefix . 'tactitwin_matches';
+        $events         = $wpdb->prefix . 'tactitwin_events';
+        $live_sessions  = $wpdb->prefix . 'tactitwin_live_sessions';
+        $live_snapshots = $wpdb->prefix . 'tactitwin_live_snapshots';
 
         dbDelta(
             "CREATE TABLE {$competitions} (
@@ -127,13 +129,61 @@ final class TactiTwin_DB {
             ) {$charset};"
         );
 
+        dbDelta(
+            "CREATE TABLE {$live_sessions} (
+                id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+                session_uuid varchar(64) NOT NULL,
+                source_match_id varchar(64) NOT NULL DEFAULT '',
+                team_source_id varchar(64) NOT NULL,
+                opponent_source_id varchar(64) NOT NULL,
+                language varchar(8) NOT NULL DEFAULT 'en',
+                status varchar(32) NOT NULL DEFAULT 'active',
+                title varchar(191) NOT NULL DEFAULT '',
+                created_by bigint(20) unsigned NOT NULL DEFAULT 0,
+                started_at datetime NOT NULL,
+                updated_at datetime NOT NULL,
+                closed_at datetime DEFAULT NULL,
+                PRIMARY KEY  (id),
+                UNIQUE KEY session_uuid (session_uuid),
+                KEY team_opponent (team_source_id, opponent_source_id),
+                KEY source_match (source_match_id),
+                KEY status_updated (status, updated_at)
+            ) {$charset};"
+        );
+
+        dbDelta(
+            "CREATE TABLE {$live_snapshots} (
+                id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+                session_uuid varchar(64) NOT NULL,
+                minute smallint(6) NOT NULL DEFAULT 1,
+                our_score smallint(6) NOT NULL DEFAULT 0,
+                opponent_score smallint(6) NOT NULL DEFAULT 0,
+                our_players tinyint(4) NOT NULL DEFAULT 11,
+                opponent_players tinyint(4) NOT NULL DEFAULT 11,
+                active_plan varchar(8) NOT NULL DEFAULT 'A',
+                active_mode varchar(64) NOT NULL DEFAULT 'baseline',
+                selected_scenario varchar(96) NOT NULL DEFAULT '',
+                activation_status varchar(64) NOT NULL DEFAULT '',
+                observations_json longtext NOT NULL,
+                note text NOT NULL,
+                playbook_json longtext NOT NULL,
+                created_by bigint(20) unsigned NOT NULL DEFAULT 0,
+                created_at datetime NOT NULL,
+                PRIMARY KEY  (id),
+                KEY session_minute (session_uuid, minute, id),
+                KEY active_plan (active_plan),
+                KEY selected_scenario (selected_scenario),
+                KEY created_at (created_at)
+            ) {$charset};"
+        );
+
         update_option( 'tactitwin_schema_version', self::SCHEMA_VERSION );
     }
 
     public static function table( string $entity ): string {
         global $wpdb;
 
-        $allowed = array( 'competitions', 'teams', 'players', 'matches', 'events' );
+        $allowed = array( 'competitions', 'teams', 'players', 'matches', 'events', 'live_sessions', 'live_snapshots' );
         if ( ! in_array( $entity, $allowed, true ) ) {
             throw new InvalidArgumentException( 'Unknown TactiTwin entity table.' );
         }
@@ -145,8 +195,8 @@ final class TactiTwin_DB {
         global $wpdb;
 
         $counts = array();
-        foreach ( array( 'competitions', 'teams', 'players', 'matches', 'events' ) as $entity ) {
-            $table            = self::table( $entity );
+        foreach ( array( 'competitions', 'teams', 'players', 'matches', 'events', 'live_sessions', 'live_snapshots' ) as $entity ) {
+            $table             = self::table( $entity );
             $counts[ $entity ] = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         }
 
