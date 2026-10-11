@@ -38,6 +38,16 @@ final class TactiTwin_Game_State_REST {
                         'sanitize_callback' => 'absint',
                         'validate_callback' => static fn( $value ): bool => (int) $value >= 0 && (int) $value <= 20,
                     ),
+                    'our_players' => array(
+                        'default'           => 11,
+                        'sanitize_callback' => 'absint',
+                        'validate_callback' => static fn( $value ): bool => (int) $value >= 7 && (int) $value <= 11,
+                    ),
+                    'opponent_players' => array(
+                        'default'           => 11,
+                        'sanitize_callback' => 'absint',
+                        'validate_callback' => static fn( $value ): bool => (int) $value >= 7 && (int) $value <= 11,
+                    ),
                     'minute' => array(
                         'default'           => 60,
                         'sanitize_callback' => 'absint',
@@ -72,7 +82,9 @@ final class TactiTwin_Game_State_REST {
                 (int) $request['opponent_score'],
                 (int) $request['minute'],
                 (int) $request['limit'],
-                $language
+                $language,
+                (int) $request['our_players'],
+                (int) $request['opponent_players']
             );
 
             return new WP_REST_Response( array( 'ok' => true, 'result' => $result ), 200 );
