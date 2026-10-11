@@ -6,7 +6,7 @@ TactiTwin is a football tactical analysis and match-scenario simulation project.
 
 ## Product direction
 
-`public/open data -> normalized football model -> tactical analysis -> scenario engine -> lineup decisions -> match plan -> Plan A/B/C -> live staff observations -> persistent match-day timeline -> post-match review -> full-match evidence -> time-aligned segment evidence`
+`public/open data -> normalized football model -> tactical analysis -> scenario engine -> lineup decisions -> match plan -> Plan A/B/C -> live staff observations -> persistent match-day timeline -> post-match review -> full-match evidence -> time-aligned segment evidence -> before/after transition deltas`
 
 TactiTwin is not intended to predict a final score with certainty. It is a decision-support system for exploring tactical risks, opportunities and "what if" scenarios before, during and after a match while retaining evidence, confidence and method boundaries.
 
@@ -28,6 +28,7 @@ The first phase focuses on:
 - Descriptive post-match prepared / observed / activated audit.
 - Full-match event-evidence comparison against the immutable live record.
 - Time-aligned event evidence inside reconstructed A/B/C intervals.
+- Symmetric before/after event windows around recorded tactical transitions.
 - WordPress administration UI and REST endpoints.
 
 Initial data-source targets:
@@ -58,6 +59,7 @@ The current WordPress plugin supports:
 - Descriptive Session Review separating what was prepared, observed and activated.
 - Evidence Review linking a Live Session to an imported match and comparing staff observations with transparent full-match event proxies.
 - Segment Evidence comparing the same signals inside the exact A/B/C intervals reconstructed from staff snapshots.
+- Transition Deltas comparing matched event windows immediately before and after each recorded tactical transition.
 
 ### Game State / What-if
 
@@ -69,7 +71,7 @@ Current score-state evidence includes observed minutes, shots, xG, progressive a
 
 The current match-day workflow is:
 
-`Match Plan -> Contingency Playbook -> Live Playbook -> Live Session -> Session Review -> Evidence Review -> Segment Evidence`
+`Match Plan -> Contingency Playbook -> Live Playbook -> Live Session -> Session Review -> Evidence Review -> Segment Evidence -> Transition Deltas`
 
 Plan B is never activated merely because historical data predicted an opponent behaviour. A supported manual observation from the staff can activate Plan B when Plan C is not already required by score/manpower context. Plan C keeps precedence for the configured score/manpower contingencies.
 
@@ -77,41 +79,33 @@ Live Sessions persist the exact playbook JSON submitted at each staff update. Po
 
 ### Objective Post-Match Evidence
 
-A Live Session can be linked to a compatible imported match. Once event data exists for that match, TactiTwin can compare sampled staff observations with transparent full-match event proxies for:
-
-- opponent high press,
-- opponent low/compact block,
-- transition threat after our losses,
-- opponent lateral bias,
-- access to a pre-match weak-side target when that structured target was persisted before/during the match.
+A Live Session can be linked to a compatible imported match. Once event data exists for that match, TactiTwin can compare sampled staff observations with transparent full-match event proxies for opponent high press, low/compact block, transition threat after losses, opponent lateral bias and access to a persisted weak-side target.
 
 The result uses explicit `supported`, `partially-supported`, `not-supported` and `insufficient` states. This layer does **not** replace the live staff record, does not claim event data is tracking, and does not score coaching quality or causality.
 
 ### Time-Aligned Segment Evidence
 
-v1.4 slices the linked event stream into the same intervals reconstructed from the Live Session timeline. A transition at minute `M` follows an explicit boundary rule: the old plan ends before minute `M` and the new plan receives events stamped with minute `M`. The final segment includes its final stored minute.
+v1.4 slices the linked event stream into the same intervals reconstructed from the Live Session timeline. A transition at minute `M` follows an explicit boundary rule: the old plan ends before minute `M` and the new plan receives events stamped with minute `M`.
 
-Each interval includes:
+Each interval keeps Plan A/B/C, mode, active scenario, event count, staff observations and the five event-derived signals with segment-specific sample gates. Events before the first snapshot remain outside the reconstructed plan timeline rather than being silently assigned to Plan A.
 
-- Plan A/B/C, mode and active scenario;
-- from/to minute and snapshot IDs;
-- event count;
-- staff observations recorded in that segment;
-- all five event-derived tactical signals;
-- active-scenario evidence when a Plan B scenario is active;
-- compact team/opponent metrics for auditability.
+### Before/After Transition Deltas
 
-Segment thresholds are different from full-match thresholds. Short intervals use minimum sample gates and per-90 normalization where appropriate, preventing a 15-minute segment from being judged with a 90-minute raw-count requirement.
+v1.5 surrounds every recorded tactical transition with symmetric event windows, currently 10 minutes before and 10 minutes after by default.
 
-Events before the first snapshot are explicitly left outside the reconstructed plan timeline rather than silently assigned to Plan A.
+The comparison includes progression, final-third/box entries, shots/xG, build-up security, opponent pressing/territory and defensive-transition signals. Metrics are normalized per 90 where appropriate, while channel shares use percentage-point changes.
+
+Coverage is explicitly classified as `good`, `caution` or `limited`. Limited windows are not marked comparable. Scenario-specific focus metrics highlight what changed around a transition without claiming that the tactical intervention caused the change.
+
+The Post-Match Review service reuses one linked match summary/event bundle across full-match evidence, segment evidence and transition deltas to avoid repeated reads of the same event set.
 
 ## Method boundaries
 
 The current version deliberately does not claim to model full team block height, compactness, every off-ball pressure, causal coaching impact or tracking-derived player geometry unless the necessary data exists.
 
-v1.3 remains the full-match evidence layer. v1.4 adds minute-aligned evidence for reconstructed A/B/C intervals, but snapshots are still minute-granular and do not prove continuous staff observation between submissions. A transition sequence crossing a segment boundary can be split and undercounted.
+v1.3 is the full-match evidence layer. v1.4 adds minute-aligned evidence for A/B/C intervals. v1.5 adds descriptive symmetric before/after comparisons around recorded transitions.
 
-Neither full-match nor segment evidence proves that a tactical decision caused a positive or negative outcome.
+Before/after deltas remain confounded by score, manpower, substitutions, fatigue, opponent changes and match randomness. They do **not** establish causal coaching impact.
 
 ## Key REST surfaces
 
@@ -125,7 +119,7 @@ Examples include:
 - `GET /wp-json/tactitwin/v1/planning/live-sessions/{session_uuid}/matching-matches`
 - `POST /wp-json/tactitwin/v1/planning/live-sessions/{session_uuid}/link-match`
 
-The existing post-match review response contains both `objective_evidence` and `segment_evidence` when a linked match with events is available.
+The post-match review response contains `objective_evidence`, `segment_evidence` and `transition_window_deltas` when a linked match with events is available.
 
 ## Planned modules
 
@@ -152,6 +146,7 @@ The existing post-match review response contains both `objective_evidence` and `
 - **v1.2 — Descriptive Post-Match Review**
 - **v1.3 — Objective Post-Match Event Evidence**
 - **v1.4 — Time-Aligned Segment Evidence**
+- **v1.5 — Before/After Transition Window Deltas**
 
 ## Repository workflow
 
@@ -159,4 +154,4 @@ Development should flow through feature branches and pull requests into `main`, 
 
 ## Status
 
-Active coach-usable MVP development. The current product spans pre-match tactical analysis, lineup decision support, contingency planning, explicit live staff observation, persistent match-day audit trails, full-match post-match evidence and time-aligned A/B/C segment review.
+Active coach-usable MVP development. The current product spans pre-match tactical analysis, lineup decision support, contingency planning, explicit live staff observation, persistent match-day audit trails, full-match and time-aligned post-match evidence, and descriptive before/after transition review.
