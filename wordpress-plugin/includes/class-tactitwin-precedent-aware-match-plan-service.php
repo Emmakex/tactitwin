@@ -50,7 +50,13 @@ final class TactiTwin_Precedent_Aware_Match_Plan_Service {
                 $library,
                 $language
             );
-            $plan['historical_precedent_catalog'] = TactiTwin_Evidence_Suitability_Ranker::catalog(
+            $catalog = TactiTwin_Evidence_Suitability_Ranker::catalog(
+                $catalog,
+                $language,
+                10
+            );
+            $catalog = $this->attach_context_scenario_relevance( $catalog );
+            $plan['historical_precedent_catalog'] = TactiTwin_Evidence_Ranking_Robustness::catalog(
                 $catalog,
                 $language,
                 $contexts_per_scenario
@@ -89,19 +95,43 @@ final class TactiTwin_Precedent_Aware_Match_Plan_Service {
             'quality_calibration' => true,
             'opponent_context_similarity' => true,
             'evidence_suitability_ranking' => true,
+            'evidence_ranking_robustness' => true,
             'quality_similarity_combined_score' => true,
             'combined_score_scope' => 'historical context ordering within each scenario only',
+            'robustness_scope' => 'diagnostic sensitivity within each scenario only',
             'quality_changes_tactical_scores' => false,
             'quality_changes_recommendations' => false,
             'similarity_changes_tactical_scores' => false,
             'similarity_changes_recommendations' => false,
             'suitability_changes_tactical_scores' => false,
             'suitability_changes_recommendations' => false,
+            'robustness_changes_suitability_scores' => false,
+            'robustness_changes_tactical_scores' => false,
+            'robustness_changes_recommendations' => false,
             'note' => 'es' === $language
-                ? 'v1.12 ordena los contextos históricos dentro de cada escenario por idoneidad de evidencia usando relevancia actual, calidad v1.10 y similitud v1.11. No reordena escenarios ni modifica prioridades, fases, triggers o recomendaciones.'
-                : 'v1.12 orders historical contexts within each scenario by evidence suitability using current relevance, v1.10 quality and v1.11 similarity. It does not reorder scenarios or alter priorities, phases, triggers or recommendations.',
+                ? 'v1.13 analiza la sensibilidad del orden v1.12 dentro de cada escenario con cinco perfiles transparentes de pesos. Mantiene el orden base, no reordena escenarios y no modifica prioridades, fases, triggers o recomendaciones.'
+                : 'v1.13 analyzes the sensitivity of the v1.12 order within each scenario using five transparent weight profiles. It preserves the baseline order, does not reorder scenarios and does not alter priorities, phases, triggers or recommendations.',
         );
 
         return $plan;
+    }
+
+    private function attach_context_scenario_relevance( array $catalog ): array {
+        if ( empty( $catalog['scenarios'] ) || ! is_array( $catalog['scenarios'] ) ) {
+            return $catalog;
+        }
+
+        foreach ( $catalog['scenarios'] as &$scenario ) {
+            $relevance = $scenario['current_scan']['relevance'] ?? null;
+            if ( empty( $scenario['contexts'] ) || ! is_array( $scenario['contexts'] ) ) {
+                continue;
+            }
+            foreach ( $scenario['contexts'] as &$context ) {
+                $context['scenario_relevance'] = is_numeric( $relevance ) ? (float) $relevance : null;
+            }
+            unset( $context );
+        }
+        unset( $scenario );
+        return $catalog;
     }
 }
