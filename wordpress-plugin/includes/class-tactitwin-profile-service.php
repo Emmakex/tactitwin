@@ -153,12 +153,13 @@ final class TactiTwin_Profile_Service {
             $opponent_players
         );
 
-        return TactiTwin_Contingency_Playbook::compose(
+        $playbook = TactiTwin_Contingency_Playbook::compose(
             $components['match_plan'],
             $components['context'],
             $components['scan'],
             $components['language']
         );
+        return $this->attach_scenario_fingerprints( $playbook, $components['scan'] );
     }
 
     public function live_contingency_playbook(
@@ -190,6 +191,7 @@ final class TactiTwin_Profile_Service {
             $components['scan'],
             $components['language']
         );
+        $playbook = $this->attach_scenario_fingerprints( $playbook, $components['scan'] );
 
         return TactiTwin_Live_Observation::apply(
             $playbook,
@@ -244,5 +246,41 @@ final class TactiTwin_Profile_Service {
             'match_plan' => $match_plan,
             'context' => $context,
         );
+    }
+
+    private function attach_scenario_fingerprints( array $playbook, array $scan ): array {
+        $fingerprints = array();
+        foreach ( $scan['subscenarios'] ?? array() as $scenario ) {
+            $scenario_id = (string) ( $scenario['scenario_id'] ?? '' );
+            if ( '' === $scenario_id ) {
+                continue;
+            }
+
+            $fingerprint = array(
+                'risk_score' => round( (float) ( $scenario['risk']['score'] ?? 0.0 ), 1 ),
+                'opportunity_score' => round( (float) ( $scenario['opportunity']['score'] ?? 0.0 ), 1 ),
+            );
+
+            if ( 'exploit-opponent-weak-side' === $scenario_id ) {
+                $target = (string) ( $scenario['opportunity']['channel'] ?? $scenario['evidence']['best_matchup_channel'] ?? '' );
+                if ( in_array( $target, array( 'left', 'central', 'right' ), true ) ) {
+                    $fingerprint['target_channel'] = $target;
+                }
+            }
+            if ( 'opponent-side-bias' === $scenario_id ) {
+                $dominant = (string) ( $scenario['evidence']['opponent_dominant_channel'] ?? $scenario['evidence']['dominant_channel'] ?? '' );
+                if ( in_array( $dominant, array( 'left', 'central', 'right' ), true ) ) {
+                    $fingerprint['opponent_dominant_channel'] = $dominant;
+                }
+            }
+
+            $fingerprints[ $scenario_id ] = $fingerprint;
+        }
+
+        if ( ! isset( $playbook['evidence'] ) || ! is_array( $playbook['evidence'] ) ) {
+            $playbook['evidence'] = array();
+        }
+        $playbook['evidence']['scenario_fingerprints'] = $fingerprints;
+        return $playbook;
     }
 }
