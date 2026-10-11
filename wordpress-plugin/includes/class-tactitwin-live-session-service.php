@@ -12,7 +12,8 @@ final class TactiTwin_Live_Session_Service {
         string $language,
         int $created_by,
         string $source_match_id = '',
-        string $title = ''
+        string $title = '',
+        ?string $staff_brief_snapshot_uuid = null
     ): array {
         global $wpdb;
 
@@ -23,6 +24,7 @@ final class TactiTwin_Live_Session_Service {
         $language = TactiTwin_I18n::normalize_language( $language );
         $table = TactiTwin_DB::table( 'live_sessions' );
         $session_uuid = self::normalize_uuid( $session_uuid );
+        $staff_brief_snapshot_uuid = self::normalize_uuid( $staff_brief_snapshot_uuid );
 
         if ( '' !== $session_uuid ) {
             $existing = $this->session( $session_uuid );
@@ -33,30 +35,35 @@ final class TactiTwin_Live_Session_Service {
                 if ( 'closed' === (string) $existing['status'] ) {
                     throw new RuntimeException( 'The live session is already closed.' );
                 }
+                if ( '' !== $staff_brief_snapshot_uuid && $staff_brief_snapshot_uuid !== (string) ( $existing['staff_brief_snapshot_uuid'] ?? '' ) ) {
+                    throw new RuntimeException( 'A Staff Brief origin cannot be attached or changed after the Live Session has been created.' );
+                }
                 return $existing;
             }
         }
 
         $session_uuid = self::new_uuid();
         $now = current_time( 'mysql', true );
-        $inserted = $wpdb->insert(
-            $table,
-            array(
-                'session_uuid' => $session_uuid,
-                'source_match_id' => sanitize_text_field( $source_match_id ),
-                'team_source_id' => (string) $team_id,
-                'opponent_source_id' => (string) $opponent_id,
-                'language' => $language,
-                'status' => 'active',
-                'title' => sanitize_text_field( $title ),
-                'created_by' => max( 0, $created_by ),
-                'started_at' => $now,
-                'updated_at' => $now,
-                'closed_at' => null,
-            ),
-            array( '%s','%s','%s','%s','%s','%s','%s','%d','%s','%s','%s' )
+        $data = array(
+            'session_uuid' => $session_uuid,
+            'source_match_id' => sanitize_text_field( $source_match_id ),
+            'team_source_id' => (string) $team_id,
+            'opponent_source_id' => (string) $opponent_id,
+            'language' => $language,
+            'status' => 'active',
+            'title' => sanitize_text_field( $title ),
+            'created_by' => max( 0, $created_by ),
+            'started_at' => $now,
+            'updated_at' => $now,
+            'closed_at' => null,
         );
+        $formats = array( '%s','%s','%s','%s','%s','%s','%s','%d','%s','%s','%s' );
+        if ( '' !== $staff_brief_snapshot_uuid ) {
+            $data['staff_brief_snapshot_uuid'] = $staff_brief_snapshot_uuid;
+            $formats[] = '%s';
+        }
 
+        $inserted = $wpdb->insert( $table, $data, $formats );
         if ( false === $inserted ) {
             throw new RuntimeException( 'Could not create the live session.' );
         }
@@ -173,11 +180,30 @@ final class TactiTwin_Live_Session_Service {
         $table = TactiTwin_DB::table( 'live_sessions' );
         return $wpdb->get_row(
             $wpdb->prepare(
-                "SELECT id, session_uuid, source_match_id, team_source_id, opponent_source_id, language, status, title, created_by, started_at, updated_at, closed_at
+                "SELECT id, session_uuid, source_match_id, staff_brief_snapshot_uuid, team_source_id, opponent_source_id, language, status, title, created_by, started_at, updated_at, closed_at
                  FROM {$table}
                  WHERE session_uuid = %s
                  LIMIT 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
                 $session_uuid
+            ),
+            ARRAY_A
+        ) ?: array();
+    }
+
+    public function session_for_staff_brief( string $snapshot_uuid ): array {
+        global $wpdb;
+        $snapshot_uuid = self::normalize_uuid( $snapshot_uuid );
+        if ( '' === $snapshot_uuid ) {
+            return array();
+        }
+        $table = TactiTwin_DB::table( 'live_sessions' );
+        return $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT id, session_uuid, source_match_id, staff_brief_snapshot_uuid, team_source_id, opponent_source_id, language, status, title, created_by, started_at, updated_at, closed_at
+                 FROM {$table}
+                 WHERE staff_brief_snapshot_uuid = %s
+                 LIMIT 1", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+                $snapshot_uuid
             ),
             ARRAY_A
         ) ?: array();
@@ -239,7 +265,7 @@ final class TactiTwin_Live_Session_Service {
         if ( null !== $team_id && $team_id > 0 ) {
             return $wpdb->get_results(
                 $wpdb->prepare(
-                    "SELECT id, session_uuid, source_match_id, team_source_id, opponent_source_id, language, status, title, created_by, started_at, updated_at, closed_at
+                    "SELECT id, session_uuid, source_match_id, staff_brief_snapshot_uuid, team_source_id, opponent_source_id, language, status, title, created_by, started_at, updated_at, closed_at
                      FROM {$table}
                      WHERE team_source_id = %s
                      ORDER BY updated_at DESC, id DESC
@@ -253,7 +279,7 @@ final class TactiTwin_Live_Session_Service {
 
         return $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT id, session_uuid, source_match_id, team_source_id, opponent_source_id, language, status, title, created_by, started_at, updated_at, closed_at
+                "SELECT id, session_uuid, source_match_id, staff_brief_snapshot_uuid, team_source_id, opponent_source_id, language, status, title, created_by, started_at, updated_at, closed_at
                  FROM {$table}
                  ORDER BY updated_at DESC, id DESC
                  LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
