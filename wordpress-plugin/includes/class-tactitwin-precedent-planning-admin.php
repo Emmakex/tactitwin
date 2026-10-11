@@ -91,6 +91,9 @@ final class TactiTwin_Precedent_Planning_Admin {
                 <?php if ( ! empty( $catalog['opponent_similarity_summary']['calibrated_items'] ) ) : ?>
                     <p><strong><?php echo esc_html( self::label( 'similarity_mean', $language ) . ': ' . (string) $catalog['opponent_similarity_summary']['mean_similarity_score'] . '/100' ); ?></strong></p>
                 <?php endif; ?>
+                <?php if ( isset( $catalog['conflict_signal_summary']['scenarios_with_material_signals'] ) ) : ?>
+                    <p><strong><?php echo esc_html( self::label( 'material_scenarios', $language ) . ': ' . (string) $catalog['conflict_signal_summary']['scenarios_with_material_signals'] ); ?></strong></p>
+                <?php endif; ?>
             </div>
             <?php foreach ( $catalog['scenarios'] ?? array() as $scenario ) : ?>
                 <?php if ( empty( $scenario['contexts'] ) ) { continue; } ?>
@@ -163,6 +166,7 @@ final class TactiTwin_Precedent_Planning_Admin {
         $primary = $brief['primary'];
         $alternative = is_array( $brief['alternative'] ?? null ) ? $brief['alternative'] : null;
         $scores = is_array( $primary['scores'] ?? null ) ? $primary['scores'] : array();
+        $conflicts = is_array( $brief['conflict_signals'] ?? null ) ? $brief['conflict_signals'] : array();
         ?>
         <div style="background:#f6f7f7;border-left:4px solid #2271b1;padding:12px 14px;margin:12px 0 16px;">
             <strong><?php echo esc_html( self::label( 'decision_brief', $language ) ); ?></strong>
@@ -174,6 +178,16 @@ final class TactiTwin_Precedent_Planning_Admin {
                     . self::label( 'similarity', $language ) . ' ' . self::score_text( $scores['opponent_similarity'] ?? null )
                 ); ?>
             </p>
+            <?php if ( ! empty( $conflicts ) && 'unavailable' !== (string) ( $conflicts['status'] ?? '' ) ) : ?>
+                <p style="margin:4px 0;"><strong><?php echo esc_html( self::conflict_summary_label( $conflicts, $language ) ); ?></strong></p>
+                <?php if ( ! empty( $conflicts['signals'] ) ) : ?>
+                    <details style="margin:6px 0;"><summary><?php echo esc_html( self::label( 'conflict_details', $language ) ); ?></summary><ul style="margin-left:20px;list-style:disc;">
+                        <?php foreach ( array_slice( $conflicts['signals'], 0, $compact ? 2 : 5 ) as $signal ) : ?>
+                            <li><strong><?php echo esc_html( (string) ( $signal['title'] ?? $signal['id'] ?? '' ) ); ?></strong><?php if ( ! empty( $signal['detail'] ) ) : ?> — <?php echo esc_html( (string) $signal['detail'] ); ?><?php endif; ?></li>
+                        <?php endforeach; ?>
+                    </ul></details>
+                <?php endif; ?>
+            <?php endif; ?>
             <?php if ( ! $compact && ! empty( $primary['why_it_fits'] ) ) : ?>
                 <ul style="margin:6px 0 6px 20px;list-style:disc;">
                     <?php foreach ( array_slice( $primary['why_it_fits'], 0, 4 ) as $reason ) : ?><li><?php echo esc_html( (string) $reason ); ?></li><?php endforeach; ?>
@@ -189,6 +203,18 @@ final class TactiTwin_Precedent_Planning_Admin {
             <?php endif; ?>
         </div>
         <?php
+    }
+
+    private static function conflict_summary_label( array $conflicts, string $language ): string {
+        $count = (int) ( $conflicts['signal_count'] ?? 0 );
+        if ( 0 === $count ) {
+            return self::label( 'conflict_title', $language ) . ': ' . self::label( 'conflict_none', $language );
+        }
+        $severity = (string) ( $conflicts['highest_severity'] ?? 'watch' );
+        $severity_label = 'material' === $severity
+            ? self::label( 'conflict_material', $language )
+            : self::label( 'conflict_watch', $language );
+        return self::label( 'conflict_title', $language ) . ': ' . $severity_label . ' · ' . $count . ' ' . self::label( 'conflict_count', $language );
     }
 
     private static function score_text( $value ): string {
@@ -291,10 +317,11 @@ final class TactiTwin_Precedent_Planning_Admin {
                 'similarity'=>'Opponent similarity','similarity_mean'=>'Mean opponent similarity','top_margin'=>'top margin','rank_range'=>'ranks','top_frequency'=>'top',
                 'context'=>'Historical context','plan'=>'Destination plan','sample'=>'Sample','signals'=>'Median historical deltas',
                 'decision_brief'=>'Evidence decision brief','primary_precedent'=>'Primary precedent','alternative'=>'Alternative','invalidators'=>'What could invalidate this analogy',
+                'conflict_title'=>'Evidence tensions','conflict_none'=>'none configured','conflict_watch'=>'review','conflict_material'=>'material','conflict_count'=>'signals','conflict_details'=>'Evidence tensions to review','material_scenarios'=>'Scenarios with material evidence tensions',
                 'playbook_title'=>'Exact-context precedents for Plan A/B/C',
                 'playbook_intro'=>'Only historical transitions into the same destination plan are shown. Plan B also requires the current live scenario.',
                 'no_items'=>'No exact-context precedents for this plan.',
-                'guardrail_evidence'=>'Suitability orders already matched historical evidence; robustness tests how sensitive that order is; the decision brief only summarizes it. None of these layers changes tactical scores, priorities, active plan or recommendations.',
+                'guardrail_evidence'=>'Suitability orders matched historical evidence; robustness tests order sensitivity; the decision brief summarizes it; conflict signals expose disagreements between existing evidence layers. None creates a conflict score or changes tactical scores, priorities, active plan or recommendations.',
             ),
             'es'=>array(
                 'catalog_title'=>'Precedentes tácticos históricos',
@@ -303,10 +330,11 @@ final class TactiTwin_Precedent_Planning_Admin {
                 'similarity'=>'Similitud del rival','similarity_mean'=>'Similitud media del rival','top_margin'=>'margen del primero','rank_range'=>'rangos','top_frequency'=>'primero',
                 'context'=>'Contexto histórico','plan'=>'Plan de destino','sample'=>'Muestra','signals'=>'Medianas históricas de delta',
                 'decision_brief'=>'Brief de evidencia para decisión','primary_precedent'=>'Precedente principal','alternative'=>'Alternativa','invalidators'=>'Qué podría invalidar esta analogía',
+                'conflict_title'=>'Tensiones de evidencia','conflict_none'=>'ninguna configurada','conflict_watch'=>'revisar','conflict_material'=>'material','conflict_count'=>'señales','conflict_details'=>'Tensiones de evidencia a revisar','material_scenarios'=>'Escenarios con tensiones materiales de evidencia',
                 'playbook_title'=>'Precedentes de contexto exacto para Plan A/B/C',
                 'playbook_intro'=>'Solo se muestran transiciones históricas hacia el mismo plan de destino. Plan B exige además el escenario vivo actual.',
                 'no_items'=>'No hay precedentes de contexto exacto para este plan.',
-                'guardrail_evidence'=>'La idoneidad ordena evidencia histórica ya coincidente; la robustez comprueba cuánto depende ese orden de los pesos; el brief solo lo resume. Ninguna de estas capas cambia scores tácticos, prioridades, plan activo ni recomendaciones.',
+                'guardrail_evidence'=>'La idoneidad ordena evidencia histórica coincidente; la robustez prueba la sensibilidad del orden; el brief lo resume; las señales de conflicto exponen discrepancias entre capas existentes. Ninguna crea un score de conflicto ni cambia scores tácticos, prioridades, plan activo o recomendaciones.',
             ),
         );
         return $labels[ $language ][ $key ] ?? $labels['en'][ $key ] ?? $key;
