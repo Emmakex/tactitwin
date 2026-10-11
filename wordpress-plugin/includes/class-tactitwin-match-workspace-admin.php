@@ -21,6 +21,10 @@ final class TactiTwin_Match_Workspace_Admin {
             array( 'id' => 'live_playbook', 'phase' => 'match_day', 'page' => 'tactitwin-live-playbook', 'context_mode' => 'direct' ),
             array( 'id' => 'live_sessions', 'phase' => 'match_day', 'page' => 'tactitwin-live-sessions', 'context_mode' => 'handoff' ),
             array( 'id' => 'session_review', 'phase' => 'post_match', 'page' => 'tactitwin-session-review', 'context_mode' => 'session' ),
+            array( 'id' => 'evidence_review', 'phase' => 'post_match', 'page' => 'tactitwin-evidence-review', 'context_mode' => 'session' ),
+            array( 'id' => 'segment_evidence', 'phase' => 'post_match', 'page' => 'tactitwin-segment-evidence', 'context_mode' => 'session' ),
+            array( 'id' => 'transition_deltas', 'phase' => 'post_match', 'page' => 'tactitwin-transition-deltas', 'context_mode' => 'session' ),
+            array( 'id' => 'intervention_library', 'phase' => 'post_match', 'page' => 'tactitwin-intervention-library', 'context_mode' => 'history' ),
         );
     }
 
@@ -208,6 +212,9 @@ final class TactiTwin_Match_Workspace_Admin {
         if ( 'session' === $step['context_mode'] ) {
             return $labels['status_session'];
         }
+        if ( 'history' === $step['context_mode'] ) {
+            return $labels['status_history'];
+        }
         if ( $active ) {
             return 'team' === $step['context_mode'] ? $labels['status_team_context'] : $labels['status_context'];
         }
@@ -241,12 +248,13 @@ final class TactiTwin_Match_Workspace_Admin {
             'data_imports' => 'Data & Imports',
             'phase_pre_match' => 'Preparación prepartido',
             'phase_match_day' => 'Match day',
-            'phase_post_match' => 'Post-partido',
+            'phase_post_match' => 'Post-partido y aprendizaje',
             'status_context' => 'Usa el partido activo',
             'status_team_context' => 'Usa el equipo del partido activo',
             'status_manual' => 'Disponible en modo manual',
             'status_handoff' => 'Recibe el partido desde Staff Brief / sesión',
             'status_session' => 'Trabaja sobre la sesión registrada',
+            'status_history' => 'Aprende de sesiones históricas comparables',
             'step_scenario' => 'Scenario Lab',
             'step_match_plan' => 'Match Plan',
             'step_what_if' => 'What-if',
@@ -257,6 +265,10 @@ final class TactiTwin_Match_Workspace_Admin {
             'step_live_playbook' => 'Live Playbook',
             'step_live_sessions' => 'Live Sessions',
             'step_session_review' => 'Session Review',
+            'step_evidence_review' => 'Evidence Review',
+            'step_segment_evidence' => 'Segment Evidence',
+            'step_transition_deltas' => 'Transition Deltas',
+            'step_intervention_library' => 'Intervention Library',
             'desc_scenario' => 'Escaneo táctico y escenarios del rival.',
             'desc_match_plan' => 'Prioridades e instrucciones por fases.',
             'desc_what_if' => 'Minuto, marcador y superioridad/inferioridad.',
@@ -267,6 +279,10 @@ final class TactiTwin_Match_Workspace_Admin {
             'desc_live_playbook' => 'Aplica observaciones reales durante el encuentro.',
             'desc_live_sessions' => 'Continúa la sesión persistente y su timeline.',
             'desc_session_review' => 'Reconstruye lo preparado, observado y activado.',
+            'desc_evidence_review' => 'Contrasta observaciones del staff con evidencia objetiva del partido enlazado.',
+            'desc_segment_evidence' => 'Compara señales de eventos dentro de los intervalos A/B/C registrados.',
+            'desc_transition_deltas' => 'Revisa ventanas antes/después de cada transición táctica.',
+            'desc_intervention_library' => 'Agrupa intervenciones históricas por contexto táctico comparable.',
         );
         $en = array(
             'title' => 'TactiTwin Match Workspace',
@@ -286,12 +302,13 @@ final class TactiTwin_Match_Workspace_Admin {
             'data_imports' => 'Data & Imports',
             'phase_pre_match' => 'Pre-match preparation',
             'phase_match_day' => 'Match day',
-            'phase_post_match' => 'Post-match',
+            'phase_post_match' => 'Post-match and learning',
             'status_context' => 'Uses active match',
             'status_team_context' => 'Uses active-match team',
             'status_manual' => 'Available in manual mode',
             'status_handoff' => 'Receives match from Staff Brief / session',
             'status_session' => 'Works from the recorded session',
+            'status_history' => 'Learns from comparable historical sessions',
             'step_scenario' => 'Scenario Lab',
             'step_match_plan' => 'Match Plan',
             'step_what_if' => 'What-if',
@@ -302,6 +319,10 @@ final class TactiTwin_Match_Workspace_Admin {
             'step_live_playbook' => 'Live Playbook',
             'step_live_sessions' => 'Live Sessions',
             'step_session_review' => 'Session Review',
+            'step_evidence_review' => 'Evidence Review',
+            'step_segment_evidence' => 'Segment Evidence',
+            'step_transition_deltas' => 'Transition Deltas',
+            'step_intervention_library' => 'Intervention Library',
             'desc_scenario' => 'Opponent tactical scan and scenario assessment.',
             'desc_match_plan' => 'Priorities and phase-by-phase instructions.',
             'desc_what_if' => 'Minute, scoreline and manpower hypotheses.',
@@ -312,6 +333,10 @@ final class TactiTwin_Match_Workspace_Admin {
             'desc_live_playbook' => 'Apply staff-confirmed observations during the match.',
             'desc_live_sessions' => 'Continue the persistent session and its timeline.',
             'desc_session_review' => 'Reconstruct what was prepared, observed and activated.',
+            'desc_evidence_review' => 'Compare staff observations with objective evidence from the linked match.',
+            'desc_segment_evidence' => 'Compare event signals inside the recorded A/B/C intervals.',
+            'desc_transition_deltas' => 'Review before/after windows around each tactical transition.',
+            'desc_intervention_library' => 'Group historical interventions by comparable tactical context.',
         );
         return 'es' === TactiTwin_I18n::normalize_language( $language ) ? $es : $en;
     }
