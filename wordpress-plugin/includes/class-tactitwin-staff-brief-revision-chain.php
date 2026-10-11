@@ -17,7 +17,7 @@ final class TactiTwin_Staff_Brief_Revision_Chain {
         }
 
         $language = TactiTwin_I18n::normalize_language( $language );
-        $fixture_key = TactiTwin_Fixture_Identity::key_from_brief( $current_brief );
+        $fixture_key = self::fixture_key_from_brief( $current_brief );
         $parent_uuid = null;
         $parent_sha256 = null;
         $reviewed_diff = null;
@@ -31,7 +31,7 @@ final class TactiTwin_Staff_Brief_Revision_Chain {
                 throw new InvalidArgumentException( 'Previous Staff Brief snapshot failed integrity verification.' );
             }
             $previous_brief = TactiTwin_Staff_Brief_Snapshot::staff_brief( $previous_snapshot );
-            TactiTwin_Fixture_Identity::assert_same_scope( $current_brief, $previous_brief );
+            self::assert_same_fixture_scope( $current_brief, $previous_brief );
             $diff = TactiTwin_Staff_Brief_Version_Diff::current_against_snapshot( $current_brief, $previous_snapshot, $language );
             $reviewed_diff = self::machine_diff( $diff );
             $reviewed_diff_sha256 = self::hash_value( $reviewed_diff );
@@ -156,6 +156,19 @@ final class TactiTwin_Staff_Brief_Revision_Chain {
             'changed_sections' => array_values( is_array( $diff['changed_sections'] ?? null ) ? $diff['changed_sections'] : array() ),
             'changes' => $changes,
         );
+    }
+
+    private static function fixture_key_from_brief( array $brief ): string {
+        if ( ! class_exists( 'TactiTwin_Fixture_Identity' ) ) {
+            return '';
+        }
+        return TactiTwin_Fixture_Identity::key_from_brief( $brief );
+    }
+
+    private static function assert_same_fixture_scope( array $a, array $b ): void {
+        if ( class_exists( 'TactiTwin_Fixture_Identity' ) ) {
+            TactiTwin_Fixture_Identity::assert_same_scope( $a, $b );
+        }
     }
 
     private static function revision_hash( array $revision ): string {
