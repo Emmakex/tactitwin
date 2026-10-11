@@ -5,7 +5,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 final class TactiTwin_High_Press_Scenario {
-    public static function evaluate( array $team_profile, array $opponent_profile ): array {
+    public static function evaluate( array $team_profile, array $opponent_profile, string $language = 'en' ): array {
+        $language         = TactiTwin_I18n::normalize_language( $language );
         $team_matches     = (int) ( $team_profile['coverage']['matches'] ?? 0 );
         $opponent_matches = (int) ( $opponent_profile['coverage']['matches'] ?? 0 );
         $coverage_matches = min( $team_matches, $opponent_matches );
@@ -45,7 +46,8 @@ final class TactiTwin_High_Press_Scenario {
 
         return array(
             'scenario_id' => 'build-up-vs-high-press',
-            'scenario_name' => 'Build-up vs High Press',
+            'scenario_name' => TactiTwin_I18n::t( 'scenario.high_press.name', array(), $language ),
+            'language' => $language,
             'team' => array(
                 'source_id' => (string) ( $team_profile['team_source_id'] ?? '' ),
                 'name'      => (string) ( $team_profile['team_name'] ?? '' ),
@@ -60,17 +62,19 @@ final class TactiTwin_High_Press_Scenario {
                 'effective_matches'=> $coverage_matches,
                 'status'           => $coverage_status,
                 'warning'          => 'low' === $coverage_status
-                    ? 'Low evidence coverage: import at least three event-data matches per team before using this scenario for match planning.'
+                    ? TactiTwin_I18n::t( 'coverage.low', array(), $language )
                     : null,
             ),
             'risk' => array(
                 'score'      => $risk_score,
                 'level'      => self::level( $risk_score ),
+                'level_label'=> TactiTwin_I18n::level_label( self::level( $risk_score ), $language ),
                 'components' => $components,
             ),
             'opportunity' => array(
                 'score'      => $opportunity_score,
                 'level'      => self::level( $opportunity_score ),
+                'level_label'=> TactiTwin_I18n::level_label( self::level( $opportunity_score ), $language ),
                 'components' => $opportunity_components,
             ),
             'evidence' => array(
@@ -80,40 +84,41 @@ final class TactiTwin_High_Press_Scenario {
                 'opponent_high_pressures_per_match'  => (float) ( $opp_avg['high_pressures_per_match'] ?? 0 ),
                 'opponent_high_recoveries_per_match' => (float) ( $opp_avg['high_recoveries_per_match'] ?? 0 ),
             ),
-            'recommendations' => self::recommendations( $risk_score, $opportunity_score, $team_profile ),
+            'recommendations' => self::recommendations( $risk_score, $opportunity_score, $team_profile, $language ),
             'method' => array(
                 'type' => 'explainable-weighted-heuristic',
-                'note' => 'Scores are decision-support heuristics from normalized event data, not probabilities of match outcomes.',
+                'note' => TactiTwin_I18n::t( 'scenario.high_press.method', array(), $language ),
             ),
         );
     }
 
-    private static function recommendations( float $risk, float $opportunity, array $team_profile ): array {
-        $channels = $team_profile['final_third_channel_share'] ?? array();
-        $best_channel = self::best_channel( $channels );
+    private static function recommendations( float $risk, float $opportunity, array $team_profile, string $language ): array {
+        $channels          = $team_profile['final_third_channel_share'] ?? array();
+        $best_channel      = self::best_channel( $channels );
+        $best_channel_name = TactiTwin_I18n::channel_label( $best_channel, $language );
 
         if ( $risk >= 65.0 ) {
             return array(
-                'primary' => 'Use a mixed build-up: invite the first press selectively, then bypass the first line with a prepared third-man or direct outlet instead of repeating short circulation in the first third.',
-                'secondary' => 'Protect the next action after the escape with a stable rest-defence structure; own-third turnover exposure is material in this matchup.',
-                'attacking_outlet' => 'After escaping pressure, prioritize progression through the ' . $best_channel . ' channel, currently the strongest final-third route in the imported sample.',
+                'primary' => TactiTwin_I18n::t( 'high_press.high.primary', array(), $language ),
+                'secondary' => TactiTwin_I18n::t( 'high_press.high.secondary', array(), $language ),
+                'attacking_outlet' => TactiTwin_I18n::t( 'high_press.high.outlet', array( $best_channel_name ), $language ),
             );
         }
 
         if ( $risk >= 45.0 ) {
             return array(
-                'primary' => 'Keep short build-up available, but predefine an escape trigger when the opponent commits its first pressing line.',
-                'secondary' => 'Create an extra support angle around the first receiver and avoid receiving with a closed body orientation near the touchline.',
-                'attacking_outlet' => 'Use the ' . $best_channel . ' channel as the preferred next progression route once the press is broken.',
+                'primary' => TactiTwin_I18n::t( 'high_press.medium.primary', array(), $language ),
+                'secondary' => TactiTwin_I18n::t( 'high_press.medium.secondary', array(), $language ),
+                'attacking_outlet' => TactiTwin_I18n::t( 'high_press.medium.outlet', array( $best_channel_name ), $language ),
             );
         }
 
         return array(
-            'primary' => 'The imported sample supports controlled short build-up; preserve width and at least one vertical outlet so the opponent cannot lock the first line.',
+            'primary' => TactiTwin_I18n::t( 'high_press.low.primary', array(), $language ),
             'secondary' => $opportunity >= 60.0
-                ? 'The current build-up profile shows useful escape capacity, so the priority is maintaining spacing rather than increasing directness.'
-                : 'Keep a direct fallback available because the escape rate is not yet strong enough to rely exclusively on short progression.',
-            'attacking_outlet' => 'The ' . $best_channel . ' channel is the strongest observed final-third route in the current sample.',
+                ? TactiTwin_I18n::t( 'high_press.low.secondary_good', array(), $language )
+                : TactiTwin_I18n::t( 'high_press.low.secondary_caution', array(), $language ),
+            'attacking_outlet' => TactiTwin_I18n::t( 'high_press.low.outlet', array( $best_channel_name ), $language ),
         );
     }
 
