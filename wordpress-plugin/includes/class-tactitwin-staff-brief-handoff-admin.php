@@ -20,10 +20,22 @@ final class TactiTwin_Staff_Brief_Handoff_Admin {
                 throw new RuntimeException( 'Generate a Staff Brief before approving it.' );
             }
             $sample = max( 1, min( 10, (int) ( $result['form']['sample'] ?? 5 ) ) );
-            $snapshot = ( new TactiTwin_Staff_Brief_Snapshot_Service() )->approve( $result['brief'], $user, $sample );
+            $review_context = array(
+                'enforce_review_guard' => true,
+                'expected_parent_snapshot_uuid' => sanitize_text_field( wp_unslash( (string) ( $_POST['expected_parent_snapshot_uuid'] ?? '' ) ) ),
+                'expected_diff_sha256' => sanitize_text_field( wp_unslash( (string) ( $_POST['expected_diff_sha256'] ?? '' ) ) ),
+                'acknowledged_changes' => ! empty( $_POST['acknowledged_changes'] ),
+                'approval_note' => sanitize_textarea_field( wp_unslash( (string) ( $_POST['approval_note'] ?? '' ) ) ),
+            );
+            $snapshot = ( new TactiTwin_Staff_Brief_Snapshot_Service() )->approve( $result['brief'], $user, $sample, $review_context );
+            $revision = TactiTwin_Staff_Brief_Snapshot::revision( $snapshot );
             $result['approved_snapshot_uuid'] = (string) $snapshot['snapshot_uuid'];
             $result['approved_snapshot_sha256'] = (string) $snapshot['content_sha256'];
             $result['approved_at'] = (string) $snapshot['approved_at'];
+            $result['approved_revision_number'] = (int) ( $revision['revision_number'] ?? 0 );
+            $result['approved_parent_snapshot_uuid'] = (string) ( $revision['parent_snapshot_uuid'] ?? '' );
+            $result['approved_reviewed_change_count'] = (int) ( $revision['reviewed_change_count'] ?? 0 );
+            $result['approved_revision_sha256'] = (string) ( $revision['revision_sha256'] ?? '' );
             set_transient( 'tactitwin_staff_brief_' . $user, $result, 30 * MINUTE_IN_SECONDS );
         } catch ( Throwable $e ) {
             set_transient( 'tactitwin_staff_brief_handoff_error_' . $user, $e->getMessage(), MINUTE_IN_SECONDS );
@@ -83,6 +95,8 @@ final class TactiTwin_Staff_Brief_Handoff_Admin {
         $language = is_array( $result ) ? TactiTwin_I18n::normalize_language( (string) ( $result['language'] ?? 'en' ) ) : TactiTwin_I18n::current_language();
         $recent = array();
         $diff = array();
+        $approval_review = array();
+        $current_snapshot = array();
         try {
             $service = new TactiTwin_Staff_Brief_Snapshot_Service();
             $recent = $service->recent( 5 );
@@ -91,15 +105,20 @@ final class TactiTwin_Staff_Brief_Handoff_Admin {
                 $team_id = (string) ( $brief['team']['source_id'] ?? '' );
                 $opponent_id = (string) ( $brief['opponent']['source_id'] ?? '' );
                 $current_uuid = (string) ( $result['approved_snapshot_uuid'] ?? '' );
-                $previous = $service->latest_for_matchup( $team_id, $opponent_id, $current_uuid );
-                if ( ! empty( $previous ) ) {
-                    if ( '' !== $current_uuid ) {
-                        $current_snapshot = $service->snapshot( $current_uuid );
-                        if ( ! empty( $current_snapshot ) ) {
-                            $diff = TactiTwin_Staff_Brief_Version_Diff::snapshots( $previous, $current_snapshot, $language );
+                if ( '' !== $current_uuid ) {
+                    $previous = $service->latest_for_matchup( $team_id, $opponent_id, $current_uuid );
+                    $current_snapshot = $service->snapshot( $current_uuid );
+                    if ( ! empty( $previous ) && ! empty( $current_snapshot ) ) {
+                        $diff = TactiTwin_Staff_Brief_Version_Diff::snapshots( $previous, $current_snapshot, $language );
+                    }
+                } else {
+                    $approval_review = $service->approval_review( $brief, $language );
+                    $parent_uuid = (string) ( $approval_review['parent_snapshot_uuid'] ?? '' );
+                    if ( '' !== $parent_uuid ) {
+                        $previous = $service->snapshot( $parent_uuid );
+                        if ( ! empty( $previous ) ) {
+                            $diff = TactiTwin_Staff_Brief_Version_Diff::current_against_snapshot( $brief, $previous, $language );
                         }
-                    } else {
-                        $diff = TactiTwin_Staff_Brief_Version_Diff::current_against_snapshot( $brief, $previous, $language );
                     }
                 }
             }
@@ -119,14 +138,30 @@ final class TactiTwin_Staff_Brief_Handoff_Admin {
                 <div style="background:#fff;border:1px solid #dcdcde;padding:16px;margin:12px 0;">
                     <?php if ( empty( $result['approved_snapshot_uuid'] ) ) : ?>
                         <p><strong><?php echo esc_html( self::text( 'ready', $language ) ); ?></strong></p>
+                        <?php if ( ! empty( $approval_review ) ) : ?>
+                            <p class="description"><?php echo esc_html( sprintf( self::text( 'revision_target', $language ), (int) ( $approval_review['revision_number'] ?? 1 ) ) ); ?></p>
+                        <?php endif; ?>
                         <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
                             <input type="hidden" name="action" value="tactitwin_approve_staff_brief">
+                            <input type="hidden" name="expected_parent_snapshot_uuid" value="<?php echo esc_attr( (string) ( $approval_review['parent_snapshot_uuid'] ?? '' ) ); ?>">
+                            <input type="hidden" name="expected_diff_sha256" value="<?php echo esc_attr( (string) ( $approval_review['reviewed_diff_sha256'] ?? '' ) ); ?>">
                             <?php wp_nonce_field( 'tactitwin_approve_staff_brief' ); ?>
+                            <?php if ( ! empty( $approval_review['requires_change_acknowledgement'] ) ) : ?>
+                                <p><label><input type="checkbox" name="acknowledged_changes" value="1" required> <strong><?php echo esc_html( self::text( 'ack_changes', $language ) ); ?></strong></label></p>
+                            <?php endif; ?>
+                            <p><label for="tactitwin-approval-note"><strong><?php echo esc_html( self::text( 'approval_note', $language ) ); ?></strong></label><br>
+                            <textarea id="tactitwin-approval-note" name="approval_note" rows="3" maxlength="1000" style="width:100%;max-width:760px;"></textarea><br><span class="description"><?php echo esc_html( self::text( 'approval_note_help', $language ) ); ?></span></p>
                             <?php submit_button( self::text( 'approve', $language ), 'primary', 'submit', false ); ?>
                         </form>
                     <?php else : ?>
-                        <p><strong><?php echo esc_html( self::text( 'approved', $language ) ); ?></strong></p>
+                        <?php
+                        $revision = ! empty( $current_snapshot ) ? TactiTwin_Staff_Brief_Snapshot::revision( $current_snapshot ) : array();
+                        $revision_number = (int) ( $revision['revision_number'] ?? $result['approved_revision_number'] ?? 0 );
+                        $parent_uuid = (string) ( $revision['parent_snapshot_uuid'] ?? $result['approved_parent_snapshot_uuid'] ?? '' );
+                        ?>
+                        <p><strong><?php echo esc_html( self::text( 'approved', $language ) ); ?></strong><?php if ( $revision_number > 0 ) : ?> · <?php echo esc_html( sprintf( self::text( 'revision_label', $language ), $revision_number ) ); ?><?php endif; ?></p>
                         <p><code><?php echo esc_html( (string) $result['approved_snapshot_uuid'] ); ?></code><br><small>SHA-256: <?php echo esc_html( (string) ( $result['approved_snapshot_sha256'] ?? '' ) ); ?></small></p>
+                        <?php if ( '' !== $parent_uuid ) : ?><p class="description"><?php echo esc_html( self::text( 'parent', $language ) ); ?> <code><?php echo esc_html( $parent_uuid ); ?></code></p><?php endif; ?>
                         <?php self::handoff_form( (string) $result['approved_snapshot_uuid'], self::text( 'start', $language ) ); ?>
                     <?php endif; ?>
                 </div>
@@ -195,12 +230,14 @@ final class TactiTwin_Staff_Brief_Handoff_Admin {
                 return;
             }
             $snapshot = ( new TactiTwin_Staff_Brief_Snapshot_Service() )->snapshot( $origin_uuid );
+            $revision = TactiTwin_Staff_Brief_Snapshot::revision( $snapshot );
             $language = TactiTwin_I18n::normalize_language( (string) ( $session['language'] ?? 'en' ) );
             ?>
             <div class="wrap" style="max-width:1100px;margin-top:22px;"><div style="background:#fff;border-left:4px solid #00a32a;padding:14px 16px;">
                 <strong><?php echo esc_html( self::text( 'origin', $language ) ); ?></strong>
-                <p style="margin-bottom:4px;"><code><?php echo esc_html( $origin_uuid ); ?></code></p>
+                <p style="margin-bottom:4px;"><code><?php echo esc_html( $origin_uuid ); ?></code><?php if ( ! empty( $revision['revision_number'] ) ) : ?> · <?php echo esc_html( sprintf( self::text( 'revision_label', $language ), (int) $revision['revision_number'] ) ); ?><?php endif; ?></p>
                 <small>SHA-256: <?php echo esc_html( (string) ( $snapshot['content_sha256'] ?? '' ) ); ?> · <?php echo esc_html( self::text( ! empty( $snapshot['storage']['integrity_valid'] ) ? 'integrity_ok' : 'integrity_bad', $language ) ); ?></small>
+                <?php if ( ! empty( $revision['parent_snapshot_uuid'] ) ) : ?><p class="description"><?php echo esc_html( self::text( 'parent', $language ) ); ?> <code><?php echo esc_html( (string) $revision['parent_snapshot_uuid'] ); ?></code></p><?php endif; ?>
             </div></div>
             <?php
         } catch ( Throwable $e ) {
@@ -230,10 +267,12 @@ final class TactiTwin_Staff_Brief_Handoff_Admin {
             'en' => array(
                 'title'=>'Approved Staff Brief handoff','intro'=>'Approve the exact pre-match brief to freeze its Match Plan and Playbook. A Live Session started from it keeps that immutable origin.','ready'=>'This generated brief is ready for explicit staff approval.','approve'=>'Approve and freeze this brief','approved'=>'Approved immutable snapshot','start'=>'Start / open Live Session','recent'=>'Recent approved briefs','snapshot'=>'Snapshot','matchup'=>'Matchup','approved_at'=>'Approved at','origin'=>'Live Session origin: approved Staff Brief','integrity_ok'=>'integrity verified','integrity_bad'=>'integrity failed',
                 'diff_title'=>'Changes since last approval','diff_none'=>'No tracked Staff Brief field changed since the previous approved version.','diff_count'=>'%d tracked changes detected before approval.','compared_with'=>'Compared with','diff_details'=>'Technical before/after details','diff_guardrail'=>'This is a structural audit diff only. It does not score the changes, recalculate tactics, reorder evidence or activate a plan.','plan'=>'Plan','fields'=>'fields',
+                'revision_target'=>'This approval will create revision #%d.','revision_label'=>'Revision #%d','parent'=>'Previous approved snapshot:','ack_changes'=>'I reviewed the displayed changes and approve this revised brief.','approval_note'=>'Approval note (optional)','approval_note_help'=>'Stored inside the immutable revision record. It does not change any tactical calculation.',
             ),
             'es' => array(
                 'title'=>'Handoff del Staff Brief aprobado','intro'=>'Aprueba el brief prepartido exacto para congelar su Match Plan y Playbook. Una Live Session iniciada desde él conserva ese origen inmutable.','ready'=>'Este brief generado está listo para aprobación explícita del staff.','approve'=>'Aprobar y congelar este brief','approved'=>'Snapshot inmutable aprobado','start'=>'Iniciar / abrir Live Session','recent'=>'Briefs aprobados recientes','snapshot'=>'Snapshot','matchup'=>'Partido','approved_at'=>'Aprobado','origin'=>'Origen de Live Session: Staff Brief aprobado','integrity_ok'=>'integridad verificada','integrity_bad'=>'fallo de integridad',
                 'diff_title'=>'Cambios desde la última aprobación','diff_none'=>'No cambió ningún campo controlado del Staff Brief desde la versión aprobada anterior.','diff_count'=>'Se detectaron %d cambios controlados antes de aprobar.','compared_with'=>'Comparado con','diff_details'=>'Detalle técnico antes/después','diff_guardrail'=>'Es solo un diff estructural de auditoría. No puntúa los cambios, no recalcula táctica, no reordena evidencia ni activa un plan.','plan'=>'Plan','fields'=>'campos',
+                'revision_target'=>'Esta aprobación creará la revisión #%d.','revision_label'=>'Revisión #%d','parent'=>'Snapshot aprobado anterior:','ack_changes'=>'He revisado los cambios mostrados y apruebo este brief revisado.','approval_note'=>'Nota de aprobación (opcional)','approval_note_help'=>'Se guarda dentro del registro inmutable de revisión. No cambia ningún cálculo táctico.',
             ),
         );
         return $catalog[ $language ][ $key ] ?? $catalog['en'][ $key ] ?? $key;
