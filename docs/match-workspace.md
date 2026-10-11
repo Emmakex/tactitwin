@@ -55,11 +55,17 @@ The Match Workspace presents the current product flow in deterministic order.
 8. Live Playbook
 9. Live Sessions
 
-### Post-match
+### Post-match and learning
 
 10. Session Review
+11. Evidence Review
+12. Segment Evidence
+13. Transition Deltas
+14. Intervention Library
 
-Live Sessions are intentionally marked as downstream of the approved Staff Brief/session handoff. Session Review remains session-derived. v1.23 does not silently rebind either surface to whatever match happens to be active in the workspace.
+Live Sessions are intentionally marked as downstream of the approved Staff Brief/session handoff rather than being rebound to the current workspace selection.
+
+Session Review, Evidence Review, Segment Evidence and Transition Deltas remain session-derived. Intervention Library remains a cross-session historical layer. v1.23 therefore exposes the full workflow without replacing the immutable session/snapshot provenance used after kickoff.
 
 ## Context expansion
 
@@ -118,9 +124,10 @@ v1.23:
 - canonical team/opponent propagation;
 - Lineup, Personnel and Unit actions are included in shared context;
 - only Staff Brief receives the canonical `target_match_id` handoff field;
-- deterministic Match Workspace stage order;
+- deterministic end-to-end Match Workspace stage order;
 - unique destination pages;
 - Unit Lab remains team-context rather than opponent-dependent;
 - Live Sessions remain handoff-derived;
-- Session Review remains session-derived;
+- Session Review, Evidence Review, Segment Evidence and Transition Deltas remain session-derived;
+- Intervention Library remains historical/cross-session;
 - opposite team perspectives remain different fixture scopes.
