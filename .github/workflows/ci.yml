@@ -30,5 +30,10 @@ jobs:
           find wordpress-plugin tests -type f -name '*.php' -print0 \
             | xargs -0 -n1 php -l
 
-      - name: StatsBomb normalizer regression test
-        run: php tests/test-statsbomb-normalizer.php
+      - name: Regression tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          for test_file in tests/test-*.php; do
+            php "$test_file"
+          done
