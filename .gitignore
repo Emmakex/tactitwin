@@ -1,0 +1,9 @@
+.DS_Store
+.idea/
+.vscode/
+vendor/
+node_modules/
+*.log
+.env
+.env.*
+wordpress-plugin/.phpunit.result.cache
