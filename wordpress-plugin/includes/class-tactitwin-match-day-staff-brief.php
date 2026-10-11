@@ -52,10 +52,16 @@ final class TactiTwin_Match_Day_Staff_Brief {
                 'material_signals' => $material_tensions,
                 'note' => self::text( empty( $material_tensions ) ? 'watch_clear' : 'watch_review', $language ),
             ),
+            'handoff_source' => array(
+                'match_plan' => $match_plan,
+                'playbook' => $playbook,
+            ),
             'method' => array(
                 'type' => 'presentation-only-match-day-staff-brief',
                 'sources' => array( 'precedent-aware-match-plan', 'precedent-aware-contingency-playbook' ),
                 'pre_match_reference_context' => true,
+                'handoff_source_included' => true,
+                'handoff_source_recalculated_on_approval' => false,
                 'creates_new_tactical_score' => false,
                 'reorders_priorities' => false,
                 'changes_plan_activation' => false,
@@ -156,12 +162,12 @@ final class TactiTwin_Match_Day_Staff_Brief {
     private static function text( string $key, string $language ): string {
         $catalog = array(
             'en' => array(
-                'method' => 'v1.16 is a presentation-only match-day staff surface. It composes already calculated Match Plan, Plan A/B/C, evidence brief and conflict-signal outputs without creating new tactical scores, changing priority order or activating a plan.',
+                'method' => 'v1.17 keeps v1.16 presentation behavior and additionally carries the exact Match Plan and Contingency Playbook source payload required for explicit approval and immutable Live Session handoff. It still creates no tactical score and changes no recommendation or plan activation.',
                 'watch_clear' => 'No material evidence tension is present in the visible Plan A/B/C briefs.',
                 'watch_review' => 'One or more material evidence tensions should be reviewed by staff before relying on the historical analogy.',
             ),
             'es' => array(
-                'method' => 'v1.16 es una superficie de presentación para el staff en día de partido. Compone resultados ya calculados del Match Plan, Plan A/B/C, brief de evidencia y señales de conflicto sin crear scores tácticos nuevos, cambiar prioridades ni activar planes.',
+                'method' => 'v1.17 mantiene la presentación de v1.16 y además conserva el payload exacto de Match Plan y Contingency Playbook necesario para aprobación explícita y handoff inmutable a Live Session. Sigue sin crear scores tácticos ni cambiar recomendaciones o activación de planes.',
                 'watch_clear' => 'No hay tensiones materiales de evidencia en los briefs visibles de Plan A/B/C.',
                 'watch_review' => 'Hay una o más tensiones materiales de evidencia que el staff debería revisar antes de apoyarse en la analogía histórica.',
             ),
