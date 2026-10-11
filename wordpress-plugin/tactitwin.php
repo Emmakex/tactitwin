@@ -100,6 +100,7 @@ require_once TACTITWIN_DIR . 'includes/class-tactitwin-objective-evidence-admin.
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-segment-evidence-admin.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-transition-delta-admin.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-intervention-library-admin.php';
+require_once TACTITWIN_DIR . 'includes/class-tactitwin-precedent-planning-admin.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-personnel-admin.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-unit-admin.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-lineup-admin.php';
@@ -133,6 +134,7 @@ TactiTwin_Objective_Evidence_Admin::register();
 TactiTwin_Segment_Evidence_Admin::register();
 TactiTwin_Transition_Delta_Admin::register();
 TactiTwin_Intervention_Library_Admin::register();
+TactiTwin_Precedent_Planning_Admin::register();
 TactiTwin_Personnel_Admin::register();
 TactiTwin_Unit_Admin::register();
 TactiTwin_Lineup_Admin::register();
