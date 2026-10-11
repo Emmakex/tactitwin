@@ -6,7 +6,7 @@ TactiTwin is a football tactical analysis and match-scenario simulation project.
 
 ## Product direction
 
-`public/open data -> normalized football model -> tactical analysis -> scenario engine -> lineup decisions -> match plan -> Plan A/B/C -> live staff observations -> persistent match-day timeline -> post-match review -> full-match evidence -> time-aligned segment evidence -> before/after transition deltas -> context-aware transition review -> context-matched intervention library`
+`public/open data -> normalized football model -> tactical analysis -> scenario engine -> lineup decisions -> match plan -> Plan A/B/C -> live staff observations -> persistent match-day timeline -> post-match review -> full-match evidence -> time-aligned segment evidence -> before/after transition deltas -> context-aware transition review -> context-matched intervention library -> historical precedent retrieval`
 
 TactiTwin is not intended to predict a final score with certainty. It is a decision-support system for exploring tactical risks, opportunities and "what if" scenarios before, during and after a match while retaining evidence, confidence and method boundaries.
 
@@ -31,6 +31,7 @@ The first phase focuses on:
 - Symmetric before/after event windows around recorded tactical transitions.
 - Context annotation for goals, manpower and substitutions around those transitions.
 - Cross-match intervention memory grouped by comparable tactical context.
+- Exact-context historical precedent retrieval inside What-if preparation.
 - WordPress administration UI and REST endpoints.
 
 Initial data-source targets:
@@ -64,10 +65,11 @@ The current WordPress plugin supports:
 - Transition Deltas comparing matched event windows immediately before and after each recorded tactical transition.
 - Context-aware transition review that flags goals, dismissals, recorded manpower/score changes and substitutions that may confound a before/after comparison.
 - Intervention Library grouping repeated interventions across closed linked sessions when scenario, destination plan/mode, minute band, score state and manpower state match.
+- Historical Tactical Precedents inside What-if, using exact minute-band + score-state + manpower-state matching and current matchup relevance.
 
 ### Match-day decision workflow
 
-`Match Plan -> Contingency Playbook -> Live Playbook -> Live Session -> Session Review -> Evidence Review -> Segment Evidence -> Transition Deltas -> Context-Aware Review -> Intervention Library`
+`Match Plan -> Contingency Playbook -> Live Playbook -> Live Session -> Session Review -> Evidence Review -> Segment Evidence -> Transition Deltas -> Context-Aware Review -> Intervention Library -> Historical Precedents`
 
 Plan B is never activated merely because historical data predicted an opponent behaviour. A supported manual observation from the staff can activate Plan B when Plan C is not already required by score/manpower context. Plan C keeps precedence for configured score/manpower contingencies.
 
@@ -83,9 +85,11 @@ Live Sessions persist the exact playbook JSON submitted at each staff update. Po
 
 **v1.6 — Context-Aware Transition Review** preserves v1.5 deltas unchanged and adds context from Live Session snapshots plus normalized match events. It detects score/manpower changes, goals, substitutions and direct-red/second-yellow incidents. Interpretability is exposed as `cleaner`, `confounded`, `highly-confounded` or `insufficient`.
 
-**v1.7 — Context-Matched Intervention Library** creates a descriptive tactical memory across multiple closed linked sessions. Historical interventions are grouped only when scenario, destination plan/mode, minute band, score state and manpower state match. The primary aggregate uses cleaner v1.6 cases when at least two are available; substitution-confounded cases are only used as an explicitly labelled fallback. Highly-confounded and insufficient cases remain visible but are excluded from aggregate medians.
+**v1.7 — Context-Matched Intervention Library** creates a descriptive tactical memory across multiple closed linked sessions. Historical interventions are grouped only when scenario, destination plan/mode, minute band, score state and manpower state match. Cleaner cases form the primary aggregate when the sample is sufficient; highly-confounded and insufficient cases remain visible but are excluded from aggregate medians.
 
-For every scenario-focus metric, the library exposes observation count, median/mean delta, range, up/down counts and descriptive directional consistency. Sample maturity (`insufficient`, `emerging`, `developing`, `established`) describes volume only and is not statistical certainty.
+**v1.8 — Historical Precedent Retrieval** connects that intervention memory to the What-if Lab. It retrieves only groups that exactly match the current minute band, score state and manpower state, joins them to scenarios in the current Full Matchup Scan and orders them using current scenario relevance plus historical sample maturity/volume/cleaner share. There is no fuzzy fallback.
+
+The What-if result now includes `historical_precedents`, while existing risk/opportunity scores, recommendations and decision triggers remain unchanged. v1.8 explicitly reports `reweights_tactical_scores=false` and `changes_recommendations=false`.
 
 No layer currently claims causal coaching impact.
 
@@ -93,7 +97,7 @@ No layer currently claims causal coaching impact.
 
 The current version deliberately does not claim to model full team block height, compactness, every off-ball pressure, causal coaching impact or tracking-derived player geometry unless the necessary data exists.
 
-Even context-matched intervention groups can differ in opponent quality, fatigue, exact scoreline, injuries, substitutions, opponent instructions and unobserved off-ball structure. Coach interventions are selected rather than randomized, so repeated historical association is useful tactical evidence but not a treatment-effect estimate.
+Even exact-context historical precedents can differ in opponent quality, fatigue, exact scoreline, player identities, injuries, substitutions, tournament incentives and unobserved tactical structure. Coach interventions are selected rather than randomized, so repeated historical association is useful tactical evidence but not a treatment-effect estimate.
 
 ## Key REST surfaces
 
@@ -108,7 +112,7 @@ Examples include:
 - `POST /wp-json/tactitwin/v1/planning/live-sessions/{session_uuid}/link-match`
 - `GET /wp-json/tactitwin/v1/planning/intervention-library?team_id={team_id}`
 
-The post-match review response contains `objective_evidence`, `segment_evidence`, `transition_window_deltas` and `context_aware_transition_review` when a linked match with events is available. The intervention-library endpoint aggregates those per-match context-aware transitions across historical sessions.
+The What-if route accepts optional `precedent_limit` (1–10, default 5) and returns `historical_precedents` as a separate explanatory evidence layer.
 
 ## Product milestones
 
@@ -127,6 +131,7 @@ The post-match review response contains `objective_evidence`, `segment_evidence`
 - **v1.5 — Before/After Transition Window Deltas**
 - **v1.6 — Context-Aware Transition Review**
 - **v1.7 — Context-Matched Intervention Library**
+- **v1.8 — Historical Precedent Retrieval**
 
 ## Repository workflow
 
@@ -134,4 +139,4 @@ Development flows through feature branches and pull requests into `main`, with a
 
 ## Status
 
-Active coach-usable MVP development. The current product spans pre-match tactical analysis, lineup decision support, contingency planning, explicit live staff observation, persistent match-day audit trails, full-match and time-aligned post-match evidence, before/after transition review, explicit context/confounder annotations and a cross-match intervention memory.
+Active coach-usable MVP development. The current product spans pre-match tactical analysis, lineup decision support, contingency planning, explicit live staff observation, persistent match-day audit trails, full-match and time-aligned post-match evidence, before/after transition review, explicit context/confounder annotations, a cross-match intervention memory and exact-context precedent retrieval inside What-if preparation.
