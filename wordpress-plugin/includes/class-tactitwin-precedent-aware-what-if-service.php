@@ -40,12 +40,18 @@ final class TactiTwin_Precedent_Aware_What_If_Service {
                 '',
                 100
             );
-            $result['historical_precedents'] = TactiTwin_Historical_Precedent_Retrieval::retrieve(
+            $precedents = TactiTwin_Historical_Precedent_Retrieval::retrieve(
                 $library,
                 $scan,
                 $result['hypothesis'] ?? array(),
                 $language,
                 $precedent_limit
+            );
+            $result['historical_precedents'] = TactiTwin_Precedent_Quality_Attachment::retrieval(
+                $precedents,
+                $library,
+                (string) $opponent_id,
+                $language
             );
         } catch ( Throwable $e ) {
             $result['historical_precedents'] = array(
@@ -72,9 +78,12 @@ final class TactiTwin_Precedent_Aware_What_If_Service {
             'attached' => true,
             'reweights_tactical_scores' => false,
             'changes_recommendations' => false,
+            'quality_calibration' => true,
+            'quality_changes_tactical_scores' => false,
+            'quality_changes_recommendations' => false,
             'note' => 'es' === $language
-                ? 'Los precedentes v1.8 se adjuntan como evidencia histórica explicativa. No modifican los scores ni las recomendaciones del What-if.'
-                : 'v1.8 precedents are attached as explanatory historical evidence. They do not change What-if scores or recommendations.',
+                ? 'Los precedentes v1.8 se adjuntan como evidencia histórica explicativa y v1.10 calibra su calidad de forma independiente. Ninguna de las dos capas modifica los scores ni las recomendaciones del What-if.'
+                : 'v1.8 precedents are attached as explanatory historical evidence and v1.10 independently calibrates their quality. Neither layer changes What-if scores or recommendations.',
         );
 
         return $result;
