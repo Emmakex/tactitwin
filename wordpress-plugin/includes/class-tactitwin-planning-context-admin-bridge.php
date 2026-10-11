@@ -24,7 +24,21 @@ final class TactiTwin_Planning_Context_Admin_Bridge {
             var legacy = document.getElementById('tt-target-match');
             if (!shared || !legacy) return;
 
-            legacy.value = '0';
+            var option = shared.options[shared.selectedIndex];
+            var activeMatchRow = option && option.value ? (option.dataset.matchRow || '') : '';
+            if (activeMatchRow) {
+                var exists = Array.prototype.some.call(legacy.options, function (item) {
+                    return item.value === String(activeMatchRow);
+                });
+                if (exists) {
+                    legacy.disabled = false;
+                    legacy.value = String(activeMatchRow);
+                    legacy.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            } else {
+                legacy.value = '0';
+            }
+
             legacy.disabled = true;
             var row = legacy.closest('tr');
             if (row) row.style.display = 'none';
