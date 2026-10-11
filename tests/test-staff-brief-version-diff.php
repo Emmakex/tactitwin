@@ -115,7 +115,7 @@ tt_v118_assert( in_array( 'material-evidence-watch-changed', $ids, true ), 'mate
 tt_v118_assert( 'generated-current' === $current_diff['to']['kind'], 'pre-approval comparison identifies generated current version' );
 
 $s3 = tt_v118_snapshot( $changed_brief, '33333333-3333-4333-8333-333333333333', '2026-10-11 13:20:00' );
-approved_diff = TactiTwin_Staff_Brief_Version_Diff::snapshots( $s1, $s3, 'en' );
+$approved_diff = TactiTwin_Staff_Brief_Version_Diff::snapshots( $s1, $s3, 'en' );
 tt_v118_assert( tt_v118_ids( $current_diff ) === tt_v118_ids( $approved_diff ), 'pre-approval and approved-to-approved comparisons expose the same change IDs' );
 
 $diff_es = TactiTwin_Staff_Brief_Version_Diff::current_against_snapshot( $changed_brief, $s1, 'es' );
