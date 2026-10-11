@@ -84,22 +84,28 @@ final class TactiTwin_Precedent_Planning_Admin {
             <h2><?php echo esc_html( self::label( 'catalog_title', $language ) ); ?></h2>
             <p><?php echo esc_html( self::label( 'catalog_intro', $language ) ); ?></p>
             <?php foreach ( $catalog['summary'] ?? array() as $summary ) : ?><p><strong><?php echo esc_html( (string) $summary ); ?></strong></p><?php endforeach; ?>
-            <?php if ( ! empty( $catalog['quality_summary']['calibrated_items'] ) ) : ?>
-                <p><strong><?php echo esc_html( self::label( 'quality_mean', $language ) . ': ' . (string) $catalog['quality_summary']['mean_quality_score'] . '/100' ); ?></strong></p>
-            <?php endif; ?>
+            <div style="display:flex;gap:24px;flex-wrap:wrap;">
+                <?php if ( ! empty( $catalog['quality_summary']['calibrated_items'] ) ) : ?>
+                    <p><strong><?php echo esc_html( self::label( 'quality_mean', $language ) . ': ' . (string) $catalog['quality_summary']['mean_quality_score'] . '/100' ); ?></strong></p>
+                <?php endif; ?>
+                <?php if ( ! empty( $catalog['opponent_similarity_summary']['calibrated_items'] ) ) : ?>
+                    <p><strong><?php echo esc_html( self::label( 'similarity_mean', $language ) . ': ' . (string) $catalog['opponent_similarity_summary']['mean_similarity_score'] . '/100' ); ?></strong></p>
+                <?php endif; ?>
+            </div>
             <?php foreach ( $catalog['scenarios'] ?? array() as $scenario ) : ?>
                 <?php if ( empty( $scenario['contexts'] ) ) { continue; } ?>
                 <div style="background:#fff;border:1px solid #dcdcde;padding:16px 18px;margin:14px 0;">
                     <h3 style="margin-top:0;"><?php echo esc_html( (string) ( $scenario['scenario_name'] ?? '' ) ); ?></h3>
                     <p><?php echo esc_html( self::label( 'current_relevance', $language ) . ': ' . (string) ( $scenario['current_scan']['relevance'] ?? 0 ) . '/100' ); ?></p>
                     <table class="widefat striped">
-                        <thead><tr><th><?php echo esc_html( self::label( 'context', $language ) ); ?></th><th><?php echo esc_html( self::label( 'plan', $language ) ); ?></th><th><?php echo esc_html( self::label( 'quality', $language ) ); ?></th><th><?php echo esc_html( self::label( 'sample', $language ) ); ?></th><th><?php echo esc_html( self::label( 'signals', $language ) ); ?></th></tr></thead>
+                        <thead><tr><th><?php echo esc_html( self::label( 'context', $language ) ); ?></th><th><?php echo esc_html( self::label( 'plan', $language ) ); ?></th><th><?php echo esc_html( self::label( 'quality', $language ) ); ?></th><th><?php echo esc_html( self::label( 'similarity', $language ) ); ?></th><th><?php echo esc_html( self::label( 'sample', $language ) ); ?></th><th><?php echo esc_html( self::label( 'signals', $language ) ); ?></th></tr></thead>
                         <tbody>
                             <?php foreach ( $scenario['contexts'] as $context ) : ?>
                                 <tr>
                                     <td><?php echo esc_html( self::context_label( $context, $language ) ); ?></td>
                                     <td><?php echo esc_html( (string) ( $context['to_plan'] ?? '-' ) . ' / ' . (string) ( $context['to_mode'] ?? '-' ) ); ?></td>
                                     <td><?php echo esc_html( self::quality_label( $context['evidence_quality'] ?? array() ) ); ?></td>
+                                    <td><?php echo esc_html( self::similarity_label( $context['opponent_context_similarity'] ?? array() ) ); ?></td>
                                     <td><?php echo esc_html( (string) ( $context['sample']['maturity_label'] ?? $context['sample']['maturity'] ?? '-' ) . ' · ' . (string) ( $context['sample']['cleaner'] ?? 0 ) . '/' . (string) ( $context['sample']['context_comparable'] ?? 0 ) ); ?></td>
                                     <td><?php echo esc_html( self::metric_summary( $context['metrics'] ?? array() ) ); ?></td>
                                 </tr>
@@ -108,7 +114,7 @@ final class TactiTwin_Precedent_Planning_Admin {
                     </table>
                 </div>
             <?php endforeach; ?>
-            <p class="description"><?php echo esc_html( self::label( 'guardrail_quality', $language ) ); ?></p>
+            <p class="description"><?php echo esc_html( self::label( 'guardrail_evidence', $language ) ); ?></p>
         </div>
         <?php
     }
@@ -131,14 +137,14 @@ final class TactiTwin_Precedent_Planning_Admin {
                         <?php else : ?>
                             <ul style="list-style:disc;padding-left:20px;">
                                 <?php foreach ( $precedents['items'] as $item ) : ?>
-                                    <li style="margin-bottom:8px;"><strong><?php echo esc_html( (string) ( $item['scenario_name'] ?? $item['scenario_id'] ?? '' ) ); ?></strong> — <?php echo esc_html( self::quality_label( $item['evidence_quality'] ?? array() ) . ' · ' . self::metric_summary( $item['metrics'] ?? array() ) ); ?></li>
+                                    <li style="margin-bottom:8px;"><strong><?php echo esc_html( (string) ( $item['scenario_name'] ?? $item['scenario_id'] ?? '' ) ); ?></strong> — <?php echo esc_html( self::quality_label( $item['evidence_quality'] ?? array() ) . ' · ' . self::similarity_label( $item['opponent_context_similarity'] ?? array() ) . ' · ' . self::metric_summary( $item['metrics'] ?? array() ) ); ?></li>
                                 <?php endforeach; ?>
                             </ul>
                         <?php endif; ?>
                     </div>
                 <?php endforeach; ?>
             </div>
-            <p class="description"><?php echo esc_html( self::label( 'guardrail_quality', $language ) ); ?></p>
+            <p class="description"><?php echo esc_html( self::label( 'guardrail_evidence', $language ) ); ?></p>
         </div>
         <?php
     }
@@ -172,6 +178,13 @@ final class TactiTwin_Precedent_Planning_Admin {
         return (string) ( $quality['quality_label'] ?? $quality['quality_level'] ?? '' ) . ' · ' . (string) $quality['quality_score'] . '/100';
     }
 
+    private static function similarity_label( array $similarity ): string {
+        if ( ! isset( $similarity['similarity_score'] ) || ! is_numeric( $similarity['similarity_score'] ) ) {
+            return '—';
+        }
+        return (string) ( $similarity['similarity_label'] ?? $similarity['similarity_level'] ?? '' ) . ' · ' . (string) $similarity['similarity_score'] . '/100';
+    }
+
     private static function state_label( string $state, string $language ): string {
         $labels = array(
             'en'=>array('leading'=>'leading','drawing'=>'drawing','trailing'=>'trailing'),
@@ -198,21 +211,23 @@ final class TactiTwin_Precedent_Planning_Admin {
                 'catalog_title'=>'Historical tactical precedents',
                 'catalog_intro'=>'Pre-match evidence from prior interventions is kept separated by minute band, score state and manpower state.',
                 'current_relevance'=>'Current scenario relevance','quality'=>'Evidence quality','quality_mean'=>'Mean evidence quality',
+                'similarity'=>'Opponent similarity','similarity_mean'=>'Mean opponent similarity',
                 'context'=>'Historical context','plan'=>'Destination plan','sample'=>'Sample','signals'=>'Median historical deltas',
                 'playbook_title'=>'Exact-context precedents for Plan A/B/C',
                 'playbook_intro'=>'Only historical transitions into the same destination plan are shown. Plan B also requires the current live scenario.',
                 'no_items'=>'No exact-context precedents for this plan.',
-                'guardrail_quality'=>'Evidence quality calibrates trust in historical precedent only. It does not change tactical scores, priorities, active plan or recommendations.',
+                'guardrail_evidence'=>'Evidence quality and opponent similarity are separate context signals. They do not change tactical scores, priorities, active plan or recommendations.',
             ),
             'es'=>array(
                 'catalog_title'=>'Precedentes tácticos históricos',
                 'catalog_intro'=>'La evidencia prepartido de intervenciones anteriores se mantiene separada por franja temporal, marcador y estado numérico.',
                 'current_relevance'=>'Relevancia actual del escenario','quality'=>'Calidad de evidencia','quality_mean'=>'Calidad media de evidencia',
+                'similarity'=>'Similitud del rival','similarity_mean'=>'Similitud media del rival',
                 'context'=>'Contexto histórico','plan'=>'Plan de destino','sample'=>'Muestra','signals'=>'Medianas históricas de delta',
                 'playbook_title'=>'Precedentes de contexto exacto para Plan A/B/C',
                 'playbook_intro'=>'Solo se muestran transiciones históricas hacia el mismo plan de destino. Plan B exige además el escenario vivo actual.',
                 'no_items'=>'No hay precedentes de contexto exacto para este plan.',
-                'guardrail_quality'=>'La calidad de evidencia calibra únicamente la confianza en el precedente histórico. No cambia scores tácticos, prioridades, plan activo ni recomendaciones.',
+                'guardrail_evidence'=>'La calidad de evidencia y la similitud del rival son señales de contexto separadas. No cambian scores tácticos, prioridades, plan activo ni recomendaciones.',
             ),
         );
         return $labels[ $language ][ $key ] ?? $labels['en'][ $key ] ?? $key;
