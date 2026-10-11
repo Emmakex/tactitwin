@@ -31,7 +31,7 @@ final class TactiTwin_Workspace_Admin {
         $team_id     = absint( $_POST['team_id'] ?? 0 );
         $opponent_id = absint( $_POST['opponent_id'] ?? 0 );
         $sample      = max( 1, min( 10, absint( $_POST['sample'] ?? 5 ) ) );
-        $scenario_id = sanitize_key( $_POST['scenario_id'] ?? 'build-up-vs-high-press' );
+        $scenario_id = sanitize_key( $_POST['scenario_id'] ?? 'full-matchup-scan' );
 
         try {
             $preparation = ( new TactiTwin_Data_Preparation_Service() )->prepare_matchup( $team_id, $opponent_id, $sample );
@@ -44,8 +44,11 @@ final class TactiTwin_Workspace_Admin {
                 case 'defensive-transition-after-loss':
                     $scenario = $service->defensive_transition_after_loss( $team_id, $opponent_id, $sample );
                     break;
-                default:
+                case 'build-up-vs-high-press':
                     $scenario = $service->build_up_vs_high_press( $team_id, $opponent_id, $sample );
+                    break;
+                default:
+                    $scenario = $service->full_matchup_scan( $team_id, $opponent_id, $sample );
                     break;
             }
 
@@ -104,6 +107,7 @@ final class TactiTwin_Workspace_Admin {
                             <th><label for="tt-scenario"><?php echo esc_html__( 'Scenario', 'tactitwin' ); ?></label></th>
                             <td>
                                 <select name="scenario_id" id="tt-scenario">
+                                    <option value="full-matchup-scan"><?php echo esc_html__( 'Full Matchup Scan', 'tactitwin' ); ?></option>
                                     <option value="build-up-vs-high-press"><?php echo esc_html__( 'Build-up vs High Press', 'tactitwin' ); ?></option>
                                     <option value="opponent-side-bias"><?php echo esc_html__( 'Opponent Side Bias', 'tactitwin' ); ?></option>
                                     <option value="defensive-transition-after-loss"><?php echo esc_html__( 'Defensive Transition After Loss', 'tactitwin' ); ?></option>
@@ -165,6 +169,10 @@ final class TactiTwin_Workspace_Admin {
             <?php endforeach; ?>
         </ol>
 
+        <?php if ( 'full-matchup-scan' === ( $scenario['scenario_id'] ?? '' ) ) : ?>
+            <?php self::render_scan_ranking( $scenario ); ?>
+        <?php endif; ?>
+
         <details style="max-width:900px;margin-top:18px;">
             <summary><strong><?php echo esc_html__( 'Technical evidence', 'tactitwin' ); ?></strong></summary>
             <pre style="white-space:pre-wrap;background:#fff;padding:16px;border:1px solid #dcdcde;"><?php echo esc_html( wp_json_encode( $scenario, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) ); ?></pre>
@@ -172,9 +180,39 @@ final class TactiTwin_Workspace_Admin {
         <?php
     }
 
+    private static function render_scan_ranking( array $scenario ): void {
+        $ranking = $scenario['evidence']['scenario_ranking'] ?? array();
+        if ( empty( $ranking ) ) {
+            return;
+        }
+        ?>
+        <h3><?php echo esc_html__( 'Scenario priority ranking', 'tactitwin' ); ?></h3>
+        <table class="widefat striped" style="max-width:900px;">
+            <thead><tr><th>#</th><th><?php echo esc_html__( 'Scenario', 'tactitwin' ); ?></th><th><?php echo esc_html__( 'Risk', 'tactitwin' ); ?></th><th><?php echo esc_html__( 'Opportunity', 'tactitwin' ); ?></th></tr></thead>
+            <tbody>
+            <?php foreach ( $ranking as $row ) : ?>
+                <tr>
+                    <td><?php echo esc_html( (string) $row['rank'] ); ?></td>
+                    <td><?php echo esc_html( $row['scenario_name'] ); ?></td>
+                    <td><?php echo esc_html( $row['risk_score'] . '/100 ' . strtoupper( $row['risk_level'] ) ); ?></td>
+                    <td><?php echo esc_html( $row['opportunity_score'] . '/100' ); ?></td>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+        <?php
+    }
+
     private static function scenario_cards( array $scenario ): void {
-        $evidence = $scenario['evidence'] ?? array();
+        $evidence    = $scenario['evidence'] ?? array();
         $scenario_id = (string) ( $scenario['scenario_id'] ?? '' );
+
+        if ( 'full-matchup-scan' === $scenario_id ) {
+            self::card( __( 'Top priority', 'tactitwin' ), (string) ( $scenario['risk']['top_scenario'] ?? '-' ), __( 'highest risk scenario', 'tactitwin' ) );
+            self::card( __( 'Average risk', 'tactitwin' ), ( $scenario['risk']['average_score'] ?? 0 ) . '/100', '' );
+            self::card( __( 'Scenarios scanned', 'tactitwin' ), (string) ( $evidence['scenario_count'] ?? 0 ), '' );
+            return;
+        }
 
         if ( 'opponent-side-bias' === $scenario_id ) {
             self::card( __( 'Opponent dominant channel', 'tactitwin' ), ucfirst( (string) ( $evidence['opponent_dominant_channel'] ?? '-' ) ), '' );
