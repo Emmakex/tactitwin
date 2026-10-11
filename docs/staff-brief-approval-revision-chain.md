@@ -15,6 +15,7 @@ The revision contains:
 - sequential revision number for the exact team/opponent pairing;
 - parent approved snapshot UUID;
 - parent content SHA-256;
+- approved/current snapshot UUID binding;
 - approved/current snapshot content SHA-256 binding;
 - reviewed structural change count;
 - stable reviewed change IDs;
@@ -41,7 +42,7 @@ On `TactiTwin > Staff Brief`:
 7. approval recomputes the latest parent and diff before persisting;
 8. the expected parent UUID and expected diff digest submitted by the page must still match;
 9. snapshot content is frozen and its `content_sha256` is calculated;
-10. the revision is bound to that exact content digest and re-sealed;
+10. the revision is bound to the exact new `snapshot_uuid` plus `content_sha256` and re-sealed;
 11. only then is the new immutable snapshot written.
 
 ## Stale-review protection
@@ -62,29 +63,35 @@ This is optimistic concurrency for the approval chain; it is not a distributed l
 Two linked SHA-256 checks exist for v1.19 snapshots:
 
 1. `content_sha256` — existing v1.17 digest for the exact frozen Staff Brief + Match Plan + Contingency Playbook source;
-2. `revision_sha256` — digest for the revision lineage, reviewed diff, approval note and `approved_content_sha256` binding.
+2. `revision_sha256` — digest for the revision lineage, reviewed diff, approval note, `approved_snapshot_uuid` and `approved_content_sha256` binding.
 
-The revision's `approved_content_sha256` must equal the snapshot's `content_sha256`. Therefore an independently valid revision record cannot be swapped into a different valid Staff Brief snapshot without failing snapshot verification.
+The revision's `approved_snapshot_uuid` must equal the containing snapshot UUID and its `approved_content_sha256` must equal the snapshot's `content_sha256`. Therefore an independently valid revision record cannot be swapped into a different Staff Brief approval, even when two approvals contain byte-for-byte identical tactical content and therefore share the same content digest.
 
-`TactiTwin_Staff_Brief_Snapshot::verify()` validates the content digest, revision digest and content binding whenever revision metadata is present. A legacy snapshot without revision metadata continues to validate using its original content digest only.
+`TactiTwin_Staff_Brief_Snapshot::verify()` validates the content digest, revision digest, snapshot-identity binding and content binding whenever revision metadata is present. A legacy snapshot without revision metadata continues to validate using its original content digest only.
 
 The reviewed diff also has its own `reviewed_diff_sha256`, calculated from machine data only. Localized labels are excluded, so ES/EN produce the same digest for the same structural changes.
 
+### v1.19.1 integrity hardening
+
+The v1.19.1 hotfix adds the explicit snapshot-UUID binding described above. The original v1.19 content binding correctly prevented cross-content revision swaps; v1.19.1 also prevents swaps between two different approval snapshots whose frozen tactical content is identical.
+
+No tactical behavior changes in v1.19.1.
+
 ## Persistence
 
-v1.19 requires **no database schema change**.
+v1.19 and v1.19.1 require **no database schema change**.
 
 The revision chain is stored inside the existing `snapshot_json` field of `tactitwin_staff_brief_snapshots`. Parent lookup continues to use the append-only snapshot store already introduced by v1.17.
 
 ## Language rule
 
-Revision number, parent UUID, change IDs, before/after values and digests are language invariant.
+Revision number, parent UUID, approved snapshot UUID, change IDs, before/after values and digests are language invariant.
 
 English/Spanish changes presentation text only.
 
 ## Guardrails
 
-v1.19:
+v1.19/v1.19.1:
 
 - creates no tactical or change-severity score;
 - does not decide whether a change is good or bad;
