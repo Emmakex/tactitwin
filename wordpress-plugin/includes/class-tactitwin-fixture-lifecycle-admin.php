@@ -114,7 +114,7 @@ final class TactiTwin_Fixture_Lifecycle_Admin {
             'approved'=>'Approved','draft_temporary'=>'Draft generated','not_generated'=>'Not generated',
             'not_started'=>'Not started','active'=>'Active','closed'=>'Closed',
             'waiting_for_session'=>'Waiting for session','unlinked'=>'Session not linked','fixture_mismatch'=>'Different fixture linked','available'=>'Evidence available','linked_pending_events'=>'Linked; events pending',
-            'available_on_demand'=>'Available on demand','waiting_for_closed_session'=>'Waiting for session close','waiting_for_evidence'=>'Waiting for evidence',
+            'available_on_demand'=>'Available on demand','signed_off'=>'Signed off','waiting_for_closed_session'=>'Waiting for session close','waiting_for_evidence'=>'Waiting for evidence',
         );
         $es = array(
             'selected'=>'Seleccionado','not_selected'=>'Sin seleccionar','ready'=>'Listos','partial'=>'Datos parciales','missing'=>'Faltan datos','not_available'=>'No disponible',
@@ -122,7 +122,7 @@ final class TactiTwin_Fixture_Lifecycle_Admin {
             'approved'=>'Aprobado','draft_temporary'=>'Borrador generado','not_generated'=>'Sin generar',
             'not_started'=>'Sin iniciar','active'=>'Activa','closed'=>'Cerrada',
             'waiting_for_session'=>'Esperando sesión','unlinked'=>'Sesión sin enlazar','fixture_mismatch'=>'Enlazado a otro fixture','available'=>'Evidencia disponible','linked_pending_events'=>'Enlazado; faltan eventos',
-            'available_on_demand'=>'Disponible bajo demanda','waiting_for_closed_session'=>'Esperando cierre de sesión','waiting_for_evidence'=>'Esperando evidencia',
+            'available_on_demand'=>'Disponible bajo demanda','signed_off'=>'Revisión cerrada y firmada','waiting_for_closed_session'=>'Esperando cierre de sesión','waiting_for_evidence'=>'Esperando evidencia',
         );
         $map = 'es' === $language ? $es : $en;
         return $map[ $state ] ?? $state;
@@ -130,10 +130,10 @@ final class TactiTwin_Fixture_Lifecycle_Admin {
 
     private static function provenance_label( string $source, string $language ): string {
         $en = array(
-            'user_meta'=>'Persistent per-user context','database'=>'Persistent database record','approved_snapshot'=>'Immutable approved snapshot','transient'=>'Temporary transient','transient_matchup'=>'Temporary, matchup-scoped only','database_derived'=>'Derived from persistent records','computed_on_demand'=>'Calculated when opened','none'=>'No artifact',
+            'user_meta'=>'Persistent per-user context','database'=>'Persistent database record','approved_snapshot'=>'Immutable approved snapshot','transient'=>'Temporary transient','transient_matchup'=>'Temporary, matchup-scoped only','database_derived'=>'Derived from persistent records','computed_on_demand'=>'Calculated when opened','post_match_review_snapshot'=>'Immutable signed review snapshot','none'=>'No artifact',
         );
         $es = array(
-            'user_meta'=>'Contexto persistente por usuario','database'=>'Registro persistente en BD','approved_snapshot'=>'Snapshot aprobado e inmutable','transient'=>'Transient temporal','transient_matchup'=>'Temporal, solo por matchup','database_derived'=>'Derivado de registros persistentes','computed_on_demand'=>'Se calcula al abrir','none'=>'Sin artefacto',
+            'user_meta'=>'Contexto persistente por usuario','database'=>'Registro persistente en BD','approved_snapshot'=>'Snapshot aprobado e inmutable','transient'=>'Transient temporal','transient_matchup'=>'Temporal, solo por matchup','database_derived'=>'Derivado de registros persistentes','computed_on_demand'=>'Se calcula al abrir','post_match_review_snapshot'=>'Snapshot inmutable de revisión firmada','none'=>'Sin artefacto',
         );
         $map = 'es' === $language ? $es : $en;
         return $map[ $source ] ?? $source;
@@ -153,14 +153,10 @@ final class TactiTwin_Fixture_Lifecycle_Admin {
                 : 'A temporary Match Plan exists for this matchup, but it is not fixture-bound until Staff Brief approval.';
         }
         if ( 'staff_brief' === $id && ! empty( $stage['snapshot_uuid'] ) ) {
-            return 'es' === $language
-                ? 'Snapshot: ' . substr( (string) $stage['snapshot_uuid'], 0, 12 ) . '…'
-                : 'Snapshot: ' . substr( (string) $stage['snapshot_uuid'], 0, 12 ) . '…';
+            return 'Snapshot: ' . substr( (string) $stage['snapshot_uuid'], 0, 12 ) . '…';
         }
         if ( 'live_session' === $id && ! empty( $stage['session_uuid'] ) ) {
-            return 'es' === $language
-                ? 'Sesión: ' . substr( (string) $stage['session_uuid'], 0, 12 ) . '…'
-                : 'Session: ' . substr( (string) $stage['session_uuid'], 0, 12 ) . '…';
+            return ( 'es' === $language ? 'Sesión: ' : 'Session: ' ) . substr( (string) $stage['session_uuid'], 0, 12 ) . '…';
         }
         if ( 'evidence' === $id && 'available' === (string) ( $stage['state'] ?? '' ) ) {
             return 'es' === $language
@@ -168,9 +164,14 @@ final class TactiTwin_Fixture_Lifecycle_Admin {
                 : sprintf( '%d normalized events available for comparison.', (int) ( $stage['event_count'] ?? 0 ) );
         }
         if ( 'post_match_review' === $id ) {
+            if ( 'signed_off' === (string) ( $stage['state'] ?? '' ) ) {
+                return 'es' === $language
+                    ? sprintf( 'Revisión #%d firmada y congelada el %s. UUID %s…', (int) ( $stage['revision_number'] ?? 0 ), (string) ( $stage['signed_at'] ?? '' ), substr( (string) ( $stage['review_uuid'] ?? '' ), 0, 10 ) )
+                    : sprintf( 'Review #%d signed off and frozen at %s. UUID %s…', (int) ( $stage['revision_number'] ?? 0 ), (string) ( $stage['signed_at'] ?? '' ), substr( (string) ( $stage['review_uuid'] ?? '' ), 0, 10 ) );
+            }
             return 'es' === $language
-                ? 'La revisión se reconstruye desde la sesión y la evidencia; v1.24 no finge una marca de “completado” que no se persiste.'
-                : 'Review is reconstructed from session and evidence; v1.24 does not invent a persisted “completed” flag.';
+                ? 'La revisión se reconstruye desde la sesión y la evidencia hasta que el staff la firma y queda congelada.'
+                : 'Review is reconstructed from session and evidence until staff signs it off into an immutable snapshot.';
         }
         return 'es' === $language
             ? 'Estado derivado del artefacto indicado, sin porcentaje de preparación.'
@@ -179,10 +180,10 @@ final class TactiTwin_Fixture_Lifecycle_Admin {
 
     private static function next_action_label( string $id, string $language ): string {
         $en = array(
-            'select_match'=>'Select the match to prepare','prepare_data'=>'Import or complete planning data','generate_match_plan'=>'Generate the Match Plan','generate_staff_brief'=>'Generate the fixture-bound Staff Brief','approve_staff_brief'=>'Review and approve the Staff Brief','handoff_live_session'=>'Hand off the approved brief to a Live Session','continue_live_session'=>'Continue the active Live Session','prepare_evidence'=>'Link/import match evidence','review_match'=>'Open the post-match review',
+            'select_match'=>'Select the match to prepare','prepare_data'=>'Import or complete planning data','generate_match_plan'=>'Generate the Match Plan','generate_staff_brief'=>'Generate the fixture-bound Staff Brief','approve_staff_brief'=>'Review and approve the Staff Brief','handoff_live_session'=>'Hand off the approved brief to a Live Session','continue_live_session'=>'Continue the active Live Session','prepare_evidence'=>'Link/import match evidence','review_match'=>'Open the post-match review','learn_from_match'=>'Use the closed review in the historical learning layer',
         );
         $es = array(
-            'select_match'=>'Seleccionar el partido a preparar','prepare_data'=>'Importar o completar datos de planificación','generate_match_plan'=>'Generar el Match Plan','generate_staff_brief'=>'Generar el Staff Brief ligado al fixture','approve_staff_brief'=>'Revisar y aprobar el Staff Brief','handoff_live_session'=>'Pasar el brief aprobado a una Live Session','continue_live_session'=>'Continuar la Live Session activa','prepare_evidence'=>'Enlazar/importar evidencia del partido','review_match'=>'Abrir la revisión post-partido',
+            'select_match'=>'Seleccionar el partido a preparar','prepare_data'=>'Importar o completar datos de planificación','generate_match_plan'=>'Generar el Match Plan','generate_staff_brief'=>'Generar el Staff Brief ligado al fixture','approve_staff_brief'=>'Revisar y aprobar el Staff Brief','handoff_live_session'=>'Pasar el brief aprobado a una Live Session','continue_live_session'=>'Continuar la Live Session activa','prepare_evidence'=>'Enlazar/importar evidencia del partido','review_match'=>'Abrir y cerrar la revisión post-partido','learn_from_match'=>'Usar la revisión cerrada en la capa de aprendizaje histórico',
         );
         $map = 'es' === $language ? $es : $en;
         return $map[ $id ] ?? $id;
@@ -198,11 +199,11 @@ final class TactiTwin_Fixture_Lifecycle_Admin {
     private static function labels( string $language ): array {
         if ( 'es' === $language ) {
             return array(
-                'title'=>'Estado real del partido','intro'=>'TactiTwin deriva cada hito de artefactos existentes. Persistente, temporal y calculado bajo demanda se muestran por separado; no existe un score artificial de preparación.','phase'=>'Fase actual','source'=>'Fuente','next_step'=>'Siguiente paso recomendado','continue'=>'Continuar','no_score'=>'La recomendación de siguiente paso es determinista; no suma ni pondera estos estados.',
+                'title'=>'Estado real del partido','intro'=>'TactiTwin deriva cada hito de artefactos existentes. Persistente, temporal, calculado bajo demanda y revisión firmada se muestran por separado; no existe un score artificial de preparación.','phase'=>'Fase actual','source'=>'Fuente','next_step'=>'Siguiente paso recomendado','continue'=>'Continuar','no_score'=>'La recomendación de siguiente paso es determinista; no suma ni pondera estos estados.',
             );
         }
         return array(
-            'title'=>'Real fixture status','intro'=>'TactiTwin derives each milestone from existing artifacts. Persistent, temporary and on-demand states are shown separately; there is no artificial preparation score.','phase'=>'Current phase','source'=>'Source','next_step'=>'Recommended next step','continue'=>'Continue','no_score'=>'The next-step recommendation is deterministic; these states are not summed or weighted.',
+            'title'=>'Real fixture status','intro'=>'TactiTwin derives each milestone from existing artifacts. Persistent, temporary, on-demand and signed-review states are shown separately; there is no artificial preparation score.','phase'=>'Current phase','source'=>'Source','next_step'=>'Recommended next step','continue'=>'Continue','no_score'=>'The next-step recommendation is deterministic; these states are not summed or weighted.',
         );
     }
 }
