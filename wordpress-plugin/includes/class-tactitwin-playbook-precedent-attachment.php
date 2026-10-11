@@ -4,6 +4,8 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+require_once __DIR__ . '/class-tactitwin-evidence-decision-brief.php';
+
 final class TactiTwin_Playbook_Precedent_Attachment {
     public static function attach( array $playbook, array $precedents, string $language = 'en', int $per_plan_limit = 3 ): array {
         $language = TactiTwin_I18n::normalize_language( $language );
