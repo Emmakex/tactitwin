@@ -17,6 +17,7 @@ final class TactiTwin_Staff_Brief_Revision_Chain {
         }
 
         $language = TactiTwin_I18n::normalize_language( $language );
+        $fixture_key = TactiTwin_Fixture_Identity::key_from_brief( $current_brief );
         $parent_uuid = null;
         $parent_sha256 = null;
         $reviewed_diff = null;
@@ -29,6 +30,8 @@ final class TactiTwin_Staff_Brief_Revision_Chain {
             if ( ! TactiTwin_Staff_Brief_Snapshot::verify( $previous_snapshot ) ) {
                 throw new InvalidArgumentException( 'Previous Staff Brief snapshot failed integrity verification.' );
             }
+            $previous_brief = TactiTwin_Staff_Brief_Snapshot::staff_brief( $previous_snapshot );
+            TactiTwin_Fixture_Identity::assert_same_scope( $current_brief, $previous_brief );
             $diff = TactiTwin_Staff_Brief_Version_Diff::current_against_snapshot( $current_brief, $previous_snapshot, $language );
             $reviewed_diff = self::machine_diff( $diff );
             $reviewed_diff_sha256 = self::hash_value( $reviewed_diff );
@@ -47,6 +50,7 @@ final class TactiTwin_Staff_Brief_Revision_Chain {
         $revision = array(
             'chain_id' => 'staff-brief-approval-revision',
             'revision_number' => max( 1, $revision_number ),
+            'fixture_key' => $fixture_key,
             'parent_snapshot_uuid' => $parent_uuid,
             'parent_content_sha256' => $parent_sha256,
             'approved_snapshot_uuid' => null,
@@ -61,6 +65,7 @@ final class TactiTwin_Staff_Brief_Revision_Chain {
             'method' => array(
                 'type' => 'immutable-staff-brief-approval-revision-chain',
                 'reads_existing_version_diff' => true,
+                'fixture_scoped_lineage' => '' !== $fixture_key,
                 'bound_to_approved_snapshot_identity' => true,
                 'bound_to_approved_snapshot_content' => true,
                 'creates_change_score' => false,
@@ -102,6 +107,10 @@ final class TactiTwin_Staff_Brief_Revision_Chain {
         if ( 64 !== strlen( $expected ) ) {
             return false;
         }
+        $fixture_key = strtolower( trim( (string) ( $revision['fixture_key'] ?? '' ) ) );
+        if ( '' !== $fixture_key && 1 !== preg_match( '/^[a-f0-9]{64}$/', $fixture_key ) ) {
+            return false;
+        }
         return hash_equals( $expected, self::revision_hash( $revision ) );
     }
 
@@ -128,6 +137,7 @@ final class TactiTwin_Staff_Brief_Revision_Chain {
         return array(
             'diff_id' => (string) ( $diff['diff_id'] ?? 'staff-brief-version-diff' ),
             'status' => (string) ( $diff['status'] ?? ( empty( $changes ) ? 'unchanged' : 'changed' ) ),
+            'fixture_key' => (string) ( $diff['fixture_key'] ?? '' ),
             'team_source_id' => (string) ( $diff['team']['source_id'] ?? '' ),
             'opponent_source_id' => (string) ( $diff['opponent']['source_id'] ?? '' ),
             'from' => array(
