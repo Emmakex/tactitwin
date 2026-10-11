@@ -44,7 +44,7 @@ final class TactiTwin_Staff_Brief_Snapshot {
         $language = TactiTwin_I18n::normalize_language( (string) ( $staff_brief['language'] ?? 'en' ) );
         $team = is_array( $staff_brief['team'] ?? null ) ? $staff_brief['team'] : array();
         $opponent = is_array( $staff_brief['opponent'] ?? null ) ? $staff_brief['opponent'] : array();
-        $fixture = TactiTwin_Fixture_Identity::from_brief( $staff_brief );
+        $fixture = self::fixture_from_brief( $staff_brief );
 
         $snapshot = array(
             'snapshot_id' => 'match-day-staff-brief-snapshot',
@@ -102,7 +102,7 @@ final class TactiTwin_Staff_Brief_Snapshot {
 
         $stored_brief = is_array( $snapshot['content']['staff_brief'] ?? null ) ? $snapshot['content']['staff_brief'] : array();
         try {
-            $fixture = TactiTwin_Fixture_Identity::from_brief( $stored_brief );
+            $fixture = self::fixture_from_brief( $stored_brief );
         } catch ( Throwable $e ) {
             return false;
         }
@@ -211,7 +211,14 @@ final class TactiTwin_Staff_Brief_Snapshot {
         ) {
             throw new InvalidArgumentException( 'Staff Brief, Match Plan and Playbook must describe the same matchup.' );
         }
-        TactiTwin_Fixture_Identity::from_brief( $staff_brief );
+        self::fixture_from_brief( $staff_brief );
+    }
+
+    private static function fixture_from_brief( array $brief ): array {
+        if ( ! class_exists( 'TactiTwin_Fixture_Identity' ) ) {
+            return array();
+        }
+        return TactiTwin_Fixture_Identity::from_brief( $brief );
     }
 
     private static function hash_content( array $content ): string {
