@@ -4,6 +4,8 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+require_once __DIR__ . '/class-tactitwin-evidence-conflict-signals.php';
+
 final class TactiTwin_Precedent_Aware_Match_Plan_Service {
     public function evaluate(
         int $team_id,
@@ -61,7 +63,11 @@ final class TactiTwin_Precedent_Aware_Match_Plan_Service {
                 $language,
                 $contexts_per_scenario
             );
-            $plan['historical_precedent_catalog'] = TactiTwin_Evidence_Decision_Brief::catalog(
+            $catalog = TactiTwin_Evidence_Decision_Brief::catalog(
+                $catalog,
+                $language
+            );
+            $plan['historical_precedent_catalog'] = TactiTwin_Evidence_Conflict_Signals::catalog(
                 $catalog,
                 $language
             );
@@ -85,6 +91,11 @@ final class TactiTwin_Precedent_Aware_Match_Plan_Service {
                 'decision_brief_summary' => array(
                     'scenario_brief_count' => 0,
                 ),
+                'conflict_signal_summary' => array(
+                    'scenario_count' => 0,
+                    'scenarios_with_signals' => 0,
+                    'scenarios_with_material_signals' => 0,
+                ),
                 'method' => array(
                     'type' => 'scenario-indexed-context-preserving-pre-match-precedent-catalog',
                     'cross_context_metric_aggregation' => false,
@@ -104,10 +115,12 @@ final class TactiTwin_Precedent_Aware_Match_Plan_Service {
             'evidence_suitability_ranking' => true,
             'evidence_ranking_robustness' => true,
             'evidence_decision_brief' => true,
+            'evidence_conflict_signals' => true,
             'quality_similarity_combined_score' => true,
             'combined_score_scope' => 'historical context ordering within each scenario only',
             'robustness_scope' => 'diagnostic sensitivity within each scenario only',
             'decision_brief_scope' => 'descriptive summary within each scenario only',
+            'conflict_signal_scope' => 'deterministic tensions within each scenario brief only',
             'quality_changes_tactical_scores' => false,
             'quality_changes_recommendations' => false,
             'similarity_changes_tactical_scores' => false,
@@ -121,9 +134,13 @@ final class TactiTwin_Precedent_Aware_Match_Plan_Service {
             'decision_brief_changes_evidence_order' => false,
             'decision_brief_changes_tactical_scores' => false,
             'decision_brief_changes_recommendations' => false,
+            'conflict_signals_create_score' => false,
+            'conflict_signals_change_evidence_order' => false,
+            'conflict_signals_change_tactical_scores' => false,
+            'conflict_signals_change_recommendations' => false,
             'note' => 'es' === $language
-                ? 'v1.14 resume por escenario la evidencia ya ordenada con un precedente principal, alternativa y riesgos de invalidez. No reordena escenarios, no crea un score nuevo y no modifica prioridades, fases, triggers o recomendaciones.'
-                : 'v1.14 summarizes already-ranked evidence inside each scenario with a primary precedent, alternative and invalidation risks. It does not reorder scenarios, create a new score or alter priorities, phases, triggers or recommendations.',
+                ? 'v1.15 añade señales deterministas de tensión dentro del brief de cada escenario cuando las capas de evidencia discrepan. No reordena escenarios ni evidencia, no crea un score de conflicto y no modifica prioridades, fases, triggers o recomendaciones.'
+                : 'v1.15 adds deterministic tension signals inside each scenario brief when evidence layers disagree. It does not reorder scenarios or evidence, create a conflict score or alter priorities, phases, triggers or recommendations.',
         );
 
         return $plan;

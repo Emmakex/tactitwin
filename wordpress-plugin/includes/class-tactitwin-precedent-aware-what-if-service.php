@@ -11,6 +11,7 @@ require_once TACTITWIN_DIR . 'includes/class-tactitwin-precedent-similarity-atta
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-evidence-suitability-ranker.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-evidence-ranking-robustness.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-evidence-decision-brief.php';
+require_once TACTITWIN_DIR . 'includes/class-tactitwin-evidence-conflict-signals.php';
 
 final class TactiTwin_Precedent_Aware_What_If_Service {
     public function evaluate(
@@ -84,7 +85,11 @@ final class TactiTwin_Precedent_Aware_What_If_Service {
                 $language,
                 $precedent_limit
             );
-            $result['historical_precedents'] = TactiTwin_Evidence_Decision_Brief::retrieval(
+            $precedents = TactiTwin_Evidence_Decision_Brief::retrieval(
+                $precedents,
+                $language
+            );
+            $result['historical_precedents'] = TactiTwin_Evidence_Conflict_Signals::retrieval(
                 $precedents,
                 $language
             );
@@ -107,6 +112,14 @@ final class TactiTwin_Precedent_Aware_What_If_Service {
                     'language' => $language,
                     'primary' => null,
                     'alternative' => null,
+                    'conflict_signals' => array(
+                        'status' => 'unavailable',
+                        'signal_count' => 0,
+                        'material_count' => 0,
+                        'watch_count' => 0,
+                        'highest_severity' => 'none',
+                        'signals' => array(),
+                    ),
                 ),
                 'method' => array(
                     'type' => 'exact-context-historical-precedent-retrieval',
@@ -125,10 +138,12 @@ final class TactiTwin_Precedent_Aware_What_If_Service {
             'evidence_suitability_ranking' => true,
             'evidence_ranking_robustness' => true,
             'evidence_decision_brief' => true,
+            'evidence_conflict_signals' => true,
             'quality_similarity_combined_score' => true,
             'combined_score_scope' => 'historical evidence ordering only',
             'robustness_scope' => 'diagnostic sensitivity of historical evidence ordering only',
             'decision_brief_scope' => 'descriptive summary of already-ranked historical evidence only',
+            'conflict_signal_scope' => 'deterministic tensions inside the existing evidence brief only',
             'quality_changes_tactical_scores' => false,
             'quality_changes_recommendations' => false,
             'similarity_changes_tactical_scores' => false,
@@ -142,9 +157,13 @@ final class TactiTwin_Precedent_Aware_What_If_Service {
             'decision_brief_changes_evidence_order' => false,
             'decision_brief_changes_tactical_scores' => false,
             'decision_brief_changes_recommendations' => false,
+            'conflict_signals_create_score' => false,
+            'conflict_signals_change_evidence_order' => false,
+            'conflict_signals_change_tactical_scores' => false,
+            'conflict_signals_change_recommendations' => false,
             'note' => 'es' === $language
-                ? 'v1.14 resume la evidencia ya ordenada en un brief para staff con precedente principal, alternativa, motivos de encaje, soporte histórico y riesgos de invalidez. No crea un score nuevo ni modifica el orden o las recomendaciones del What-if.'
-                : 'v1.14 summarizes already-ranked evidence into a staff brief with a primary precedent, alternative, fit reasons, historical support and invalidation risks. It creates no new score and does not change What-if ordering or recommendations.',
+                ? 'v1.15 añade señales nominales de tensión sobre el brief v1.14 cuando calidad, similitud, idoneidad, robustez o deltas históricos cuentan historias distintas. No crea un score de conflicto, no reordena evidencia y no modifica recomendaciones del What-if.'
+                : 'v1.15 adds nominal tension signals over the v1.14 brief when quality, similarity, suitability, robustness or historical deltas tell different stories. It creates no conflict score, does not reorder evidence and does not alter What-if recommendations.',
         );
 
         return $result;
