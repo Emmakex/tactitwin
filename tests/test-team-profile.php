@@ -47,6 +47,10 @@ for ( $i = 1; $i <= 3; $i++ ) {
             'high_recoveries' => 4,
             'shots' => 8,
             'xg' => 0.8,
+            'final_third_actions' => 40,
+            'final_third_left_channel' => 8,
+            'final_third_central_channel' => 12,
+            'final_third_right_channel' => 20,
         ),
     );
 }
@@ -60,6 +64,7 @@ tt_profile_assert( 85.0 === $profile['rates']['build_up_completion_pct'], 'build
 tt_profile_assert( 35.0 === $profile['rates']['build_up_escape_rate'], 'build-up escape rate calculated' );
 tt_profile_assert( 5.0 === $profile['averages']['own_third_turnovers_per_match'], 'turnover average calculated' );
 tt_profile_assert( 20.0 === $profile['opponent_context']['high_pressures_per_match'], 'opponent context aggregated' );
-tt_profile_assert( 50.0 === $profile['final_third_channel_share']['left'], 'channel share aggregated' );
+tt_profile_assert( 50.0 === $profile['final_third_channel_share']['left'], 'attacking channel share aggregated' );
+tt_profile_assert( 50.0 === $profile['final_third_channel_share_against']['right'], 'defensive channel concession share aggregated' );
 
 echo "Team profile tests passed.\n";
