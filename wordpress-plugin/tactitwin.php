@@ -61,6 +61,8 @@ require_once TACTITWIN_DIR . 'includes/class-tactitwin-post-match-review-service
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-context-matched-intervention-library.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-intervention-library-service.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-historical-precedent-retrieval.php';
+require_once TACTITWIN_DIR . 'includes/class-tactitwin-evidence-quality-calibrator.php';
+require_once TACTITWIN_DIR . 'includes/class-tactitwin-precedent-quality-attachment.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-pre-match-precedent-catalog.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-playbook-precedent-attachment.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-personnel-what-if.php';
