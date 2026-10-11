@@ -52,10 +52,10 @@ final class TactiTwin_Opponent_Context_Distance {
                 'matches' => (int) ( $historical['coverage']['matches'] ?? 0 ),
             ),
             'exact_opponent' => $exact,
-            'similarity_score' => $exact ? 100.0 : $similarity,
-            'distance_score' => $exact ? 0.0 : $distance,
-            'similarity_level' => $exact ? 'exact' : $level,
-            'similarity_label' => $exact ? self::text( 'level_exact', $language ) : self::text( 'level_' . str_replace( '-', '_', $level ), $language ),
+            'similarity_score' => $similarity,
+            'distance_score' => $distance,
+            'similarity_level' => $level,
+            'similarity_label' => self::text( 'level_' . str_replace( '-', '_', $level ), $language ),
             'components' => $components,
             'weights' => $weights,
             'coverage' => array(
@@ -68,6 +68,7 @@ final class TactiTwin_Opponent_Context_Distance {
             ),
             'method' => array(
                 'type' => 'transparent-event-derived-opponent-context-distance',
+                'exact_opponent_does_not_force_similarity' => true,
                 'strength_model' => false,
                 'embedding_model' => false,
                 'changes_tactical_scores' => false,
@@ -78,6 +79,7 @@ final class TactiTwin_Opponent_Context_Distance {
                     self::text( 'limit_strength', $language ),
                     self::text( 'limit_tracking', $language ),
                     self::text( 'limit_sample', $language ),
+                    self::text( 'limit_exact', $language ),
                 ),
             ),
         );
@@ -196,18 +198,20 @@ final class TactiTwin_Opponent_Context_Distance {
     private static function text( string $key, string $language ): string {
         $catalog = array(
             'en' => array(
-                'level_exact'=>'Exact opponent','level_very_high'=>'Very high','level_high'=>'High','level_medium'=>'Medium','level_low'=>'Low','level_very_low'=>'Very low',
+                'level_very_high'=>'Very high','level_high'=>'High','level_medium'=>'Medium','level_low'=>'Low','level_very_low'=>'Very low',
                 'method'=>'v1.11 compares two opponent profiles with transparent event-derived style features: pressing, defensive depth proxy, attack-channel distribution, transition threat and progression/territory. Similarity is a contextual evidence signal, not a prediction or team-strength rating.',
                 'limit_strength'=>'This is not a team-strength rating. Two similarly styled opponents can differ greatly in player quality and competitive level.',
                 'limit_tracking'=>'Event data cannot measure exact block height, compactness, line distances or all off-ball behaviour.',
                 'limit_sample'=>'Similarity can be unstable when either opponent has a small or unrepresentative imported event sample.',
+                'limit_exact'=>'Facing the same club does not force a similarity score of 100 because tactical style can change over time.',
             ),
             'es' => array(
-                'level_exact'=>'Rival exacto','level_very_high'=>'Muy alta','level_high'=>'Alta','level_medium'=>'Media','level_low'=>'Baja','level_very_low'=>'Muy baja',
+                'level_very_high'=>'Muy alta','level_high'=>'Alta','level_medium'=>'Media','level_low'=>'Baja','level_very_low'=>'Muy baja',
                 'method'=>'v1.11 compara dos perfiles de rival mediante variables de estilo transparentes derivadas de eventos: presión, proxy de profundidad defensiva, distribución por canales de ataque, amenaza en transición y progresión/territorio. La similitud es una señal contextual de evidencia, no una predicción ni un rating de fuerza.',
                 'limit_strength'=>'No es un rating de fuerza. Dos rivales con estilo parecido pueden tener niveles de jugadores y competición muy diferentes.',
                 'limit_tracking'=>'Los eventos no permiten medir altura exacta del bloque, compactación, distancias entre líneas ni todo el comportamiento sin balón.',
                 'limit_sample'=>'La similitud puede ser inestable si cualquiera de los rivales tiene una muestra de eventos pequeña o poco representativa.',
+                'limit_exact'=>'Jugar contra el mismo club no fuerza una similitud de 100 porque su estilo táctico puede cambiar con el tiempo.',
             ),
         );
         return $catalog[ $language ][ $key ] ?? $catalog['en'][ $key ] ?? $key;
