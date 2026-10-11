@@ -76,6 +76,18 @@ final class TactiTwin_Historical_Precedent_Retrieval {
                 'sample' => $sample,
                 'metrics' => is_array( $group['metrics'] ?? null ) ? $group['metrics'] : array(),
                 'case_count' => count( $group['cases'] ?? array() ),
+                'learning_review' => is_array( $group['learning_review'] ?? null ) ? $group['learning_review'] : array(
+                    'status' => 'unsigned',
+                    'scope' => (string) ( $library['learning_scope'] ?? 'all' ),
+                    'signed_cases' => 0,
+                    'unsigned_cases' => count( $group['cases'] ?? array() ),
+                    'invalid_cases' => 0,
+                    'total_cases' => count( $group['cases'] ?? array() ),
+                    'signed_sessions' => 0,
+                    'latest_signed_revision' => 0,
+                    'affects_metrics' => false,
+                    'affects_ranking' => false,
+                ),
             );
         }
 
@@ -102,11 +114,15 @@ final class TactiTwin_Historical_Precedent_Retrieval {
             'matched_group_count' => $total,
             'returned_group_count' => count( $items ),
             'items' => $items,
+            'learning_review_coverage' => TactiTwin_Intervention_Library_Service::precedent_learning_coverage( $items ),
             'summary' => self::summary( $items, $context, $language ),
             'method' => array(
                 'type' => 'exact-context-historical-precedent-retrieval',
                 'exact_context_dimensions' => array( 'minute band', 'score state', 'manpower state' ),
                 'ranking' => 'current scenario relevance + historical sample maturity/volume/cleaner share',
+                'signed_review_provenance_exposed' => true,
+                'signed_review_affects_retrieval_score' => false,
+                'signed_review_affects_default_order' => false,
                 'reweights_tactical_scores' => false,
                 'changes_recommendations' => false,
                 'note' => self::text( 'method', $language ),
@@ -114,6 +130,7 @@ final class TactiTwin_Historical_Precedent_Retrieval {
                     self::text( 'limit_causality', $language ),
                     self::text( 'limit_exact', $language ),
                     self::text( 'limit_context', $language ),
+                    self::text( 'limit_signoff', $language ),
                 ),
             ),
         );
@@ -224,10 +241,11 @@ final class TactiTwin_Historical_Precedent_Retrieval {
     private static function text( string $key, string $language ): string {
         $catalog = array(
             'en' => array(
-                'method' => 'v1.8 retrieves v1.7 intervention groups only when the current What-if minute band, score state and manpower state match exactly. Current matchup-scan relevance and historical sample quality order the precedents, but do not alter tactical scores or recommendations.',
+                'method' => 'v1.8 retrieves v1.7 intervention groups only when the current What-if minute band, score state and manpower state match exactly. Current matchup-scan relevance and historical sample quality order the precedents. v1.26 adds signed-review provenance without changing that ranking.',
                 'limit_causality' => 'Historical precedents remain observational associations and do not prove intervention effects.',
                 'limit_exact' => 'Exact matching can return no precedents even when nearby contexts exist; v1.8 deliberately avoids fuzzy fallback.',
                 'limit_context' => 'Opponent quality, fatigue, exact scoreline, injuries and unobserved tactical structure can still differ across matched precedents.',
+                'limit_signoff' => 'A staff-signed review confirms workflow review and provenance; it is not evidence that the intervention was effective or causal.',
                 'summary_none' => 'No exact historical precedents were found for minute band %s, %s score state and %s manpower state.',
                 'summary_count' => '%d exact-context historical precedents are available for this What-if.',
                 'summary_top' => 'Highest-ranked precedent: %s (%s; current scenario relevance %.1f/100).',
@@ -235,10 +253,11 @@ final class TactiTwin_Historical_Precedent_Retrieval {
                 'manpower_superior' => 'superior', 'manpower_equal' => 'equal', 'manpower_inferior' => 'inferior',
             ),
             'es' => array(
-                'method' => 'v1.8 recupera grupos de intervenciones v1.7 solo cuando coinciden exactamente la franja temporal, el estado del marcador y el estado numérico del What-if actual. La relevancia del matchup actual y la calidad de la muestra histórica ordenan los precedentes, pero no modifican los scores tácticos ni las recomendaciones.',
+                'method' => 'v1.8 recupera grupos de intervenciones v1.7 solo cuando coinciden exactamente la franja temporal, el estado del marcador y el estado numérico del What-if actual. La relevancia del matchup actual y la calidad de la muestra histórica ordenan los precedentes. v1.26 añade procedencia de revisión firmada sin cambiar ese ranking.',
                 'limit_causality' => 'Los precedentes históricos siguen siendo asociaciones observacionales y no demuestran efectos de la intervención.',
                 'limit_exact' => 'La coincidencia exacta puede no devolver precedentes aunque existan contextos cercanos; v1.8 evita deliberadamente el fallback difuso.',
                 'limit_context' => 'La calidad del rival, fatiga, marcador exacto, lesiones y estructura táctica no observada todavía pueden diferir entre precedentes comparables.',
+                'limit_signoff' => 'Una revisión firmada por el staff confirma revisión del flujo y procedencia; no demuestra que la intervención fuera eficaz ni causal.',
                 'summary_none' => 'No se encontraron precedentes históricos exactos para la franja %s, estado de marcador %s y estado numérico %s.',
                 'summary_count' => 'Hay %d precedentes históricos de contexto exacto para este What-if.',
                 'summary_top' => 'Precedente mejor posicionado: %s (%s; relevancia del escenario actual %.1f/100).',
