@@ -55,6 +55,7 @@ final class TactiTwin_Analysis_Service {
                 )
             )
         );
+        $game_states = TactiTwin_Game_State_Metrics::calculate( $events, $team_ids );
 
         foreach ( $team_ids as $team_id ) {
             if ( ! isset( $metrics[ $team_id ] ) ) {
@@ -72,6 +73,7 @@ final class TactiTwin_Analysis_Service {
                     'turnovers_own_third'    => (int) ( $zones['own_third'] ?? 0 ),
                     'turnovers_middle_third' => (int) ( $zones['middle_third'] ?? 0 ),
                     'turnovers_final_third'  => (int) ( $zones['final_third'] ?? 0 ),
+                    'game_states'            => $game_states[ $team_id ] ?? array(),
                 )
             );
         }
