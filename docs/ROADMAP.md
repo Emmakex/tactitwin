@@ -24,7 +24,7 @@ Implemented milestones now include:
 
 ### v1.23 exit criterion
 
-Opening TactiTwin lands on a Match Workspace where staff can select one imported match + team perspective, see its canonical fixture context and navigate the full pre-match / match-day / post-match workflow. Lineup and Personnel must inherit the canonical team/opponent pair, Unit Lab must inherit the canonical team, roster selectors must refresh when context changes, Live Sessions must remain handoff-derived, Session Review must remain session-derived, and the former import dashboard must remain available under Data & Imports.
+Opening TactiTwin lands on a Match Workspace where staff can select one imported match + team perspective, see its canonical fixture context and navigate the full pre-match / match-day / post-match workflow. Lineup and Personnel must inherit the canonical team/opponent pair, Unit Lab must inherit the canonical team, and roster selectors must refresh when context changes. Live Sessions must remain handoff-derived; Session Review, Evidence Review, Segment Evidence and Transition Deltas must remain session-derived; Intervention Library must remain cross-session historical; and the former import dashboard must remain available under Data & Imports.
 
 ### v1.22 exit criterion
 
