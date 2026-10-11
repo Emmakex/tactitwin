@@ -1,0 +1,86 @@
+<?php
+
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
+final class TactiTwin_Scenario_REST {
+    public static function register(): void {
+        add_action( 'rest_api_init', array( self::class, 'routes' ) );
+    }
+
+    public static function routes(): void {
+        register_rest_route(
+            'tactitwin/v1',
+            '/analysis/team/(?P<team_id>\d+)',
+            array(
+                'methods'             => WP_REST_Server::READABLE,
+                'callback'            => array( self::class, 'team_profile' ),
+                'permission_callback' => static fn(): bool => current_user_can( 'manage_options' ),
+                'args'                => array(
+                    'team_id' => array(
+                        'sanitize_callback' => 'absint',
+                        'validate_callback' => static fn( $value ): bool => (int) $value > 0,
+                    ),
+                    'limit' => array(
+                        'default'           => 5,
+                        'sanitize_callback' => 'absint',
+                        'validate_callback' => static fn( $value ): bool => (int) $value >= 1 && (int) $value <= 10,
+                    ),
+                ),
+            )
+        );
+
+        register_rest_route(
+            'tactitwin/v1',
+            '/scenarios/build-up-vs-high-press',
+            array(
+                'methods'             => WP_REST_Server::READABLE,
+                'callback'            => array( self::class, 'high_press' ),
+                'permission_callback' => static fn(): bool => current_user_can( 'manage_options' ),
+                'args'                => array(
+                    'team_id' => array(
+                        'required'          => true,
+                        'sanitize_callback' => 'absint',
+                        'validate_callback' => static fn( $value ): bool => (int) $value > 0,
+                    ),
+                    'opponent_id' => array(
+                        'required'          => true,
+                        'sanitize_callback' => 'absint',
+                        'validate_callback' => static fn( $value ): bool => (int) $value > 0,
+                    ),
+                    'limit' => array(
+                        'default'           => 5,
+                        'sanitize_callback' => 'absint',
+                        'validate_callback' => static fn( $value ): bool => (int) $value >= 1 && (int) $value <= 10,
+                    ),
+                ),
+            )
+        );
+    }
+
+    public static function team_profile( WP_REST_Request $request ) {
+        try {
+            $profile = ( new TactiTwin_Profile_Service() )->team_profile(
+                (int) $request['team_id'],
+                (int) $request['limit']
+            );
+            return new WP_REST_Response( array( 'ok' => true, 'result' => $profile ), 200 );
+        } catch ( Throwable $e ) {
+            return new WP_Error( 'tactitwin_profile_failed', $e->getMessage(), array( 'status' => 422 ) );
+        }
+    }
+
+    public static function high_press( WP_REST_Request $request ) {
+        try {
+            $result = ( new TactiTwin_Profile_Service() )->build_up_vs_high_press(
+                (int) $request['team_id'],
+                (int) $request['opponent_id'],
+                (int) $request['limit']
+            );
+            return new WP_REST_Response( array( 'ok' => true, 'result' => $result ), 200 );
+        } catch ( Throwable $e ) {
+            return new WP_Error( 'tactitwin_scenario_failed', $e->getMessage(), array( 'status' => 422 ) );
+        }
+    }
+}
