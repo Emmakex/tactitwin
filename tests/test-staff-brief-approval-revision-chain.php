@@ -67,6 +67,7 @@ $base = tt_v119_brief();
 $first_revision = TactiTwin_Staff_Brief_Revision_Chain::build( $base, array(), 1, 'en', 'Initial approval.' );
 tt_v119_assert( 1 === $first_revision['revision_number'], 'first approval is revision 1' );
 tt_v119_assert( null === $first_revision['parent_snapshot_uuid'], 'first approval has no parent snapshot' );
+tt_v119_assert( null === $first_revision['approved_content_sha256'], 'prospective revision is not content-bound before snapshot freeze' );
 tt_v119_assert( 0 === $first_revision['reviewed_change_count'], 'first approval has no predecessor diff' );
 tt_v119_assert( false === $first_revision['requires_change_acknowledgement'], 'first approval needs no change acknowledgement' );
 tt_v119_assert( true === TactiTwin_Staff_Brief_Revision_Chain::verify( $first_revision ), 'fresh revision metadata verifies' );
@@ -81,6 +82,8 @@ $first_snapshot = TactiTwin_Staff_Brief_Snapshot::freeze(
 );
 tt_v119_assert( true === TactiTwin_Staff_Brief_Snapshot::verify( $first_snapshot ), 'snapshot verifies with sealed revision metadata' );
 tt_v119_assert( 1 === TactiTwin_Staff_Brief_Snapshot::revision( $first_snapshot )['revision_number'], 'snapshot exposes its approval revision' );
+tt_v119_assert( $first_snapshot['content_sha256'] === $first_snapshot['revision']['approved_content_sha256'], 'revision is cryptographically bound to exact approved snapshot content' );
+tt_v119_assert( true === TactiTwin_Staff_Brief_Revision_Chain::verify( $first_snapshot['revision'] ), 'content binding re-seals the revision digest' );
 
 $changed = tt_v119_brief( 'changed' );
 $second_revision = TactiTwin_Staff_Brief_Revision_Chain::build( $changed, $first_snapshot, 2, 'en', 'Updated after opponent review.' );
@@ -112,11 +115,23 @@ $second_snapshot = TactiTwin_Staff_Brief_Snapshot::freeze(
     $second_revision
 );
 tt_v119_assert( true === TactiTwin_Staff_Brief_Snapshot::verify( $second_snapshot ), 'changed revision snapshot verifies' );
+tt_v119_assert( $second_snapshot['content_sha256'] === $second_snapshot['revision']['approved_content_sha256'], 'second revision binds to second snapshot content' );
 
 $tampered = $second_snapshot;
 $tampered['revision']['reviewed_change_count']++;
 tt_v119_assert( false === TactiTwin_Staff_Brief_Revision_Chain::verify( $tampered['revision'] ), 'revision tampering invalidates revision digest' );
 tt_v119_assert( false === TactiTwin_Staff_Brief_Snapshot::verify( $tampered ), 'revision tampering invalidates the whole v1.19 snapshot' );
+
+$swapped = $second_snapshot;
+$swapped['revision'] = $first_snapshot['revision'];
+tt_v119_assert( true === TactiTwin_Staff_Brief_Revision_Chain::verify( $swapped['revision'] ), 'swapped revision is independently valid' );
+tt_v119_assert( false === TactiTwin_Staff_Brief_Snapshot::verify( $swapped ), 'valid revision from another snapshot cannot be swapped into this snapshot' );
+
+$wrong_binding = $second_snapshot;
+$wrong_binding['revision']['approved_content_sha256'] = str_repeat( 'a', 64 );
+$wrong_binding['revision'] = TactiTwin_Staff_Brief_Revision_Chain::bind_to_content( $second_revision, str_repeat( 'a', 64 ) );
+tt_v119_assert( true === TactiTwin_Staff_Brief_Revision_Chain::verify( $wrong_binding['revision'] ), 'revision can be internally valid while bound to different content' );
+tt_v119_assert( false === TactiTwin_Staff_Brief_Snapshot::verify( $wrong_binding ), 'snapshot rejects revision bound to a different content digest' );
 
 $legacy_snapshot = TactiTwin_Staff_Brief_Snapshot::freeze(
     $base,
