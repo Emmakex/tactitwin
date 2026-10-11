@@ -40,9 +40,27 @@ final class TactiTwin {
             __( 'TactiTwin', 'tactitwin' ),
             'manage_options',
             'tactitwin',
-            array( $this, 'render_admin_page' ),
+            array( TactiTwin_Match_Workspace_Admin::class, 'render' ),
             'dashicons-chart-area',
             58
+        );
+
+        add_submenu_page(
+            'tactitwin',
+            __( 'Match Workspace', 'tactitwin' ),
+            __( 'Match Workspace', 'tactitwin' ),
+            'manage_options',
+            'tactitwin',
+            array( TactiTwin_Match_Workspace_Admin::class, 'render' )
+        );
+
+        add_submenu_page(
+            'tactitwin',
+            __( 'Data & Imports', 'tactitwin' ),
+            __( 'Data & Imports', 'tactitwin' ),
+            'manage_options',
+            'tactitwin-data',
+            array( $this, 'render_admin_page' )
         );
     }
 
@@ -223,7 +241,7 @@ final class TactiTwin {
     }
 
     private function redirect_admin(): void {
-        wp_safe_redirect( admin_url( 'admin.php?page=tactitwin' ) );
+        wp_safe_redirect( admin_url( 'admin.php?page=tactitwin-data' ) );
         exit;
     }
 
@@ -239,8 +257,9 @@ final class TactiTwin {
         }
         ?>
         <div class="wrap">
-            <h1><?php echo esc_html__( 'TactiTwin', 'tactitwin' ); ?></h1>
-            <p><?php echo esc_html__( 'Football Tactical Intelligence & Match Simulation', 'tactitwin' ); ?></p>
+            <h1><?php echo esc_html__( 'TactiTwin Data & Imports', 'tactitwin' ); ?></h1>
+            <p><?php echo esc_html__( 'Manage the open-data layer used by the Match Workspace and tactical engines.', 'tactitwin' ); ?></p>
+            <p><a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=tactitwin' ) ); ?>"><?php echo esc_html__( 'Back to Match Workspace', 'tactitwin' ); ?></a></p>
 
             <?php if ( is_array( $notice ) ) : ?>
                 <div class="notice notice-<?php echo esc_attr( 'error' === $notice['type'] ? 'error' : 'success' ); ?> is-dismissible">
