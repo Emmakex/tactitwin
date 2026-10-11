@@ -10,7 +10,8 @@ final class TactiTwin_Staff_Brief_Snapshot {
         string $snapshot_uuid,
         int $approved_by,
         string $approved_at,
-        int $sample_size = 5
+        int $sample_size = 5,
+        array $revision = array()
     ): array {
         self::assert_staff_brief( $staff_brief );
         $snapshot_uuid = self::normalize_uuid( $snapshot_uuid );
@@ -22,6 +23,10 @@ final class TactiTwin_Staff_Brief_Snapshot {
         $match_plan = is_array( $source['match_plan'] ?? null ) ? $source['match_plan'] : array();
         $playbook = is_array( $source['playbook'] ?? null ) ? $source['playbook'] : array();
         self::assert_source( $staff_brief, $match_plan, $playbook );
+
+        if ( ! empty( $revision ) && ! TactiTwin_Staff_Brief_Revision_Chain::verify( $revision ) ) {
+            throw new InvalidArgumentException( 'Staff Brief approval revision metadata failed integrity verification.' );
+        }
 
         $brief_copy = $staff_brief;
         unset( $brief_copy['handoff_source'] );
@@ -35,7 +40,7 @@ final class TactiTwin_Staff_Brief_Snapshot {
         $team = is_array( $staff_brief['team'] ?? null ) ? $staff_brief['team'] : array();
         $opponent = is_array( $staff_brief['opponent'] ?? null ) ? $staff_brief['opponent'] : array();
 
-        return array(
+        $snapshot = array(
             'snapshot_id' => 'match-day-staff-brief-snapshot',
             'snapshot_uuid' => $snapshot_uuid,
             'status' => 'approved',
@@ -55,11 +60,18 @@ final class TactiTwin_Staff_Brief_Snapshot {
                 'stores_exact_match_plan_source' => true,
                 'stores_exact_playbook_source' => true,
                 'hash_algorithm' => 'sha256',
+                'revision_chain_included' => ! empty( $revision ),
                 'changes_tactical_scores' => false,
                 'changes_recommendations' => false,
                 'changes_plan_activation' => false,
             ),
         );
+
+        if ( ! empty( $revision ) ) {
+            $snapshot['revision'] = $revision;
+        }
+
+        return $snapshot;
     }
 
     public static function verify( array $snapshot ): bool {
@@ -73,7 +85,17 @@ final class TactiTwin_Staff_Brief_Snapshot {
             return false;
         }
         $expected = (string) ( $snapshot['content_sha256'] ?? '' );
-        return '' !== $expected && hash_equals( $expected, self::hash_content( $snapshot['content'] ) );
+        if ( '' === $expected || ! hash_equals( $expected, self::hash_content( $snapshot['content'] ) ) ) {
+            return false;
+        }
+
+        if ( isset( $snapshot['revision'] ) ) {
+            if ( ! is_array( $snapshot['revision'] ) || ! TactiTwin_Staff_Brief_Revision_Chain::verify( $snapshot['revision'] ) ) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public static function playbook( array $snapshot ): array {
@@ -93,6 +115,14 @@ final class TactiTwin_Staff_Brief_Snapshot {
         }
         $brief = $snapshot['content']['staff_brief'] ?? array();
         return is_array( $brief ) ? $brief : array();
+    }
+
+    public static function revision( array $snapshot ): array {
+        if ( ! self::verify( $snapshot ) ) {
+            throw new RuntimeException( 'The approved Staff Brief snapshot failed integrity verification.' );
+        }
+        $revision = $snapshot['revision'] ?? array();
+        return is_array( $revision ) ? $revision : array();
     }
 
     private static function assert_staff_brief( array $staff_brief ): void {
