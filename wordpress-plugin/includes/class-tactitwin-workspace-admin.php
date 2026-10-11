@@ -37,10 +37,16 @@ final class TactiTwin_Workspace_Admin {
             $preparation = ( new TactiTwin_Data_Preparation_Service() )->prepare_matchup( $team_id, $opponent_id, $sample );
             $service     = new TactiTwin_Profile_Service();
 
-            if ( 'opponent-side-bias' === $scenario_id ) {
-                $scenario = $service->opponent_side_bias( $team_id, $opponent_id, $sample );
-            } else {
-                $scenario = $service->build_up_vs_high_press( $team_id, $opponent_id, $sample );
+            switch ( $scenario_id ) {
+                case 'opponent-side-bias':
+                    $scenario = $service->opponent_side_bias( $team_id, $opponent_id, $sample );
+                    break;
+                case 'defensive-transition-after-loss':
+                    $scenario = $service->defensive_transition_after_loss( $team_id, $opponent_id, $sample );
+                    break;
+                default:
+                    $scenario = $service->build_up_vs_high_press( $team_id, $opponent_id, $sample );
+                    break;
             }
 
             set_transient(
@@ -100,6 +106,7 @@ final class TactiTwin_Workspace_Admin {
                                 <select name="scenario_id" id="tt-scenario">
                                     <option value="build-up-vs-high-press"><?php echo esc_html__( 'Build-up vs High Press', 'tactitwin' ); ?></option>
                                     <option value="opponent-side-bias"><?php echo esc_html__( 'Opponent Side Bias', 'tactitwin' ); ?></option>
+                                    <option value="defensive-transition-after-loss"><?php echo esc_html__( 'Defensive Transition After Loss', 'tactitwin' ); ?></option>
                                 </select>
                             </td>
                         </tr>
@@ -167,23 +174,20 @@ final class TactiTwin_Workspace_Admin {
 
     private static function scenario_cards( array $scenario ): void {
         $evidence = $scenario['evidence'] ?? array();
+        $scenario_id = (string) ( $scenario['scenario_id'] ?? '' );
 
-        if ( 'opponent-side-bias' === ( $scenario['scenario_id'] ?? '' ) ) {
-            self::card(
-                __( 'Opponent dominant channel', 'tactitwin' ),
-                ucfirst( (string) ( $evidence['opponent_dominant_channel'] ?? '-' ) ),
-                ''
-            );
-            self::card(
-                __( 'Our vulnerable channel', 'tactitwin' ),
-                ucfirst( (string) ( $evidence['our_most_vulnerable_channel'] ?? '-' ) ),
-                ''
-            );
-            self::card(
-                __( 'Preferred trap channel', 'tactitwin' ),
-                ucfirst( (string) ( $evidence['opponent_weak_channel'] ?? '-' ) ),
-                ''
-            );
+        if ( 'opponent-side-bias' === $scenario_id ) {
+            self::card( __( 'Opponent dominant channel', 'tactitwin' ), ucfirst( (string) ( $evidence['opponent_dominant_channel'] ?? '-' ) ), '' );
+            self::card( __( 'Our vulnerable channel', 'tactitwin' ), ucfirst( (string) ( $evidence['our_most_vulnerable_channel'] ?? '-' ) ), '' );
+            self::card( __( 'Preferred trap channel', 'tactitwin' ), ucfirst( (string) ( $evidence['opponent_weak_channel'] ?? '-' ) ), '' );
+            return;
+        }
+
+        if ( 'defensive-transition-after-loss' === $scenario_id ) {
+            self::card( __( 'Dangerous loss rate', 'tactitwin' ), ( $evidence['our_dangerous_turnover_rate'] ?? 0 ) . '%', __( 'shot conceded ≤10s', 'tactitwin' ) );
+            self::card( __( 'Counterpress recovery', 'tactitwin' ), ( $evidence['our_counterpress_recovery_rate'] ?? 0 ) . '%', __( 'recovery ≤8s', 'tactitwin' ) );
+            self::card( __( 'Main loss zone', 'tactitwin' ), ucwords( str_replace( '_', ' ', (string) ( $evidence['dominant_loss_zone'] ?? '-' ) ) ), '' );
+            self::card( __( 'Opponent transition xG', 'tactitwin' ), (string) ( $evidence['opponent_transition_xg_per_match'] ?? 0 ), __( 'per match ≤10s', 'tactitwin' ) );
             return;
         }
 
