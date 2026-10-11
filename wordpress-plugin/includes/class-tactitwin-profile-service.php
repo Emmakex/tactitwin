@@ -130,7 +130,7 @@ final class TactiTwin_Profile_Service {
         );
     }
 
-    private function matchup_profiles( int $team_id, int $opponent_id, int $limit ): array {
+    public function matchup_profiles( int $team_id, int $opponent_id, int $limit ): array {
         if ( $team_id === $opponent_id ) {
             throw new InvalidArgumentException( 'Team and opponent must be different.' );
         }
