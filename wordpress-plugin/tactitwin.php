@@ -71,6 +71,10 @@ require_once TACTITWIN_DIR . 'includes/class-tactitwin-phase-unit-comparison.php
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-opponent-lineup-matchup.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-lineup-what-if.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-profile-service.php';
+require_once TACTITWIN_DIR . 'includes/class-tactitwin-historical-team-profile-service.php';
+require_once TACTITWIN_DIR . 'includes/class-tactitwin-opponent-context-distance.php';
+require_once TACTITWIN_DIR . 'includes/class-tactitwin-opponent-context-similarity-service.php';
+require_once TACTITWIN_DIR . 'includes/class-tactitwin-precedent-similarity-attachment.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-precedent-aware-what-if-service.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-precedent-aware-match-plan-service.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-precedent-aware-contingency-service.php';

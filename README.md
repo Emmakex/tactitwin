@@ -6,7 +6,7 @@ TactiTwin is a football tactical analysis and match-scenario simulation project.
 
 ## Product direction
 
-`public/open data -> normalized football model -> tactical analysis -> scenario engine -> lineup decisions -> match plan -> Plan A/B/C -> live staff observations -> persistent match-day timeline -> post-match review -> full-match evidence -> time-aligned segment evidence -> before/after transition deltas -> context-aware transition review -> context-matched intervention library -> historical precedent retrieval -> precedent-aware match planning`
+`public/open data -> normalized football model -> tactical analysis -> scenario engine -> lineup decisions -> match plan -> Plan A/B/C -> live staff observations -> persistent match-day timeline -> post-match review -> full-match evidence -> time-aligned segment evidence -> before/after transition deltas -> context-aware transition review -> context-matched intervention library -> historical precedent retrieval -> precedent-aware match planning -> evidence-quality calibration -> opponent-context distance`
 
 TactiTwin is not intended to predict a final score with certainty. It is a decision-support system for exploring tactical risks, opportunities and "what if" scenarios before, during and after a match while retaining evidence, confidence and method boundaries.
 
@@ -33,6 +33,8 @@ The first phase focuses on:
 - Cross-match intervention memory grouped by comparable tactical context.
 - Exact-context historical precedent retrieval inside What-if preparation.
 - Historical precedent evidence inside Match Plan and Plan A/B/C while preserving context boundaries.
+- Historical evidence quality/recency calibration.
+- Transparent historical-opponent tactical-context similarity using as-of profiles.
 - WordPress administration UI and REST endpoints.
 
 Initial data-source targets:
@@ -69,10 +71,12 @@ The current WordPress plugin supports:
 - Historical Tactical Precedents inside What-if, using exact minute-band + score-state + manpower-state matching and current matchup relevance.
 - Pre-match precedent catalog inside Match Plan, keeping minute/score/manpower contexts separate rather than averaging them together.
 - Exact-context precedent distribution into Plan A/B/C by historical destination plan, with Plan B additionally requiring the current armed/live scenario.
+- Evidence-quality calibration from recency, signal volume, cleaner share, directional stability and exact-opponent continuity.
+- Event-derived opponent-context distance across pressing, defensive-depth proxy, attack channels, transition threat and progression/territory.
 
 ### Match-day decision workflow
 
-`Match Plan -> Pre-match Precedent Catalog -> Contingency Playbook -> Exact Plan A/B/C Precedents -> Live Playbook -> Live Session -> Session Review -> Evidence Review -> Segment Evidence -> Transition Deltas -> Context-Aware Review -> Intervention Library -> Historical Precedents`
+`Match Plan -> Pre-match Precedent Catalog -> Evidence Quality + Opponent Similarity -> Contingency Playbook -> Exact Plan A/B/C Precedents -> Live Playbook -> Live Session -> Session Review -> Evidence Review -> Segment Evidence -> Transition Deltas -> Context-Aware Review -> Intervention Library -> Historical Precedents`
 
 Plan B is never activated merely because historical data predicted an opponent behaviour. A supported manual observation from the staff can activate Plan B when Plan C is not already required by score/manpower context. Plan C keeps precedence for configured score/manpower contingencies.
 
@@ -94,7 +98,11 @@ Live Sessions persist the exact playbook JSON submitted at each staff update. Po
 
 **v1.9 — Precedent-Aware Match Planning** carries that memory into the Match Plan and Plan A/B/C workflow. Pre-match planning keeps every historical minute/score/manpower context separate for each current scenario. During Contingency and Live Playbook use, exact-context precedents are assigned only to the same historical destination plan; Plan B also requires the same currently armed or live-activated scenario.
 
-v1.9 does not recompute one cross-context historical average. It exposes `cross_context_metric_aggregation=false`, `reweights_tactical_scores=false` and `changes_recommendations=false`.
+**v1.10 — Evidence Quality & Recency Calibration** adds a separate 0–100 quality signal using recency, signal-sample volume, cleaner-context share, directional stability and exact-opponent continuity. Missing dates receive no recency credit. This score calibrates trust in historical evidence only.
+
+**v1.11 — Opponent Context Distance** adds a second independent evidence axis. Historical opponents are reconstructed from event data only up to each precedent match date and compared with the current rival across pressing, defensive-depth proxy, attack-channel distribution, transition threat and progression/territory. The same club is not forced to 100 similarity because tactical style can change over time.
+
+v1.10 and v1.11 are intentionally not combined into one score. A precedent can be high-quality but tactically dissimilar, or lower-quality but highly similar.
 
 No layer currently claims causal coaching impact.
 
@@ -103,6 +111,8 @@ No layer currently claims causal coaching impact.
 The current version deliberately does not claim to model full team block height, compactness, every off-ball pressure, causal coaching impact or tracking-derived player geometry unless the necessary data exists.
 
 Even exact-context historical precedents can differ in opponent quality, fatigue, exact scoreline, player identities, injuries, substitutions, tournament incentives and unobserved tactical structure. Coach interventions are selected rather than randomized, so repeated historical association is useful tactical evidence but not a treatment-effect estimate.
+
+Opponent-context similarity is not a team-strength rating and does not use opaque embeddings. Similar event-derived tactical profiles can still hide major differences in player quality, competition strength or off-ball geometry.
 
 ## Key REST surfaces
 
@@ -139,11 +149,13 @@ What-if accepts optional `precedent_limit` (1–10, default 5). Match Plan accep
 - **v1.7 — Context-Matched Intervention Library**
 - **v1.8 — Historical Precedent Retrieval**
 - **v1.9 — Precedent-Aware Match Planning**
+- **v1.10 — Evidence Quality & Recency Calibration**
+- **v1.11 — Opponent Context Distance**
 
 ## Repository workflow
 
-Development flows through feature branches and pull requests into `main`, with automated syntax and regression checks before merge.
+Development flows through feature branches and pull requests into `main`, with automated syntax and regression checks before merge. The CI workflow cancels obsolete runs per branch/event so micro-commits do not accumulate stale validation jobs.
 
 ## Status
 
-Active coach-usable MVP development. The current product spans pre-match tactical analysis, lineup decision support, contingency planning, explicit live staff observation, persistent match-day audit trails, full-match and time-aligned post-match evidence, before/after transition review, explicit context/confounder annotations, a cross-match intervention memory, exact-context precedent retrieval and precedent-aware Match Plan / Plan A/B/C evidence.
+Active coach-usable MVP development. The current product spans pre-match tactical analysis, lineup decision support, contingency planning, explicit live staff observation, persistent match-day audit trails, full-match and time-aligned post-match evidence, before/after transition review, explicit context/confounder annotations, a cross-match intervention memory, exact-context precedent retrieval, precedent-aware Match Plan / Plan A/B/C evidence, evidence-quality calibration and transparent opponent-context similarity.
