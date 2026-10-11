@@ -6,7 +6,7 @@ TactiTwin is a football tactical analysis and match-scenario simulation project.
 
 ## Product direction
 
-`public/open data -> normalized football model -> tactical analysis -> scenario engine -> lineup decisions -> match plan -> Plan A/B/C -> live staff observations -> persistent match-day timeline -> post-match review -> full-match evidence -> time-aligned segment evidence -> before/after transition deltas -> context-aware transition review -> context-matched intervention library -> historical precedent retrieval -> precedent-aware match planning -> evidence-quality calibration -> opponent-context distance -> evidence-suitability ranking -> ranking-robustness analysis`
+`public/open data -> normalized football model -> tactical analysis -> scenario engine -> lineup decisions -> match plan -> Plan A/B/C -> live staff observations -> persistent match-day timeline -> post-match review -> full-match evidence -> time-aligned segment evidence -> before/after transition deltas -> context-aware transition review -> context-matched intervention library -> historical precedent retrieval -> precedent-aware match planning -> evidence-quality calibration -> opponent-context distance -> evidence-suitability ranking -> ranking-robustness analysis -> evidence decision brief`
 
 TactiTwin is not intended to predict a final score with certainty. It is a decision-support system for exploring tactical risks, opportunities and "what if" scenarios before, during and after a match while retaining evidence, confidence and method boundaries.
 
@@ -37,6 +37,7 @@ The first phase focuses on:
 - Transparent historical-opponent tactical-context similarity using as-of profiles.
 - Evidence-suitability ranking over already eligible historical precedents.
 - Deterministic sensitivity analysis of evidence-ranking weights.
+- Compact staff-facing evidence decision briefs that preserve the existing evidence order.
 - WordPress administration UI and REST endpoints.
 
 Initial data-source targets:
@@ -77,10 +78,11 @@ The current WordPress plugin supports:
 - Event-derived opponent-context distance across pressing, defensive-depth proxy, attack channels, transition threat and progression/territory.
 - Evidence-suitability ordering that combines current relevance, evidence quality and opponent similarity only after exact-context eligibility has been established.
 - Ranking-robustness diagnostics that show whether evidence priority changes under alternative transparent weight profiles.
+- Evidence Decision Briefs that expose a primary precedent, strongest visible alternative, fit reasons, historical support and invalidation risks without creating a new tactical score.
 
 ### Match-day decision workflow
 
-`Match Plan -> Pre-match Precedent Catalog -> Evidence Quality + Opponent Similarity -> Evidence Suitability Ranking -> Ranking Robustness -> Contingency Playbook -> Exact Plan A/B/C Precedents -> Live Playbook -> Live Session -> Session Review -> Evidence Review -> Segment Evidence -> Transition Deltas -> Context-Aware Review -> Intervention Library -> Historical Precedents`
+`Match Plan -> Pre-match Precedent Catalog -> Evidence Quality + Opponent Similarity -> Evidence Suitability Ranking -> Ranking Robustness -> Evidence Decision Brief -> Contingency Playbook -> Exact Plan A/B/C Precedents + filtered briefs -> Live Playbook -> Live Session -> Session Review -> Evidence Review -> Segment Evidence -> Transition Deltas -> Context-Aware Review -> Intervention Library -> Historical Precedents`
 
 Plan B is never activated merely because historical data predicted an opponent behaviour. A supported manual observation from the staff can activate Plan B when Plan C is not already required by score/manpower context. Plan C keeps precedence for configured score/manpower contingencies.
 
@@ -110,9 +112,13 @@ Live Sessions persist the exact playbook JSON submitted at each staff update. Po
 
 **v1.13 — Evidence Ranking Robustness** tests the v1.12 evidence order under five deterministic weight profiles: baseline, balanced, relevance-heavy, quality-heavy and similarity-heavy. It reports top-rank stability, alternative top candidates, rank ranges and the baseline top margin while preserving the original v1.12 order. Match Plan runs the sensitivity analysis independently within each scenario.
 
+**v1.14 — Evidence Decision Brief** converts the already ranked evidence into a compact descriptive staff brief. The existing first-ranked item is the primary precedent and the second visible item is the alternative. The brief explains exact context, relevance, suitability, quality, opponent similarity, rank robustness, sample support and historical median deltas, and surfaces explicit invalidation/caution flags. Plan A/B/C briefs are generated only after destination-plan and Plan-B-scenario filters have been applied.
+
 v1.12 does not use the legacy v1.8 `retrieval_score` or v1.9 `support_order_score` inside its formula, avoiding double counting of historical maturity, volume and cleaner-share evidence already represented by v1.10. Legacy scores and original ranks remain visible for audit.
 
 v1.13 is a sensitivity diagnostic, not a second ranking engine. A stable result means the evidence priority is less dependent on the tested weighting assumptions; it does not imply causal certainty or guarantee that repeating an intervention will produce the same result.
+
+v1.14 creates no new score and performs no re-ranking. The alternative label is descriptive evidence navigation only. The brief cannot activate a plan or change any tactical recommendation.
 
 No layer currently claims causal coaching impact.
 
@@ -127,6 +133,8 @@ Opponent-context similarity is not a team-strength rating and does not use opaqu
 Evidence suitability is an evidence-navigation score. It may reorder already eligible historical precedents, but it cannot change tactical scores, active-plan logic, recommendations or the underlying historical metrics. Exact-context matching remains a hard upstream requirement and v1.12 does not introduce fuzzy fallback.
 
 Ranking robustness preserves the baseline suitability order and only measures sensitivity to predefined alternative weights. It does not estimate statistically optimal weights, modify suitability values or authorize tactical actions.
+
+The Evidence Decision Brief is a communication layer. It reads the existing order and evidence fields, summarizes them and exposes caveats. It does not create a new confidence/tactical score, reorder evidence, infer causal effects or authorize tactical actions.
 
 ## Key REST surfaces
 
@@ -167,6 +175,7 @@ What-if accepts optional `precedent_limit` (1–10, default 5). Match Plan accep
 - **v1.11 — Opponent Context Distance**
 - **v1.12 — Evidence Suitability Ranking**
 - **v1.13 — Evidence Ranking Robustness**
+- **v1.14 — Evidence Decision Brief**
 
 ## Repository workflow
 
@@ -174,4 +183,4 @@ Development flows through feature branches and pull requests into `main`, with a
 
 ## Status
 
-Active coach-usable MVP development. The current product spans pre-match tactical analysis, lineup decision support, contingency planning, explicit live staff observation, persistent match-day audit trails, full-match and time-aligned post-match evidence, before/after transition review, explicit context/confounder annotations, a cross-match intervention memory, exact-context precedent retrieval, precedent-aware Match Plan / Plan A/B/C evidence, evidence-quality calibration, transparent opponent-context similarity, auditable evidence-suitability ranking and deterministic ranking-robustness diagnostics.
+Active coach-usable MVP development. The current product spans pre-match tactical analysis, lineup decision support, contingency planning, explicit live staff observation, persistent match-day audit trails, full-match and time-aligned post-match evidence, before/after transition review, explicit context/confounder annotations, a cross-match intervention memory, exact-context precedent retrieval, precedent-aware Match Plan / Plan A/B/C evidence, evidence-quality calibration, transparent opponent-context similarity, auditable evidence-suitability ranking, deterministic ranking-robustness diagnostics and compact staff-facing evidence decision briefs.

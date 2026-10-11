@@ -10,6 +10,7 @@ require_once TACTITWIN_DIR . 'includes/class-tactitwin-opponent-context-similari
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-precedent-similarity-attachment.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-evidence-suitability-ranker.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-evidence-ranking-robustness.php';
+require_once TACTITWIN_DIR . 'includes/class-tactitwin-evidence-decision-brief.php';
 
 final class TactiTwin_Precedent_Aware_What_If_Service {
     public function evaluate(
@@ -78,10 +79,14 @@ final class TactiTwin_Precedent_Aware_What_If_Service {
                 $language,
                 10
             );
-            $result['historical_precedents'] = TactiTwin_Evidence_Ranking_Robustness::retrieval(
+            $precedents = TactiTwin_Evidence_Ranking_Robustness::retrieval(
                 $precedents,
                 $language,
                 $precedent_limit
+            );
+            $result['historical_precedents'] = TactiTwin_Evidence_Decision_Brief::retrieval(
+                $precedents,
+                $language
             );
         } catch ( Throwable $e ) {
             $result['historical_precedents'] = array(
@@ -95,6 +100,13 @@ final class TactiTwin_Precedent_Aware_What_If_Service {
                     'es' === $language
                         ? 'La memoria histórica de intervenciones no está disponible para este What-if: ' . $e->getMessage()
                         : 'Historical intervention memory is unavailable for this What-if: ' . $e->getMessage(),
+                ),
+                'decision_brief' => array(
+                    'brief_id' => 'evidence-decision-brief',
+                    'status' => 'unavailable',
+                    'language' => $language,
+                    'primary' => null,
+                    'alternative' => null,
                 ),
                 'method' => array(
                     'type' => 'exact-context-historical-precedent-retrieval',
@@ -112,9 +124,11 @@ final class TactiTwin_Precedent_Aware_What_If_Service {
             'opponent_context_similarity' => true,
             'evidence_suitability_ranking' => true,
             'evidence_ranking_robustness' => true,
+            'evidence_decision_brief' => true,
             'quality_similarity_combined_score' => true,
             'combined_score_scope' => 'historical evidence ordering only',
             'robustness_scope' => 'diagnostic sensitivity of historical evidence ordering only',
+            'decision_brief_scope' => 'descriptive summary of already-ranked historical evidence only',
             'quality_changes_tactical_scores' => false,
             'quality_changes_recommendations' => false,
             'similarity_changes_tactical_scores' => false,
@@ -124,9 +138,13 @@ final class TactiTwin_Precedent_Aware_What_If_Service {
             'robustness_changes_suitability_scores' => false,
             'robustness_changes_tactical_scores' => false,
             'robustness_changes_recommendations' => false,
+            'decision_brief_creates_new_score' => false,
+            'decision_brief_changes_evidence_order' => false,
+            'decision_brief_changes_tactical_scores' => false,
+            'decision_brief_changes_recommendations' => false,
             'note' => 'es' === $language
-                ? 'v1.13 añade un diagnóstico de sensibilidad sobre el ranking v1.12 usando cinco perfiles transparentes de pesos. Conserva el orden base y solo informa de su estabilidad; no modifica scores ni recomendaciones del What-if.'
-                : 'v1.13 adds a sensitivity diagnostic over the v1.12 ranking using five transparent weight profiles. It preserves the baseline order and only reports its stability; it does not alter What-if scores or recommendations.',
+                ? 'v1.14 resume la evidencia ya ordenada en un brief para staff con precedente principal, alternativa, motivos de encaje, soporte histórico y riesgos de invalidez. No crea un score nuevo ni modifica el orden o las recomendaciones del What-if.'
+                : 'v1.14 summarizes already-ranked evidence into a staff brief with a primary precedent, alternative, fit reasons, historical support and invalidation risks. It creates no new score and does not change What-if ordering or recommendations.',
         );
 
         return $result;

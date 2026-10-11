@@ -56,10 +56,14 @@ final class TactiTwin_Precedent_Aware_Match_Plan_Service {
                 10
             );
             $catalog = $this->attach_context_scenario_relevance( $catalog );
-            $plan['historical_precedent_catalog'] = TactiTwin_Evidence_Ranking_Robustness::catalog(
+            $catalog = TactiTwin_Evidence_Ranking_Robustness::catalog(
                 $catalog,
                 $language,
                 $contexts_per_scenario
+            );
+            $plan['historical_precedent_catalog'] = TactiTwin_Evidence_Decision_Brief::catalog(
+                $catalog,
+                $language
             );
         } catch ( Throwable $e ) {
             $plan['historical_precedent_catalog'] = array(
@@ -77,6 +81,9 @@ final class TactiTwin_Precedent_Aware_Match_Plan_Service {
                     'es' === $language
                         ? 'La memoria histórica de intervenciones no está disponible para este Plan de Partido: ' . $e->getMessage()
                         : 'Historical intervention memory is unavailable for this Match Plan: ' . $e->getMessage(),
+                ),
+                'decision_brief_summary' => array(
+                    'scenario_brief_count' => 0,
                 ),
                 'method' => array(
                     'type' => 'scenario-indexed-context-preserving-pre-match-precedent-catalog',
@@ -96,9 +103,11 @@ final class TactiTwin_Precedent_Aware_Match_Plan_Service {
             'opponent_context_similarity' => true,
             'evidence_suitability_ranking' => true,
             'evidence_ranking_robustness' => true,
+            'evidence_decision_brief' => true,
             'quality_similarity_combined_score' => true,
             'combined_score_scope' => 'historical context ordering within each scenario only',
             'robustness_scope' => 'diagnostic sensitivity within each scenario only',
+            'decision_brief_scope' => 'descriptive summary within each scenario only',
             'quality_changes_tactical_scores' => false,
             'quality_changes_recommendations' => false,
             'similarity_changes_tactical_scores' => false,
@@ -108,9 +117,13 @@ final class TactiTwin_Precedent_Aware_Match_Plan_Service {
             'robustness_changes_suitability_scores' => false,
             'robustness_changes_tactical_scores' => false,
             'robustness_changes_recommendations' => false,
+            'decision_brief_creates_new_score' => false,
+            'decision_brief_changes_evidence_order' => false,
+            'decision_brief_changes_tactical_scores' => false,
+            'decision_brief_changes_recommendations' => false,
             'note' => 'es' === $language
-                ? 'v1.13 analiza la sensibilidad del orden v1.12 dentro de cada escenario con cinco perfiles transparentes de pesos. Mantiene el orden base, no reordena escenarios y no modifica prioridades, fases, triggers o recomendaciones.'
-                : 'v1.13 analyzes the sensitivity of the v1.12 order within each scenario using five transparent weight profiles. It preserves the baseline order, does not reorder scenarios and does not alter priorities, phases, triggers or recommendations.',
+                ? 'v1.14 resume por escenario la evidencia ya ordenada con un precedente principal, alternativa y riesgos de invalidez. No reordena escenarios, no crea un score nuevo y no modifica prioridades, fases, triggers o recomendaciones.'
+                : 'v1.14 summarizes already-ranked evidence inside each scenario with a primary precedent, alternative and invalidation risks. It does not reorder scenarios, create a new score or alter priorities, phases, triggers or recommendations.',
         );
 
         return $plan;
