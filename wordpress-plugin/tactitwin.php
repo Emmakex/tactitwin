@@ -34,10 +34,13 @@ require_once TACTITWIN_DIR . 'includes/class-tactitwin-defensive-transition-scen
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-low-block-scenario.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-weak-side-scenario.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-matchup-scan.php';
+require_once TACTITWIN_DIR . 'includes/class-tactitwin-match-plan.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-profile-service.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-data-preparation-service.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-scenario-rest.php';
+require_once TACTITWIN_DIR . 'includes/class-tactitwin-match-plan-rest.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-workspace-admin.php';
+require_once TACTITWIN_DIR . 'includes/class-tactitwin-match-plan-admin.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin.php';
 
 register_activation_hook( __FILE__, array( 'TactiTwin', 'activate' ) );
@@ -45,5 +48,7 @@ register_activation_hook( __FILE__, array( 'TactiTwin', 'activate' ) );
 TactiTwin_I18n::register();
 TactiTwin_Analysis_REST::register();
 TactiTwin_Scenario_REST::register();
+TactiTwin_Match_Plan_REST::register();
 TactiTwin_Workspace_Admin::register();
+TactiTwin_Match_Plan_Admin::register();
 TactiTwin::instance();
