@@ -1,0 +1,24 @@
+<?php
+/**
+ * Plugin Name: TactiTwin
+ * Plugin URI:  https://github.com/Emmakex/tactitwin
+ * Description: Football tactical intelligence and match-scenario simulation powered by public/open data.
+ * Version:     0.1.0-dev
+ * Author:      Emmakex
+ * Text Domain: tactitwin
+ * Requires PHP: 8.1
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
+define( 'TACTITWIN_VERSION', '0.1.0-dev' );
+define( 'TACTITWIN_FILE', __FILE__ );
+define( 'TACTITWIN_DIR', plugin_dir_path( __FILE__ ) );
+
+require_once TACTITWIN_DIR . 'includes/class-tactitwin.php';
+
+register_activation_hook( __FILE__, array( 'TactiTwin', 'activate' ) );
+
+TactiTwin::instance();
