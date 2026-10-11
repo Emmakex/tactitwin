@@ -47,7 +47,7 @@ final class TactiTwin_Live_Observation_REST {
                 'note' => sanitize_text_field( (string) ( $request['observation_note'] ?? '' ) ),
             );
 
-            $result = ( new TactiTwin_Profile_Service() )->live_contingency_playbook(
+            $result = ( new TactiTwin_Precedent_Aware_Contingency_Service() )->live_evaluate(
                 (int) $request['team_id'],
                 (int) $request['opponent_id'],
                 (int) $request['our_score'],
@@ -57,7 +57,8 @@ final class TactiTwin_Live_Observation_REST {
                 (int) $request['limit'],
                 $language,
                 (int) $request['our_players'],
-                (int) $request['opponent_players']
+                (int) $request['opponent_players'],
+                (int) $request['precedent_limit']
             );
 
             return new WP_REST_Response( array( 'ok'=>true, 'result'=>$result ), 200 );
@@ -104,6 +105,11 @@ final class TactiTwin_Live_Observation_REST {
                 'validate_callback'=>static fn( $value ): bool => (int) $value >= 1 && (int) $value <= 120,
             ),
             'limit' => array(
+                'default'=>5,
+                'sanitize_callback'=>'absint',
+                'validate_callback'=>static fn( $value ): bool => (int) $value >= 1 && (int) $value <= 10,
+            ),
+            'precedent_limit' => array(
                 'default'=>5,
                 'sanitize_callback'=>'absint',
                 'validate_callback'=>static fn( $value ): bool => (int) $value >= 1 && (int) $value <= 10,
