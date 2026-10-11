@@ -19,44 +19,8 @@ final class TactiTwin_Unit_Service {
     }
 
     public function lineup_network( int $team_id, array $player_ids, int $limit = 5 ): array {
-        $player_ids = self::normalize_ids( $player_ids );
-        if ( count( $player_ids ) < 2 || count( $player_ids ) > 11 ) {
-            throw new InvalidArgumentException( 'Interaction network requires between 2 and 11 unique players.' );
-        }
-
-        $selected = array_fill_keys( array_map( 'strval', $player_ids ), true );
         $profiles = $this->team_pair_profiles( $team_id, $limit );
-        $pairs    = array();
-
-        foreach ( $profiles as $key => $profile ) {
-            $a = (string) ( $profile['player_a_id'] ?? '' );
-            $b = (string) ( $profile['player_b_id'] ?? '' );
-            if ( isset( $selected[ $a ], $selected[ $b ] ) ) {
-                $pairs[ $key ] = $profile;
-            }
-        }
-
-        $possible_keys = self::possible_pair_keys( array_keys( $selected ) );
-        $under_observed = array();
-        foreach ( $possible_keys as $key ) {
-            $minutes = (float) ( $pairs[ $key ]['coverage']['shared_minutes'] ?? 0.0 );
-            if ( $minutes < 90.0 ) {
-                $under_observed[] = array(
-                    'pair_key'       => $key,
-                    'shared_minutes' => round( $minutes, 1 ),
-                );
-            }
-        }
-
-        return array(
-            'team_source_id' => (string) $team_id,
-            'player_ids'     => array_keys( $selected ),
-            'coverage'       => self::network_coverage( count( $possible_keys ), $pairs, $under_observed ),
-            'signals'        => self::weighted_signals( $pairs ),
-            'leaders'        => self::leaders( $pairs ),
-            'under_observed_pairs' => $under_observed,
-            'pairs'          => array_values( $pairs ),
-        );
+        return self::network_from_profiles( $team_id, $player_ids, $profiles );
     }
 
     public function compare_lineup_networks( int $team_id, array $baseline_ids, array $candidate_ids, int $limit = 5 ): array {
@@ -65,9 +29,13 @@ final class TactiTwin_Unit_Service {
         if ( count( $baseline_ids ) !== count( $candidate_ids ) ) {
             throw new InvalidArgumentException( 'Baseline and candidate networks must contain the same number of players.' );
         }
+        if ( count( $baseline_ids ) < 2 || count( $baseline_ids ) > 11 ) {
+            throw new InvalidArgumentException( 'Network comparison requires between 2 and 11 players per variant.' );
+        }
 
-        $baseline  = $this->lineup_network( $team_id, $baseline_ids, $limit );
-        $candidate = $this->lineup_network( $team_id, $candidate_ids, $limit );
+        $profiles  = $this->team_pair_profiles( $team_id, $limit );
+        $baseline  = self::network_from_profiles( $team_id, $baseline_ids, $profiles );
+        $candidate = self::network_from_profiles( $team_id, $candidate_ids, $profiles );
         $base_set  = array_fill_keys( array_map( 'strval', $baseline_ids ), true );
         $cand_set  = array_fill_keys( array_map( 'strval', $candidate_ids ), true );
         $outgoing  = array_keys( array_diff_key( $base_set, $cand_set ) );
@@ -77,7 +45,6 @@ final class TactiTwin_Unit_Service {
         $cand_pair_keys = array_fill_keys( self::possible_pair_keys( array_keys( $cand_set ) ), true );
         $lost_keys       = array_keys( array_diff_key( $base_pair_keys, $cand_pair_keys ) );
         $gained_keys     = array_keys( array_diff_key( $cand_pair_keys, $base_pair_keys ) );
-        $profiles        = $this->team_pair_profiles( $team_id, $limit );
 
         $gained_evidence = self::pair_evidence_refs( $gained_keys, $profiles );
         $lost_evidence   = self::pair_evidence_refs( $lost_keys, $profiles );
@@ -198,6 +165,45 @@ final class TactiTwin_Unit_Service {
         return $profiles;
     }
 
+    private static function network_from_profiles( int $team_id, array $player_ids, array $profiles ): array {
+        $player_ids = self::normalize_ids( $player_ids );
+        if ( count( $player_ids ) < 2 || count( $player_ids ) > 11 ) {
+            throw new InvalidArgumentException( 'Interaction network requires between 2 and 11 unique players.' );
+        }
+
+        $selected = array_fill_keys( array_map( 'strval', $player_ids ), true );
+        $pairs    = array();
+        foreach ( $profiles as $key => $profile ) {
+            $a = (string) ( $profile['player_a_id'] ?? '' );
+            $b = (string) ( $profile['player_b_id'] ?? '' );
+            if ( isset( $selected[ $a ], $selected[ $b ] ) ) {
+                $pairs[ $key ] = $profile;
+            }
+        }
+
+        $possible_keys  = self::possible_pair_keys( array_keys( $selected ) );
+        $under_observed = array();
+        foreach ( $possible_keys as $key ) {
+            $minutes = (float) ( $pairs[ $key ]['coverage']['shared_minutes'] ?? 0.0 );
+            if ( $minutes < 90.0 ) {
+                $under_observed[] = array(
+                    'pair_key'       => $key,
+                    'shared_minutes' => round( $minutes, 1 ),
+                );
+            }
+        }
+
+        return array(
+            'team_source_id' => (string) $team_id,
+            'player_ids'     => array_keys( $selected ),
+            'coverage'       => self::network_coverage( count( $possible_keys ), $pairs, $under_observed ),
+            'signals'        => self::weighted_signals( $pairs ),
+            'leaders'        => self::leaders( $pairs ),
+            'under_observed_pairs' => $under_observed,
+            'pairs'          => array_values( $pairs ),
+        );
+    }
+
     private static function network_coverage( int $possible_pairs, array $pairs, array $under_observed ): array {
         $observed = count( $pairs );
         $high = 0;
@@ -215,13 +221,13 @@ final class TactiTwin_Unit_Service {
         }
 
         return array(
-            'possible_pairs'       => $possible_pairs,
-            'observed_pairs'       => $observed,
-            'observed_pct'         => $possible_pairs > 0 ? round( ( $observed / $possible_pairs ) * 100.0, 1 ) : 0.0,
-            'high_confidence_pairs'=> $high,
-            'medium_confidence_pairs'=> $medium,
-            'low_confidence_pairs' => $low,
-            'under_observed_pairs' => count( $under_observed ),
+            'possible_pairs'          => $possible_pairs,
+            'observed_pairs'          => $observed,
+            'observed_pct'            => $possible_pairs > 0 ? round( ( $observed / $possible_pairs ) * 100.0, 1 ) : 0.0,
+            'high_confidence_pairs'   => $high,
+            'medium_confidence_pairs' => $medium,
+            'low_confidence_pairs'    => $low,
+            'under_observed_pairs'    => count( $under_observed ),
         );
     }
 
@@ -261,7 +267,7 @@ final class TactiTwin_Unit_Service {
             $best = null;
             $best_value = -INF;
             foreach ( $pairs as $pair ) {
-                $value = (float) ( $pair['signals'][ $signal ] ?? 0.0 );
+                $value   = (float) ( $pair['signals'][ $signal ] ?? 0.0 );
                 $minutes = (float) ( $pair['coverage']['shared_minutes'] ?? 0.0 );
                 if ( $minutes < 90.0 || $value <= $best_value ) {
                     continue;
@@ -330,7 +336,7 @@ final class TactiTwin_Unit_Service {
     }
 
     private static function normalize_ids( array $ids ): array {
-        $result = array_values(
+        return array_values(
             array_unique(
                 array_filter(
                     array_map( 'absint', $ids ),
@@ -338,6 +344,5 @@ final class TactiTwin_Unit_Service {
                 )
             )
         );
-        return $result;
     }
 }
