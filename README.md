@@ -6,7 +6,7 @@ TactiTwin is a football tactical analysis and match-scenario simulation project.
 
 ## Product direction
 
-`public/open data -> normalized football model -> tactical analysis -> scenario engine -> lineup decisions -> match plan -> Plan A/B/C -> evidence suitability/robustness -> evidence decision brief -> evidence conflict signals -> match-day staff brief -> live staff observations -> persistent match-day timeline -> post-match review -> full-match evidence -> time-aligned segment evidence -> before/after transition deltas -> context-aware transition review -> context-matched intervention library -> historical precedent retrieval`
+`public/open data -> normalized football model -> tactical analysis -> scenario engine -> lineup decisions -> match plan -> Plan A/B/C -> evidence suitability/robustness -> evidence decision brief -> evidence conflict signals -> match-day staff brief -> approved immutable brief snapshot -> live session handoff -> live staff observations -> persistent match-day timeline -> post-match review -> full-match evidence -> time-aligned segment evidence -> before/after transition deltas -> context-aware transition review -> context-matched intervention library -> historical precedent retrieval`
 
 TactiTwin is not intended to predict a final score with certainty. It is a decision-support system for exploring tactical risks, opportunities and "what if" scenarios before, during and after a match while retaining evidence, confidence and method boundaries.
 
@@ -40,6 +40,7 @@ The first phase focuses on:
 - Compact staff-facing evidence decision briefs that preserve the existing evidence order.
 - Named evidence-conflict signals that expose disagreements between existing evidence dimensions without creating another score.
 - A printable Match-Day Staff Brief that composes existing tactical and evidence outputs into one bench/meeting surface.
+- Explicit Staff Brief approval with immutable SHA-256 snapshots and direct Live Session handoff.
 - WordPress administration UI and REST endpoints.
 
 Initial data-source targets:
@@ -66,6 +67,9 @@ The current WordPress plugin supports:
 - Plan A / B / C contingency playbook.
 - A dedicated pre-match Staff Brief surface using a neutral 0–0, minute-1, 11v11 reference context.
 - Browser print / Save-as-PDF output for the Staff Brief without adding a server-side PDF dependency.
+- Explicit approval/freeze of the exact Staff Brief source Match Plan and Contingency Playbook.
+- Immutable approved Staff Brief snapshots with UUID + SHA-256 integrity checks.
+- One-to-one idempotent handoff from an approved Staff Brief into a Live Session.
 - Live Playbook with explicit staff-confirmed opponent-behaviour inputs.
 - Persistent Live Sessions with append-only tactical snapshots.
 - A/B/C timeline and transition reconstruction.
@@ -87,11 +91,13 @@ The current WordPress plugin supports:
 
 ### Match-day decision workflow
 
-`Match Plan -> Pre-match Precedent Catalog -> Evidence Quality + Opponent Similarity -> Evidence Suitability Ranking -> Ranking Robustness -> Evidence Decision Brief -> Evidence Conflict Signals -> Plan A/B/C -> Match-Day Staff Brief -> Live Playbook -> Live Session -> Session Review -> Evidence Review -> Segment Evidence -> Transition Deltas -> Context-Aware Review -> Intervention Library -> Historical Precedents`
+`Match Plan -> Pre-match Precedent Catalog -> Evidence Quality + Opponent Similarity -> Evidence Suitability Ranking -> Ranking Robustness -> Evidence Decision Brief -> Evidence Conflict Signals -> Plan A/B/C -> Match-Day Staff Brief -> Explicit Approval -> Immutable Snapshot -> Live Session Handoff -> Live Playbook -> Session Review -> Evidence Review -> Segment Evidence -> Transition Deltas -> Context-Aware Review -> Intervention Library -> Historical Precedents`
 
 Plan B is never activated merely because historical data predicted an opponent behaviour. A supported manual observation from the staff can activate Plan B when Plan C is not already required by score/manpower context. Plan C keeps precedence for configured score/manpower contingencies.
 
 The v1.16 Staff Brief uses minute 1, 0–0 and 11v11 only as a neutral **pre-match reference context**. It does not assert that the match will remain in that state and it cannot activate Plan B or Plan C. Live activation remains governed by the existing observation, score and manpower rules.
+
+With v1.17, staff can explicitly approve that brief. Approval freezes the exact source Match Plan and Contingency Playbook in an immutable snapshot with a SHA-256 content digest. Live Session handoff uses the frozen playbook rather than recalculating the pre-match plan, and the session keeps the approved snapshot UUID as its origin.
 
 Live Sessions persist the exact playbook JSON submitted at each staff update. Post-match review therefore reconstructs the historical decision state from immutable snapshots rather than recalculating the past with newer code or newer data.
 
@@ -127,6 +133,8 @@ Live Sessions persist the exact playbook JSON submitted at each staff update. Po
 
 **v1.16 — Match-Day Staff Brief** is a presentation-only WordPress surface. It composes the already calculated Match Plan and precedent-aware Plan A/B/C into a single printable sheet with the top three tactical priorities, plan instructions/triggers, primary and alternative historical precedents, evidence tensions, opening-15-minute checks, halftime checks and the existing decision tree. It uses a 0–0, minute-1, 11v11 pre-match reference context and does not create a new tactical score, reorder priorities, change evidence order or activate a plan.
 
+**v1.17 — Match-Day Brief Snapshot & Session Handoff** adds explicit staff approval and persistence. Approval creates an immutable snapshot containing the compact Staff Brief plus the exact source Match Plan and Contingency Playbook, protected by a SHA-256 content digest. Handoff verifies integrity, creates one Live Session for that snapshot and writes the frozen playbook as the first append-only session snapshot. Repeated handoff requests reopen the same session instead of duplicating it.
+
 v1.12 does not use the legacy v1.8 `retrieval_score` or v1.9 `support_order_score` inside its formula, avoiding double counting of historical maturity, volume and cleaner-share evidence already represented by v1.10. Legacy scores and original ranks remain visible for audit.
 
 v1.13 is a sensitivity diagnostic, not a second ranking engine. A stable result means the evidence priority is less dependent on the tested weighting assumptions; it does not imply causal certainty or guarantee that repeating an intervention will produce the same result.
@@ -136,6 +144,8 @@ v1.14 creates no new score and performs no re-ranking. The alternative label is 
 v1.15 creates no conflict score and performs no re-ranking. A conflict signal is a prompt for staff review when existing evidence dimensions disagree, not a veto, tactical recommendation or causal conclusion.
 
 v1.16 is a presentation layer, not a second source of tactical truth. Its trimming of priorities, instructions and checks is display-only and always preserves the existing upstream order.
+
+v1.17 is an audit/persistence layer. Approval freezes existing outputs; handoff never recalculates them and cannot change tactical scores, recommendations, evidence order or Plan A/B/C activation logic.
 
 No layer currently claims causal coaching impact.
 
@@ -157,6 +167,8 @@ Evidence Conflict Signals compare existing evidence axes and historical deltas w
 
 The Match-Day Staff Brief only composes existing outputs for rapid staff consumption. The pre-match reference context is not a forecast, and browser print/PDF output does not create a separate persisted tactical state.
 
+Approved Staff Brief snapshots provide integrity and historical provenance, not digital signatures or causal certainty. SHA-256 detects content changes relative to the stored digest; it does not prove who physically approved the brief beyond the authenticated WordPress user record.
+
 ## Key REST surfaces
 
 Examples include:
@@ -173,7 +185,7 @@ Examples include:
 
 What-if accepts optional `precedent_limit` (1–10, default 5). Match Plan accepts `precedent_context_limit` (1–10, default 3). Contingency and Live Playbook accept `precedent_limit` (1–10, default 5).
 
-The Staff Brief is currently an authenticated WordPress admin surface rather than a new REST endpoint.
+Staff Brief approval and v1.17 handoff are currently authenticated WordPress admin actions rather than new REST endpoints.
 
 ## Product milestones
 
@@ -201,6 +213,7 @@ The Staff Brief is currently an authenticated WordPress admin surface rather tha
 - **v1.14 — Evidence Decision Brief**
 - **v1.15 — Evidence Conflict Signals**
 - **v1.16 — Match-Day Staff Brief**
+- **v1.17 — Match-Day Brief Snapshot & Session Handoff**
 
 ## Repository workflow
 
@@ -208,4 +221,4 @@ Development flows through feature branches and pull requests into `main`, with a
 
 ## Status
 
-Active coach-usable MVP development. The current product spans pre-match tactical analysis, lineup decision support, contingency planning, a printable Match-Day Staff Brief, explicit live staff observation, persistent match-day audit trails, full-match and time-aligned post-match evidence, before/after transition review, explicit context/confounder annotations, a cross-match intervention memory, exact-context precedent retrieval, precedent-aware Match Plan / Plan A/B/C evidence, evidence-quality calibration, transparent opponent-context similarity, auditable evidence-suitability ranking, deterministic ranking-robustness diagnostics, compact staff-facing evidence decision briefs and explicit evidence-conflict signals.
+Active coach-usable MVP development. The current product spans pre-match tactical analysis, lineup decision support, contingency planning, a printable Match-Day Staff Brief, immutable staff-approved pre-match snapshots, direct Live Session handoff, explicit live staff observation, persistent match-day audit trails, full-match and time-aligned post-match evidence, before/after transition review, explicit context/confounder annotations, a cross-match intervention memory, exact-context precedent retrieval, precedent-aware Match Plan / Plan A/B/C evidence, evidence-quality calibration, transparent opponent-context similarity, auditable evidence-suitability ranking, deterministic ranking-robustness diagnostics, compact staff-facing evidence decision briefs and explicit evidence-conflict signals.
