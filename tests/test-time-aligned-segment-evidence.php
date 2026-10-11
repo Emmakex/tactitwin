@@ -83,10 +83,10 @@ tt_segment_assert('B' === $b['plan'] && 20 === $b['from_minute'] && 40 === $b['t
 tt_segment_assert('C' === $c['plan'] && 40 === $c['from_minute'] && 60 === $c['to_minute'], 'Plan C interval reconstructed');
 tt_segment_assert('[from,to)' === $b['event_boundary'], 'non-final boundary is half-open');
 tt_segment_assert('[from,to]' === $c['event_boundary'], 'final boundary includes last minute');
-tt_segment_assert(1 === $a['event_count'], 'event at minute 20 is not counted in A');
+tt_segment_assert(2 === $a['event_count'], 'A includes minutes 5 and 19 but excludes transition minute 20');
 tt_segment_assert(10 === $b['event_count'], 'B receives transition-minute event and excludes minute 40');
 tt_segment_assert(3 === $c['event_count'], 'C receives minute 40 and final minute 60 events');
-tt_segment_assert(14 === $a['event_count'] + $b['event_count'] + $c['event_count'], 'events inside the observed window are counted once');
+tt_segment_assert(15 === $a['event_count'] + $b['event_count'] + $c['event_count'], 'events inside the observed window are counted once');
 
 tt_segment_assert('build-up-vs-high-press' === $b['scenario_id'], 'active Plan B scenario retained');
 tt_segment_assert('supported' === $b['active_scenario_evidence']['status'], 'high-press evidence is supported inside Plan B interval');
