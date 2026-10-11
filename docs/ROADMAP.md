@@ -22,7 +22,12 @@ Implemented milestones now include:
 - v1.22 Match-Centric Planning Context, so one imported match + team perspective is reused across Scenario Lab, Match Plan, What-if, Live Playbook and Staff Brief instead of being reselected independently;
 - v1.23 Match Workspace, so the active match becomes the WordPress operational home, the full preparation/live/review flow is navigable from one surface, and Lineup, Personnel and Unit Lab join the shared planning context;
 - v1.24 Fixture Lifecycle & Workspace Progress, so the Workspace derives the real state of the active fixture from existing artifacts, distinguishes persistent/temporary/on-demand states and recommends the next operational step without inventing a preparation score;
-- **v1.25 Post-Match Review Sign-off**, so a closed session review can be frozen into an immutable, versioned staff sign-off bound to the exact fixture, source Staff Brief, Live Session and objective evidence used at review time.
+- v1.25 Post-Match Review Sign-off, so a closed session review can be frozen into an immutable, versioned staff sign-off bound to the exact fixture, source Staff Brief, Live Session and objective evidence used at review time;
+- **v1.26 Signed Review Learning Integration**, so Intervention Library and Historical Precedents can distinguish unsigned calculated history from integrity-valid staff-reviewed history without turning sign-off into an effectiveness score or altering default precedent ranking.
+
+### v1.26 exit criterion
+
+Intervention Library must preserve its existing all-history behavior by default while offering an explicit signed-review-only learning scope. Signed filtering must happen before group aggregation so sample counts, maturity and deltas genuinely describe the selected population. Every case/group must expose signed-review provenance, integrity-invalid signed reviews must never be silently treated as unsigned, and Historical Precedents must carry that provenance forward while keeping the v1.8 `retrieval_score`, exact-context eligibility and default ordering unchanged. Staff sign-off remains workflow/provenance validation, not evidence of causal or tactical effectiveness.
 
 ### v1.25 exit criterion
 
