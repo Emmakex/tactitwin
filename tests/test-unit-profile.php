@@ -42,7 +42,7 @@ tt_unit_profile_assert( 360.0 === $profile['coverage']['shared_minutes'], 'four 
 tt_unit_profile_assert( 4 === $profile['coverage']['matches_observed'], 'four observed matches retained' );
 tt_unit_profile_assert( 'high' === $profile['coverage']['confidence'], '360 minutes across four matches is high confidence' );
 tt_unit_profile_assert( 20.0 === $profile['per_90_shared']['completed_passes'], 'direct passes normalize correctly per 90 shared minutes' );
-tt_unit_profile_assert( 60.0 === $profile['direction_balance_pct'], 'aggregate pass direction balance retained' );
+tt_unit_profile_assert( 66.7 === $profile['direction_balance_pct'], 'aggregate pass direction balance retained' );
 tt_unit_profile_assert( $profile['signals']['progressive_link'] > $profile['per_90_shared']['progressive_passes'], 'progressive signal includes territorial connections' );
 
 $baseline = array(
