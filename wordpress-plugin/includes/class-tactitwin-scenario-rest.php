@@ -36,6 +36,7 @@ final class TactiTwin_Scenario_REST {
                 'build-up-vs-high-press'          => 'high_press',
                 'opponent-side-bias'              => 'side_bias',
                 'defensive-transition-after-loss' => 'defensive_transition',
+                'attack-vs-low-block'             => 'low_block',
                 'full-matchup-scan'               => 'full_scan',
             ) as $route => $callback
         ) {
@@ -89,6 +90,17 @@ final class TactiTwin_Scenario_REST {
     public static function defensive_transition( WP_REST_Request $request ) {
         return self::scenario_response(
             static fn() => ( new TactiTwin_Profile_Service() )->defensive_transition_after_loss(
+                (int) $request['team_id'],
+                (int) $request['opponent_id'],
+                (int) $request['limit'],
+                self::request_language( $request )
+            )
+        );
+    }
+
+    public static function low_block( WP_REST_Request $request ) {
+        return self::scenario_response(
+            static fn() => ( new TactiTwin_Profile_Service() )->attack_vs_low_block(
                 (int) $request['team_id'],
                 (int) $request['opponent_id'],
                 (int) $request['limit'],

@@ -28,6 +28,13 @@ final class TactiTwin_Match_Metrics {
             $x2      = self::float_or_null( $event['end_location_x'] ?? null );
             $y2      = self::float_or_null( $event['end_location_y'] ?? null );
 
+            if ( self::is_defensive_action( $type ) ) {
+                ++$metrics['defensive_actions'];
+                if ( null !== $x1 && $x1 < 40.0 ) {
+                    ++$metrics['deep_defensive_actions'];
+                }
+            }
+
             if ( 'Pass' === $type ) {
                 ++$metrics['passes'];
                 if ( '' === $outcome ) {
@@ -50,7 +57,14 @@ final class TactiTwin_Match_Metrics {
                 }
             } elseif ( 'Shot' === $type ) {
                 ++$metrics['shots'];
-                $metrics['xg'] += (float) ( $event['xg'] ?? 0.0 );
+                $shot_xg = (float) ( $event['xg'] ?? 0.0 );
+                $metrics['xg'] += $shot_xg;
+
+                if ( self::inside_box( $x1, $y1 ) ) {
+                    ++$metrics['box_shots'];
+                    $metrics['box_xg'] += $shot_xg;
+                }
+
                 if ( 'Goal' === $outcome ) {
                     ++$metrics['goals'];
                 }
@@ -109,7 +123,12 @@ final class TactiTwin_Match_Metrics {
             $metrics['build_up_completion_pct'] = self::percentage( $metrics['build_up_completed_passes'], $metrics['build_up_passes'] );
             $metrics['build_up_escape_rate'] = self::percentage( $metrics['build_up_escapes'], $metrics['build_up_actions'] );
             $metrics['high_pressure_share_pct'] = self::percentage( $metrics['high_pressures'], $metrics['pressures'] );
+            $metrics['deep_defensive_action_share_pct'] = self::percentage( $metrics['deep_defensive_actions'], $metrics['defensive_actions'] );
+            $metrics['box_shot_share_pct'] = self::percentage( $metrics['box_shots'], $metrics['shots'] );
             $metrics['xg'] = round( $metrics['xg'], 3 );
+            $metrics['box_xg'] = round( $metrics['box_xg'], 3 );
+            $metrics['xg_per_shot'] = $metrics['shots'] > 0 ? round( $metrics['xg'] / $metrics['shots'], 3 ) : 0.0;
+            $metrics['box_xg_per_shot'] = $metrics['box_shots'] > 0 ? round( $metrics['box_xg'] / $metrics['box_shots'], 3 ) : 0.0;
 
             $final_third_total = max( 1, $metrics['final_third_actions'] );
             $metrics['final_third_channel_share'] = array(
@@ -125,36 +144,52 @@ final class TactiTwin_Match_Metrics {
 
     private static function empty_team_metrics( string $team_id ): array {
         return array(
-            'team_source_id'              => $team_id,
-            'events'                      => 0,
-            'passes'                      => 0,
-            'completed_passes'            => 0,
-            'pass_completion_pct'         => 0.0,
-            'shots'                       => 0,
-            'goals'                       => 0,
-            'xg'                          => 0.0,
-            'carries'                     => 0,
-            'pressures'                   => 0,
-            'recoveries'                  => 0,
-            'duels'                       => 0,
-            'progressive_actions'         => 0,
-            'final_third_entries'         => 0,
-            'box_entries'                 => 0,
-            'build_up_actions'            => 0,
-            'build_up_passes'             => 0,
-            'build_up_completed_passes'   => 0,
-            'build_up_completion_pct'     => 0.0,
-            'build_up_escapes'            => 0,
-            'build_up_escape_rate'        => 0.0,
-            'own_third_turnovers'         => 0,
-            'high_pressures'              => 0,
-            'high_recoveries'             => 0,
-            'high_pressure_share_pct'     => 0.0,
-            'final_third_actions'         => 0,
-            'final_third_left_channel'    => 0,
-            'final_third_central_channel' => 0,
-            'final_third_right_channel'   => 0,
-            'final_third_channel_share'   => array( 'left' => 0.0, 'central' => 0.0, 'right' => 0.0 ),
+            'team_source_id'                  => $team_id,
+            'events'                          => 0,
+            'passes'                          => 0,
+            'completed_passes'                => 0,
+            'pass_completion_pct'             => 0.0,
+            'shots'                           => 0,
+            'box_shots'                       => 0,
+            'box_shot_share_pct'              => 0.0,
+            'goals'                           => 0,
+            'xg'                              => 0.0,
+            'box_xg'                          => 0.0,
+            'xg_per_shot'                     => 0.0,
+            'box_xg_per_shot'                 => 0.0,
+            'carries'                         => 0,
+            'pressures'                       => 0,
+            'recoveries'                      => 0,
+            'duels'                           => 0,
+            'defensive_actions'               => 0,
+            'deep_defensive_actions'          => 0,
+            'deep_defensive_action_share_pct' => 0.0,
+            'progressive_actions'             => 0,
+            'final_third_entries'             => 0,
+            'box_entries'                     => 0,
+            'build_up_actions'                => 0,
+            'build_up_passes'                 => 0,
+            'build_up_completed_passes'       => 0,
+            'build_up_completion_pct'         => 0.0,
+            'build_up_escapes'                => 0,
+            'build_up_escape_rate'            => 0.0,
+            'own_third_turnovers'             => 0,
+            'high_pressures'                  => 0,
+            'high_recoveries'                 => 0,
+            'high_pressure_share_pct'         => 0.0,
+            'final_third_actions'             => 0,
+            'final_third_left_channel'        => 0,
+            'final_third_central_channel'     => 0,
+            'final_third_right_channel'       => 0,
+            'final_third_channel_share'       => array( 'left' => 0.0, 'central' => 0.0, 'right' => 0.0 ),
+        );
+    }
+
+    private static function is_defensive_action( string $type ): bool {
+        return in_array(
+            $type,
+            array( 'Pressure', 'Ball Recovery', 'Interception', 'Duel', 'Block', 'Clearance' ),
+            true
         );
     }
 

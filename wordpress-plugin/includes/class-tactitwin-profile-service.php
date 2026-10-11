@@ -83,6 +83,11 @@ final class TactiTwin_Profile_Service {
         return TactiTwin_Defensive_Transition_Scenario::evaluate( $profiles['team'], $profiles['opponent'], $language );
     }
 
+    public function attack_vs_low_block( int $team_id, int $opponent_id, int $limit = 5, string $language = 'en' ): array {
+        $profiles = $this->matchup_profiles( $team_id, $opponent_id, $limit );
+        return TactiTwin_Low_Block_Scenario::evaluate( $profiles['team'], $profiles['opponent'], $language );
+    }
+
     public function full_matchup_scan( int $team_id, int $opponent_id, int $limit = 5, string $language = 'en' ): array {
         $profiles = $this->matchup_profiles( $team_id, $opponent_id, $limit );
         return TactiTwin_Matchup_Scan::evaluate( $profiles['team'], $profiles['opponent'], $language );
