@@ -153,9 +153,10 @@ final class TactiTwin_Tactical_Twin_Lab_Admin {
     }
 
     private static function render_lab( array $lab, array $labels ): void {
-        $summary = $lab['preparation_summary'] ?? array();
-        $matrix  = $lab['response_matrix'] ?? array();
-        $tree    = $lab['scenario_tree'] ?? array();
+        $summary    = $lab['preparation_summary'] ?? array();
+        $matrix     = $lab['response_matrix'] ?? array();
+        $tree       = $lab['scenario_tree'] ?? array();
+        $robustness = $lab['response_robustness'] ?? array();
         ?>
         <hr style="margin:32px 0;">
         <div style="max-width:1180px;">
@@ -171,8 +172,10 @@ final class TactiTwin_Tactical_Twin_Lab_Admin {
                 <div class="notice notice-warning inline"><p><?php echo esc_html( $lab['coverage']['warning'] ); ?></p></div>
             <?php endif; ?>
 
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin:18px 0 28px;">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:18px 0 28px;">
                 <?php self::card( $labels['top_response'], (string) ( $summary['top_response_name'] ?? '-' ), (string) ( $summary['top_response_id'] ?? '' ) ); ?>
+                <?php self::card( $labels['most_robust'], (string) ( $summary['most_robust_response_name'] ?? '-' ), (string) ( $summary['most_robust_label'] ?? '' ) ); ?>
+                <?php self::card( $labels['leader_changes'], (string) ( $summary['leader_change_count'] ?? 0 ), $labels['of_branches'] . ' ' . (string) ( $summary['branch_count'] ?? 0 ) ); ?>
                 <?php self::card( $labels['highest_risk_branch'], (string) ( $summary['highest_risk_branch']['branch_name'] ?? '-' ), (string) ( $summary['highest_risk_branch']['score'] ?? 0 ) . '/100' ); ?>
                 <?php self::card( $labels['highest_opportunity_branch'], (string) ( $summary['highest_opportunity_branch']['branch_name'] ?? '-' ), (string) ( $summary['highest_opportunity_branch']['score'] ?? 0 ) . '/100' ); ?>
                 <?php self::card( $labels['coverage'], (string) ( $lab['coverage']['effective_matches'] ?? 0 ), $labels['low_coverage'] . ': ' . (string) ( $summary['low_coverage_branches'] ?? 0 ) ); ?>
@@ -190,6 +193,41 @@ final class TactiTwin_Tactical_Twin_Lab_Admin {
                             <td><?php echo esc_html( (string) ( $response['fit_score'] ?? 0 ) . '/100' ); ?></td>
                             <td><?php echo esc_html( (string) ( $response['dominant_driver']['scenario_name'] ?? '-' ) ); ?></td>
                             <td><?php echo esc_html( (string) count( $response['trade_offs'] ?? array() ) ); ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+
+            <h3 style="margin-top:30px;"><?php echo esc_html( $labels['robustness'] ); ?></h3>
+            <p><?php echo esc_html( $labels['robustness_help'] ); ?></p>
+            <table class="widefat striped">
+                <thead><tr><th>#</th><th><?php echo esc_html( $labels['response'] ); ?></th><th><?php echo esc_html( $labels['robustness_state'] ); ?></th><th><?php echo esc_html( $labels['first_places'] ); ?></th><th><?php echo esc_html( $labels['top_two'] ); ?></th><th><?php echo esc_html( $labels['mean_rank'] ); ?></th><th><?php echo esc_html( $labels['worst_rank'] ); ?></th></tr></thead>
+                <tbody>
+                    <?php foreach ( $robustness['responses'] ?? array() as $response ) : ?>
+                        <tr>
+                            <td><?php echo esc_html( (string) ( $response['robustness_rank'] ?? '' ) ); ?></td>
+                            <td><strong><?php echo esc_html( (string) ( $response['response_name'] ?? '' ) ); ?></strong></td>
+                            <td><?php echo esc_html( (string) ( $response['robustness_label'] ?? '' ) ); ?></td>
+                            <td><?php echo esc_html( (string) ( $response['first_place_count'] ?? 0 ) ); ?></td>
+                            <td><?php echo esc_html( (string) ( $response['top_two_count'] ?? 0 ) ); ?></td>
+                            <td><?php echo esc_html( (string) ( $response['mean_rank'] ?? 0 ) ); ?></td>
+                            <td><?php echo esc_html( (string) ( $response['worst_rank'] ?? 0 ) ); ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+
+            <h4 style="margin-top:24px;"><?php echo esc_html( $labels['state_leaders'] ); ?></h4>
+            <table class="widefat striped">
+                <thead><tr><th><?php echo esc_html( $labels['branch'] ); ?></th><th><?php echo esc_html( $labels['state_leader'] ); ?></th><th><?php echo esc_html( $labels['state_fit'] ); ?></th><th><?php echo esc_html( $labels['changes_baseline'] ); ?></th></tr></thead>
+                <tbody>
+                    <?php foreach ( $robustness['branches'] ?? array() as $branch ) : ?>
+                        <?php $leader = $branch['ranked_responses'][0] ?? array(); ?>
+                        <tr>
+                            <td><?php echo esc_html( (string) ( $branch['branch_name'] ?? '' ) ); ?></td>
+                            <td><strong><?php echo esc_html( (string) ( $leader['response_name'] ?? '-' ) ); ?></strong></td>
+                            <td><?php echo esc_html( (string) ( $leader['state_fit'] ?? 0 ) . '/100' ); ?></td>
+                            <td><?php echo esc_html( ! empty( $branch['leader_changed_from_baseline'] ) ? $labels['yes'] : $labels['no'] ); ?></td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
@@ -260,7 +298,7 @@ final class TactiTwin_Tactical_Twin_Lab_Admin {
         if ( 'es' === $language ) {
             return array(
                 'title' => 'TactiTwin · Tactical Twin Lab',
-                'intro' => 'Compara respuestas tácticas y prepara siete futuros explícitos del partido desde una sola evidencia base.',
+                'intro' => 'Compara respuestas tácticas, prepara siete futuros explícitos y mide qué respuesta mantiene mejor su posición entre estados del partido.',
                 'active_context' => 'Usando el partido activo:',
                 'change_match' => 'Cambiar en Match Workspace',
                 'language' => 'Idioma',
@@ -268,19 +306,35 @@ final class TactiTwin_Tactical_Twin_Lab_Admin {
                 'opponent' => 'Rival',
                 'sample' => 'Partidos recientes',
                 'generate' => 'Generar Tactical Twin',
-                'result_intro' => 'Una vista unificada de respuestas prepartido y ramas ficticias del encuentro.',
+                'result_intro' => 'Una vista unificada de respuestas, robustez entre estados y ramas ficticias del encuentro.',
                 'print' => 'Imprimir Twin Lab',
-                'top_response' => 'Respuesta con mayor encaje',
+                'top_response' => 'Mayor encaje base',
+                'most_robust' => 'Respuesta más robusta',
+                'leader_changes' => 'Cambios de líder',
+                'of_branches' => 'de',
                 'highest_risk_branch' => 'Rama de mayor riesgo',
                 'highest_opportunity_branch' => 'Rama de mayor oportunidad',
                 'coverage' => 'Cobertura',
                 'low_coverage' => 'Ramas con cobertura baja',
-                'responses' => 'Respuestas tácticas',
-                'responses_help' => 'El encaje compara énfasis contra el mismo matchup; no es probabilidad de ganar ni predicción de resultado.',
+                'responses' => 'Respuestas tácticas base',
+                'responses_help' => 'El encaje base compara énfasis contra el mismo matchup; no es probabilidad de ganar ni predicción de resultado.',
                 'response' => 'Respuesta',
                 'fit' => 'Encaje',
                 'driver' => 'Driver principal',
                 'tradeoffs' => 'Trade-offs',
+                'robustness' => 'Robustez entre estados del partido',
+                'robustness_help' => 'La robustez describe estabilidad de ranking en las siete ramas. No crea un score global ni asigna probabilidad a las ramas.',
+                'robustness_state' => 'Diagnóstico',
+                'first_places' => 'Veces 1ª',
+                'top_two' => 'Top-2',
+                'mean_rank' => 'Rango medio',
+                'worst_rank' => 'Peor rango',
+                'state_leaders' => 'Líder por estado',
+                'state_leader' => 'Respuesta líder',
+                'state_fit' => 'Encaje en estado',
+                'changes_baseline' => 'Cambia líder base',
+                'yes' => 'Sí',
+                'no' => 'No',
                 'branches' => 'Árbol de estados del partido',
                 'branches_help' => 'Cada rama usa el What-if histórico existente y no recibe probabilidad de ocurrencia.',
                 'branch' => 'Rama',
@@ -289,14 +343,14 @@ final class TactiTwin_Tactical_Twin_Lab_Admin {
                 'opportunity' => 'Oportunidad',
                 'orientation' => 'Orientación',
                 'first_instruction' => 'Primera instrucción',
-                'guardrail' => 'Twin Lab no predice marcador, victoria ni causalidad y no activa Plan A/B/C. Las respuestas v1.27 no se reordenan por rama en v1.29.',
+                'guardrail' => 'v1.30 reordena respuestas solo dentro de cada rama como diagnóstico de sensibilidad. No modifica el ranking base v1.27, no predice resultados y no activa Plan A/B/C.',
                 'technical' => 'Evidencia técnica completa',
             );
         }
 
         return array(
             'title' => 'TactiTwin · Tactical Twin Lab',
-            'intro' => 'Compare tactical responses and prepare seven explicit match futures from one shared evidence base.',
+            'intro' => 'Compare tactical responses, prepare seven explicit match futures and measure which response holds its position best across match states.',
             'active_context' => 'Using active match:',
             'change_match' => 'Change in Match Workspace',
             'language' => 'Language',
@@ -304,19 +358,35 @@ final class TactiTwin_Tactical_Twin_Lab_Admin {
             'opponent' => 'Opponent',
             'sample' => 'Recent matches',
             'generate' => 'Generate Tactical Twin',
-            'result_intro' => 'One unified view of pre-match responses and fictional match-state branches.',
+            'result_intro' => 'One unified view of responses, cross-state robustness and fictional match-state branches.',
             'print' => 'Print Twin Lab',
-            'top_response' => 'Top-fit response',
+            'top_response' => 'Baseline top fit',
+            'most_robust' => 'Most robust response',
+            'leader_changes' => 'Leader changes',
+            'of_branches' => 'of',
             'highest_risk_branch' => 'Highest-risk branch',
             'highest_opportunity_branch' => 'Highest-opportunity branch',
             'coverage' => 'Coverage',
             'low_coverage' => 'Low-coverage branches',
-            'responses' => 'Tactical responses',
-            'responses_help' => 'Fit compares emphasis against the same matchup; it is not win probability or an outcome prediction.',
+            'responses' => 'Baseline tactical responses',
+            'responses_help' => 'Baseline fit compares emphasis against the same matchup; it is not win probability or an outcome prediction.',
             'response' => 'Response',
             'fit' => 'Fit',
             'driver' => 'Dominant driver',
             'tradeoffs' => 'Trade-offs',
+            'robustness' => 'Response robustness across match states',
+            'robustness_help' => 'Robustness describes ranking stability across the seven branches. It creates no aggregate robustness score and assigns no branch probability.',
+            'robustness_state' => 'Diagnosis',
+            'first_places' => '1st-place branches',
+            'top_two' => 'Top-2 branches',
+            'mean_rank' => 'Mean rank',
+            'worst_rank' => 'Worst rank',
+            'state_leaders' => 'Leader by match state',
+            'state_leader' => 'Leading response',
+            'state_fit' => 'State fit',
+            'changes_baseline' => 'Changes baseline leader',
+            'yes' => 'Yes',
+            'no' => 'No',
             'branches' => 'Match-state scenario tree',
             'branches_help' => 'Every branch reuses the existing historical What-if engine and receives no occurrence probability.',
             'branch' => 'Branch',
@@ -325,7 +395,7 @@ final class TactiTwin_Tactical_Twin_Lab_Admin {
             'opportunity' => 'Opportunity',
             'orientation' => 'Orientation',
             'first_instruction' => 'First instruction',
-            'guardrail' => 'Twin Lab does not predict scoreline, winning or causality and cannot activate Plan A/B/C. v1.27 responses are not re-ranked per branch in v1.29.',
+            'guardrail' => 'v1.30 re-ranks responses only inside each branch as a sensitivity diagnostic. It does not alter the v1.27 baseline ranking, predict outcomes or activate Plan A/B/C.',
             'technical' => 'Full technical evidence',
         );
     }
