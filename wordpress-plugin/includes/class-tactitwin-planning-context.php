@@ -44,6 +44,30 @@ final class TactiTwin_Planning_Context {
         return self::PAGE_ACTIONS;
     }
 
+    public static function target_perspectives( array $target ): array {
+        $home_id = trim( (string) ( $target['home_team_source_id'] ?? '' ) );
+        $away_id = trim( (string) ( $target['away_team_source_id'] ?? '' ) );
+        if ( '' === $home_id || '' === $away_id || $home_id === $away_id ) {
+            return array();
+        }
+
+        $home_name = (string) ( $target['home_team_name'] ?? $home_id );
+        $away_name = (string) ( $target['away_team_name'] ?? $away_id );
+
+        return array(
+            array(
+                'team_id' => $home_id,
+                'team_name' => $home_name,
+                'opponent_id' => $away_id,
+            ),
+            array(
+                'team_id' => $away_id,
+                'team_name' => $away_name,
+                'opponent_id' => $home_id,
+            ),
+        );
+    }
+
     public static function decode_selection( string $selection ): array {
         $selection = trim( $selection );
         if ( '' === $selection ) {
@@ -233,8 +257,10 @@ final class TactiTwin_Planning_Context {
                             $competition = trim( (string) ( $target['competition_name'] ?? '' ) );
                             $season = trim( (string) ( $target['season_name'] ?? '' ) );
                             $prefix = trim( $date . ( '' !== $competition ? ' · ' . $competition : '' ) . ( '' !== $season ? ' · ' . $season : '' ), ' ·' );
-                            foreach ( array( $home_id => $home_name, $away_id => $away_name ) as $our_id => $our_name ) :
-                                $opponent_id = $our_id === $home_id ? $away_id : $home_id;
+                            foreach ( self::target_perspectives( $target ) as $perspective ) :
+                                $our_id = (string) $perspective['team_id'];
+                                $our_name = (string) $perspective['team_name'];
+                                $opponent_id = (string) $perspective['opponent_id'];
                                 $selection = $row_id . ':' . $our_id;
                                 $label = trim( $prefix . ' · ' . $home_name . ' vs ' . $away_name . ' · ' . $labels['our_team'] . ': ' . $our_name, ' ·' );
                                 ?>
