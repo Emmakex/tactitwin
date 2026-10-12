@@ -140,6 +140,7 @@ require_once TACTITWIN_DIR . 'includes/class-tactitwin-intervention-library-admi
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-precedent-planning-admin.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-staff-brief-admin.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-staff-brief-handoff-admin.php';
+require_once TACTITWIN_DIR . 'includes/class-tactitwin-reviewed-twin-freeze-bridge.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-frozen-twin-handoff-admin-bridge.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-live-twin-switch-confirmation-admin-bridge.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-live-response-decision-timeline-admin-bridge.php';
@@ -188,6 +189,7 @@ TactiTwin_Intervention_Library_Admin::register();
 TactiTwin_Precedent_Planning_Admin::register();
 TactiTwin_Staff_Brief_Admin::register();
 TactiTwin_Staff_Brief_Handoff_Admin::register();
+TactiTwin_Reviewed_Twin_Freeze_Bridge::register();
 TactiTwin_Frozen_Twin_Handoff_Admin_Bridge::register();
 TactiTwin_Live_Twin_Switch_Confirmation_Admin_Bridge::register();
 TactiTwin_Live_Response_Decision_Timeline_Admin_Bridge::register();
