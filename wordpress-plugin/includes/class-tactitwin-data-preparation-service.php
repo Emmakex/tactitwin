@@ -106,14 +106,25 @@ final class TactiTwin_Data_Preparation_Service {
         }
 
         if ( empty( $scope ) ) {
-            $scope = $this->active_fixture_scope_for_matchup( $team_id, $opponent_id );
+            $scope = $this->scope_for_matchup( $team_id, $opponent_id );
+        } else {
+            $scope = $this->normalize_scope( $scope );
         }
-        $scope = $this->normalize_scope( $scope );
 
         return array(
             'team'     => $this->ensure_team_sample( $team_id, $target, $scope ),
             'opponent' => $this->ensure_team_sample( $opponent_id, $target, $scope ),
             'temporal_scope' => $scope,
+        );
+    }
+
+    public function scope_for_matchup( int $team_id, int $opponent_id ): array {
+        if ( $team_id === $opponent_id ) {
+            throw new InvalidArgumentException( 'Team and opponent must be different.' );
+        }
+
+        return $this->normalize_scope(
+            $this->active_fixture_scope_for_matchup( $team_id, $opponent_id )
         );
     }
 
