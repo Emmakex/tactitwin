@@ -53,6 +53,7 @@ require_once TACTITWIN_DIR . 'includes/class-tactitwin-response-state-robustness
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-response-switch-playbook.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-tactical-twin-lab.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-frozen-twin-handoff.php';
+require_once TACTITWIN_DIR . 'includes/class-tactitwin-live-twin-switch-confirmation.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-contingency-playbook.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-live-observation.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-live-timeline.php';
@@ -138,6 +139,7 @@ require_once TACTITWIN_DIR . 'includes/class-tactitwin-precedent-planning-admin.
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-staff-brief-admin.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-staff-brief-handoff-admin.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-frozen-twin-handoff-admin-bridge.php';
+require_once TACTITWIN_DIR . 'includes/class-tactitwin-live-twin-switch-confirmation-admin-bridge.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-fixture-identity-admin.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-personnel-admin.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-unit-admin.php';
@@ -183,6 +185,7 @@ TactiTwin_Precedent_Planning_Admin::register();
 TactiTwin_Staff_Brief_Admin::register();
 TactiTwin_Staff_Brief_Handoff_Admin::register();
 TactiTwin_Frozen_Twin_Handoff_Admin_Bridge::register();
+TactiTwin_Live_Twin_Switch_Confirmation_Admin_Bridge::register();
 TactiTwin_Fixture_Identity_Admin::register();
 TactiTwin_Personnel_Admin::register();
 TactiTwin_Unit_Admin::register();
