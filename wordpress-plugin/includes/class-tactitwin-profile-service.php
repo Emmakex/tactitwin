@@ -6,6 +6,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 final class TactiTwin_Profile_Service {
     public function team_profile( int $team_id, int $limit = 5 ): array {
+        return $this->team_profile_with_scope( $team_id, $limit, array() );
+    }
+
+    private function team_profile_with_scope( int $team_id, int $limit, array $scope ): array {
         global $wpdb;
 
         $limit       = max( 1, min( 10, $limit ) );
@@ -13,24 +17,40 @@ final class TactiTwin_Profile_Service {
         $event_table = TactiTwin_DB::table( 'events' );
         $source      = TactiTwin_StatsBomb_Normalizer::SOURCE;
 
-        $matches = $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT m.source_match_id, m.match_date, m.home_team_source_id, m.away_team_source_id
-                 FROM {$match_table} m
-                 WHERE m.source = %s
+        $where = "WHERE m.source = %s
                    AND (m.home_team_source_id = %s OR m.away_team_source_id = %s)
                    AND EXISTS (
                        SELECT 1 FROM {$event_table} e
                        WHERE e.source = m.source AND e.source_match_id = m.source_match_id
                        LIMIT 1
-                   )
+                   )";
+        $args = array(
+            $source,
+            (string) $team_id,
+            (string) $team_id,
+        );
+
+        $before_date = trim( (string) ( $scope['before_date'] ?? '' ) );
+        if ( '' !== $before_date ) {
+            $where .= "\n                   AND m.match_date < %s";
+            $args[] = $before_date;
+        }
+
+        $exclude_match_id = trim( (string) ( $scope['exclude_match_id'] ?? '' ) );
+        if ( '' !== $exclude_match_id ) {
+            $where .= "\n                   AND m.source_match_id <> %s";
+            $args[] = $exclude_match_id;
+        }
+
+        $args[] = $limit;
+        $sql = "SELECT m.source_match_id, m.match_date, m.home_team_source_id, m.away_team_source_id
+                 FROM {$match_table} m
+                 {$where}
                  ORDER BY m.match_date DESC, m.id DESC
-                 LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-                $source,
-                (string) $team_id,
-                (string) $team_id,
-                $limit
-            ),
+                 LIMIT %d"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
+        $matches = $wpdb->get_results(
+            $wpdb->prepare( $sql, ...$args ), // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
             ARRAY_A
         );
 
@@ -206,9 +226,12 @@ final class TactiTwin_Profile_Service {
             throw new InvalidArgumentException( 'Team and opponent must be different.' );
         }
 
+        $scope = ( new TactiTwin_Data_Preparation_Service() )->scope_for_matchup( $team_id, $opponent_id );
+
         return array(
-            'team'     => $this->team_profile( $team_id, $limit ),
-            'opponent' => $this->team_profile( $opponent_id, $limit ),
+            'team'     => $this->team_profile_with_scope( $team_id, $limit, $scope ),
+            'opponent' => $this->team_profile_with_scope( $opponent_id, $limit, $scope ),
+            'temporal_scope' => $scope,
         );
     }
 
