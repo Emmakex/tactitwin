@@ -6,7 +6,7 @@ TactiTwin is a football tactical analysis and match-scenario simulation project.
 
 ## Product direction
 
-`public/open data -> normalized football model -> tactical analysis -> scenario engine -> lineup decisions -> match plan -> tactical response matrix -> match-state scenario tree -> Plan A/B/C -> evidence suitability/robustness -> evidence decision brief -> evidence conflict signals -> match-day staff brief -> imported match target -> match-centric planning context -> exact fixture identity -> version diff -> approval revision chain -> approved immutable brief snapshot -> live session handoff -> live staff observations -> persistent match-day timeline -> post-match review -> full-match evidence -> time-aligned segment evidence -> before/after transition deltas -> context-aware transition review -> context-matched intervention library -> signed-review learning -> historical precedent retrieval`
+`public/open data -> normalized football model -> tactical analysis -> scenario engine -> lineup decisions -> match plan -> tactical response matrix -> match-state scenario tree -> tactical twin lab -> Plan A/B/C -> evidence suitability/robustness -> evidence decision brief -> evidence conflict signals -> match-day staff brief -> imported match target -> match-centric planning context -> exact fixture identity -> version diff -> approval revision chain -> approved immutable brief snapshot -> live session handoff -> live staff observations -> persistent match-day timeline -> post-match review -> full-match evidence -> time-aligned segment evidence -> before/after transition deltas -> context-aware transition review -> context-matched intervention library -> signed-review learning -> historical precedent retrieval`
 
 TactiTwin is not intended to predict a final score with certainty. It is a decision-support system for exploring tactical risks, opportunities and "what if" scenarios before, during and after a match while retaining evidence, confidence and method boundaries.
 
@@ -22,6 +22,7 @@ The first phase focuses on:
 - Match-plan recommendations with explainable evidence.
 - Tactical Response Matrix comparison across several explicit response packages without outcome prediction.
 - Match-State Scenario Tree preparation across explicit minute/score/manpower branches without branch probabilities.
+- One Tactical Twin Lab WordPress surface combining response comparison and match-state preparation from a shared source scan.
 - Historical score-state and manpower conditioning.
 - Lineup and unit what-if comparison.
 - Plan A / B / C contingency preparation.
@@ -69,6 +70,7 @@ The current WordPress plugin supports:
 - Full Matchup Scan across all five scenarios.
 - Tactical Response Matrix comparing Balanced Control, Press-Resistant Build-up, Transition Security and Width & Switch against the same matchup evidence.
 - Match-State Scenario Tree covering opening/second-half neutral states, protect/chase branches, a late draw and 11v10/10v11 preparation cases.
+- Tactical Twin Lab combining the complete response matrix and scenario tree from one shared Full Matchup Scan, inheriting the active planning context when available.
 - Bilingual Match Plan generation in English and Spanish.
 - Game State / What-if planning from an exact hypothetical minute and scoreline.
 - Player, unit, phase-unit and lineup comparison.
@@ -110,7 +112,7 @@ The current WordPress plugin supports:
 
 ### Match-day decision workflow
 
-`Imported Match Target -> Match-Centric Planning Context -> Full Matchup Scan -> Match Plan -> Tactical Response Matrix -> Match-State Scenario Tree -> Pre-match Precedent Catalog -> Evidence Quality + Opponent Similarity -> Evidence Suitability Ranking -> Ranking Robustness -> Evidence Decision Brief -> Evidence Conflict Signals -> Plan A/B/C -> Match-Day Staff Brief -> Exact Fixture Identity -> Version Diff -> Explicit Approval -> Approval Revision Chain -> Immutable Snapshot -> Live Session Handoff -> Live Playbook -> Session Review -> Evidence Review -> Segment Evidence -> Transition Deltas -> Context-Aware Review -> Post-Match Sign-off -> Intervention Library -> Signed Review Learning -> Historical Precedents`
+`Imported Match Target -> Match-Centric Planning Context -> Full Matchup Scan -> Match Plan -> Tactical Twin Lab (Tactical Response Matrix + Match-State Scenario Tree) -> Pre-match Precedent Catalog -> Evidence Quality + Opponent Similarity -> Evidence Suitability Ranking -> Ranking Robustness -> Evidence Decision Brief -> Evidence Conflict Signals -> Plan A/B/C -> Match-Day Staff Brief -> Exact Fixture Identity -> Version Diff -> Explicit Approval -> Approval Revision Chain -> Immutable Snapshot -> Live Session Handoff -> Live Playbook -> Session Review -> Evidence Review -> Segment Evidence -> Transition Deltas -> Context-Aware Review -> Post-Match Sign-off -> Intervention Library -> Signed Review Learning -> Historical Precedents`
 
 Plan B is never activated merely because historical data predicted an opponent behaviour. A supported manual observation from the staff can activate Plan B when Plan C is not already required by score/manpower context. Plan C keeps precedence for configured score/manpower contingencies.
 
@@ -141,6 +143,8 @@ With v1.26, signed-review provenance flows into the Intervention Library and His
 With v1.27, the Tactical Response Matrix compares four explicit tactical response packages against the same Full Matchup Scan. Fit measures how strongly each package emphasises the matchup's existing priorities; it is not a scoreline forecast, win probability or causal effectiveness estimate and does not change upstream scenario scores or recommendations.
 
 With v1.28, the Match-State Scenario Tree evaluates seven explicit fictional minute/score/manpower states through the existing Context What-if engine. The branches are preparation cases rather than forecasts, receive no occurrence probabilities and keep the v1.27 response matrix as a shared baseline instead of silently re-ranking tactical responses per state.
+
+With v1.29, Tactical Twin Lab places the complete v1.27 response matrix and v1.28 scenario tree on one shared Full Matchup Scan in WordPress. It inherits the current match-centric planning context when available, keeps manual fallback otherwise, and presents summary cards, response/branch tables, print output and full technical evidence without creating a new score or persistence layer.
 
 Live Sessions persist the exact playbook JSON submitted at each staff update. Post-match review therefore reconstructs the historical decision state from immutable snapshots rather than recalculating the past with newer code or newer data.
 
@@ -218,6 +222,8 @@ v1.27 is a comparative response-emphasis layer. It ranks how strongly fixed tact
 
 v1.28 is a branch-orchestration layer over the existing Context What-if engine. Its seven preparation cases receive no occurrence probability, and its descriptive `risk - opportunity` delta does not become a new tactical score or state-specific response ranking.
 
+v1.29 is a coach-facing presentation/orchestration layer. It combines v1.27 and v1.28 on one shared source scan and existing planning context without changing either component or creating a new tactical model.
+
 No layer currently claims causal coaching impact.
 
 ## Method boundaries
@@ -252,6 +258,8 @@ The v1.27 Tactical Response Matrix is a deterministic comparison over the existi
 
 The v1.28 Match-State Scenario Tree evaluates explicit fictional states using existing score-state/manpower evidence. It does not estimate branch likelihood or state-dependent tactical-response success, and it keeps the v1.27 response ordering separate from branch-specific What-if evidence.
 
+The v1.29 Tactical Twin Lab uses one Full Matchup Scan to present the response matrix and scenario tree together. Its summary fields are references to those existing outputs, not a combined score or a prediction layer, and the Lab stores no second planning context.
+
 ## Key REST surfaces
 
 Examples include:
@@ -270,7 +278,7 @@ Examples include:
 
 What-if accepts optional `precedent_limit` (1–10, default 5). Match Plan accepts `precedent_context_limit` (1–10, default 3). Contingency and Live Playbook accept `precedent_limit` (1–10, default 5).
 
-Staff Brief approval, version audit, fixture binding and Live Session handoff are currently authenticated WordPress admin actions rather than new REST endpoints.
+Twin Lab is currently an authenticated WordPress admin orchestration surface over the v1.27/v1.28 engines rather than a separate REST model. Staff Brief approval, version audit, fixture binding and Live Session handoff are also authenticated WordPress admin actions.
 
 ## Product milestones
 
@@ -311,6 +319,7 @@ Staff Brief approval, version audit, fixture binding and Live Session handoff ar
 - **v1.26 — Signed Review Learning Integration**
 - **v1.27 — Tactical Response Matrix**
 - **v1.28 — Match-State Scenario Tree**
+- **v1.29 — Tactical Twin Lab**
 
 ## Repository workflow
 
@@ -318,4 +327,4 @@ Development flows through feature branches and pull requests into `main`, with a
 
 ## Status
 
-Active coach-usable MVP development. The current product spans canonical imported-match targeting, a shared per-user match-centric planning context, pre-match tactical analysis, deterministic multi-response tactical comparison, explicit multi-branch match-state preparation, lineup decision support, contingency planning, a printable and exact-fixture-bindable Match-Day Staff Brief, immutable staff-approved pre-match snapshots, fixture-scoped structural preapproval version diffs, immutable approval revision lineage, stale-review protection, direct Live Session handoff, explicit live staff observation, persistent match-day audit trails, full-match and time-aligned post-match evidence, before/after transition review, explicit context/confounder annotations, immutable post-match staff sign-off, signed-review-aware historical learning, a cross-match intervention memory, exact-context precedent retrieval, precedent-aware Match Plan / Plan A/B/C evidence, evidence-quality calibration, transparent opponent-context similarity, auditable evidence-suitability ranking, deterministic ranking-robustness diagnostics, compact staff-facing evidence decision briefs and explicit evidence-conflict signals.
+Active coach-usable MVP development. The current product spans canonical imported-match targeting, a shared per-user match-centric planning context, pre-match tactical analysis, deterministic multi-response tactical comparison, explicit multi-branch match-state preparation, one unified coach-facing Tactical Twin Lab, lineup decision support, contingency planning, a printable and exact-fixture-bindable Match-Day Staff Brief, immutable staff-approved pre-match snapshots, fixture-scoped structural preapproval version diffs, immutable approval revision lineage, stale-review protection, direct Live Session handoff, explicit live staff observation, persistent match-day audit trails, full-match and time-aligned post-match evidence, before/after transition review, explicit context/confounder annotations, immutable post-match staff sign-off, signed-review-aware historical learning, a cross-match intervention memory, exact-context precedent retrieval, precedent-aware Match Plan / Plan A/B/C evidence, evidence-quality calibration, transparent opponent-context similarity, auditable evidence-suitability ranking, deterministic ranking-robustness diagnostics, compact staff-facing evidence decision briefs and explicit evidence-conflict signals.
