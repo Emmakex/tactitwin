@@ -56,7 +56,7 @@ This allows the existing Staff Brief version diff to detect a changed Tactical T
 
 A Twin change appears with the stable change ID:
 
-`TACTICAL-TWIN-PREPARATION-CHANGED`
+`tactical-twin-preparation-changed`
 
 and section:
 
