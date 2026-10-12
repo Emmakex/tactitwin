@@ -17,7 +17,7 @@ final class TactiTwin {
 
     private function __construct() {
         add_action( 'admin_init', array( $this, 'maybe_upgrade_schema' ) );
-        add_action( 'admin_menu', array( $this, 'register_admin_menu' ) );
+        add_action( 'admin_menu', array( $this, 'register_admin_menu' ), 5 );
         add_action( 'rest_api_init', array( $this, 'register_rest_routes' ) );
         add_action( 'admin_post_tactitwin_import_competition', array( $this, 'admin_import_competition' ) );
         add_action( 'admin_post_tactitwin_import_match', array( $this, 'admin_import_match' ) );
