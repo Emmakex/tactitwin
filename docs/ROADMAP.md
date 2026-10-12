@@ -24,7 +24,12 @@ Implemented milestones now include:
 - v1.24 Fixture Lifecycle & Workspace Progress, so the Workspace derives the real state of the active fixture from existing artifacts, distinguishes persistent/temporary/on-demand states and recommends the next operational step without inventing a preparation score;
 - v1.25 Post-Match Review Sign-off, so a closed session review can be frozen into an immutable, versioned staff sign-off bound to the exact fixture, source Staff Brief, Live Session and objective evidence used at review time;
 - v1.26 Signed Review Learning Integration, so Intervention Library and Historical Precedents can distinguish unsigned calculated history from integrity-valid staff-reviewed history without turning sign-off into an effectiveness score or altering default precedent ranking;
-- **v1.27 Tactical Response Matrix**, so one Full Matchup Scan can be stress-tested against several explicit tactical response packages while preserving the original scenario scores, recommendations and evidence boundaries.
+- v1.27 Tactical Response Matrix, so one Full Matchup Scan can be stress-tested against several explicit tactical response packages while preserving the original scenario scores, recommendations and evidence boundaries;
+- **v1.28 Match-State Scenario Tree**, so pre-match preparation can evaluate seven explicit minute/score/manpower branches through the existing Context What-if engine without assigning probabilities or silently re-ranking response packages.
+
+### v1.28 exit criterion
+
+For one team/opponent matchup, TactiTwin must evaluate seven explicit preparation branches: opening 0-0, second-half 0-0, protecting 1-0, chasing 0-1, late 0-0, 11v10 and 10v11. Every branch must reuse the existing score-state/manpower Context What-if engine and expose its hypothesis, risk/opportunity outputs, historical coverage, recommendations and decision triggers. The tree may add only descriptive cross-branch diagnostics such as `risk - opportunity`; it must not assign occurrence probability, predict a final score, change upstream tactical scores/recommendations, activate a plan or re-rank v1.27 Tactical Response Matrix packages by branch. ES/EN numeric results and branch order must remain invariant, and the tree must be available through an authenticated REST endpoint with dedicated regression coverage.
 
 ### v1.27 exit criterion
 
