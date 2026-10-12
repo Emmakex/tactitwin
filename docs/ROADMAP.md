@@ -27,7 +27,12 @@ Implemented milestones now include:
 - v1.27 Tactical Response Matrix, so one Full Matchup Scan can be stress-tested against several explicit tactical response packages while preserving the original scenario scores, recommendations and evidence boundaries;
 - v1.28 Match-State Scenario Tree, so pre-match preparation can evaluate seven explicit minute/score/manpower branches through the existing Context What-if engine without assigning probabilities or silently re-ranking response packages;
 - v1.29 Tactical Twin Lab, so coaches can inspect the v1.27 response matrix and v1.28 scenario tree together on one shared Full Matchup Scan in a WordPress workspace that inherits the active match context when available;
-- **v1.30 Response Robustness Across Match States**, so the four existing response packages can be compared against all seven explicit match-state demands and staff can see leader changes and rank stability without creating outcome probabilities or an aggregate robustness score.
+- v1.30 Response Robustness Across Match States, so the four existing response packages can be compared against all seven explicit match-state demands and staff can see leader changes and rank stability without creating outcome probabilities or an aggregate robustness score;
+- **v1.31 Response Switch Playbook**, so v1.30 leader changes become explicit staff review points with target response, state trigger, existing validation signals, compatibility margin and coverage caution while keeping every tactical switch manual.
+
+### v1.31 exit criterion
+
+For one valid Twin Lab result, TactiTwin must generate one switch-review item for every v1.28 match-state branch. Each item must preserve the v1.27 baseline response, derive its target only from the corresponding v1.30 branch leader, reuse existing v1.28 decision triggers and recommendations as validation context, expose the first-vs-second branch compatibility margin without presenting it as confidence, and carry low general/manpower historical coverage forward as an explicit caution. A branch whose leader differs from baseline is a `switch-candidate`; otherwise it is `retain-baseline`. Every item must declare `automatic_activation=false` and `manual_confirmation_required=true`. v1.31 must not alter v1.27/v1.28/v1.30 outputs, activate Plan A/B/C, predict outcomes or create a new persistence model. ES/EN decisions must remain mathematically invariant and dedicated regression tests must prove representative targets, coverage caution and source immutability.
 
 ### v1.30 exit criterion
 

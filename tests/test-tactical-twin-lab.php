@@ -7,6 +7,7 @@ require_once __DIR__ . '/../wordpress-plugin/includes/class-tactitwin-context-wh
 require_once __DIR__ . '/../wordpress-plugin/includes/class-tactitwin-tactical-response-matrix.php';
 require_once __DIR__ . '/../wordpress-plugin/includes/class-tactitwin-match-state-scenario-tree.php';
 require_once __DIR__ . '/../wordpress-plugin/includes/class-tactitwin-response-state-robustness.php';
+require_once __DIR__ . '/../wordpress-plugin/includes/class-tactitwin-response-switch-playbook.php';
 require_once __DIR__ . '/../wordpress-plugin/includes/class-tactitwin-tactical-twin-lab.php';
 
 function tt_twin_assert( $condition, string $message ): void {
@@ -107,10 +108,13 @@ tt_twin_assert( 4 === count( $en['response_matrix']['responses'] ), 'lab exposes
 tt_twin_assert( 7 === count( $en['scenario_tree']['branches'] ), 'lab exposes all seven match-state branches' );
 tt_twin_assert( 4 === count( $en['response_robustness']['responses'] ), 'lab exposes robustness for all four responses' );
 tt_twin_assert( 7 === count( $en['response_robustness']['branches'] ), 'lab exposes robustness across all seven branches' );
+tt_twin_assert( 7 === count( $en['response_switch_playbook']['items'] ), 'lab exposes seven response switch review points' );
 tt_twin_assert( true === $en['method']['shared_source_scan'], 'lab declares one shared source scan' );
 tt_twin_assert( false === $en['method']['creates_new_tactical_score'], 'lab creates no new tactical score' );
 tt_twin_assert( false === $en['method']['changes_response_ranking'], 'lab preserves baseline response ranking' );
 tt_twin_assert( true === $en['method']['adds_state_rank_diagnostics'], 'lab declares state rank diagnostics' );
+tt_twin_assert( true === $en['method']['adds_manual_switch_candidates'], 'lab declares manual switch candidates' );
+tt_twin_assert( false === $en['method']['automatic_response_activation'], 'lab cannot activate responses automatically' );
 tt_twin_assert( false === $en['method']['changes_branch_outputs'], 'lab preserves branch outputs' );
 tt_twin_assert( false === $en['method']['predicts_outcome'], 'lab explicitly rejects outcome prediction' );
 tt_twin_assert( false === $en['method']['activates_plan'], 'lab cannot activate a plan' );
@@ -133,6 +137,14 @@ tt_twin_assert(
     'summary leader change count is sourced from robustness diagnostics'
 );
 tt_twin_assert(
+    $en['response_switch_playbook']['summary']['switch_candidate_count'] === $en['preparation_summary']['switch_candidate_count'],
+    'summary switch candidate count is sourced from switch playbook'
+);
+tt_twin_assert(
+    $en['response_switch_playbook']['summary']['coverage_caution_count'] === $en['preparation_summary']['coverage_caution_switches'],
+    'summary switch coverage cautions are sourced from switch playbook'
+);
+tt_twin_assert(
     $en['scenario_tree']['summary']['highest_risk_branch'] === $en['preparation_summary']['highest_risk_branch'],
     'summary highest-risk branch is sourced from scenario tree'
 );
@@ -146,12 +158,12 @@ tt_twin_assert(
 );
 
 tt_twin_assert(
-    $en['response_matrix']['team'] === $en['team'] && $en['scenario_tree']['team'] === $en['team'] && $en['response_robustness']['team'] === $en['team'],
-    'matrix, tree and robustness share the same team identity'
+    $en['response_matrix']['team'] === $en['team'] && $en['scenario_tree']['team'] === $en['team'] && $en['response_robustness']['team'] === $en['team'] && $en['response_switch_playbook']['team'] === $en['team'],
+    'matrix, tree, robustness and switch playbook share the same team identity'
 );
 tt_twin_assert(
-    $en['response_matrix']['opponent'] === $en['opponent'] && $en['scenario_tree']['opponent'] === $en['opponent'] && $en['response_robustness']['opponent'] === $en['opponent'],
-    'matrix, tree and robustness share the same opponent identity'
+    $en['response_matrix']['opponent'] === $en['opponent'] && $en['scenario_tree']['opponent'] === $en['opponent'] && $en['response_robustness']['opponent'] === $en['opponent'] && $en['response_switch_playbook']['opponent'] === $en['opponent'],
+    'matrix, tree, robustness and switch playbook share the same opponent identity'
 );
 
 tt_twin_assert(
@@ -161,6 +173,10 @@ tt_twin_assert(
 tt_twin_assert(
     $en['preparation_summary']['most_robust_response_id'] === $es['preparation_summary']['most_robust_response_id'],
     'most robust response is language-neutral'
+);
+tt_twin_assert(
+    $en['preparation_summary']['switch_candidate_count'] === $es['preparation_summary']['switch_candidate_count'],
+    'switch candidate count is language-neutral'
 );
 tt_twin_assert(
     array_column( $en['scenario_tree']['branches'], 'branch_id' ) === array_column( $es['scenario_tree']['branches'], 'branch_id' ),
@@ -196,6 +212,30 @@ foreach ( $es['response_robustness']['responses'] as $response ) {
     );
 }
 tt_twin_assert( $en_robustness === $es_robustness, 'robustness ranks are language-neutral' );
+
+$en_switch_signature = array();
+foreach ( $en['response_switch_playbook']['items'] as $item ) {
+    tt_twin_assert( false === $item['automatic_activation'], 'switch item never auto activates' );
+    tt_twin_assert( true === $item['manual_confirmation_required'], 'switch item requires manual confirmation' );
+    $en_switch_signature[] = array(
+        $item['branch_id'],
+        $item['decision'],
+        $item['target_response']['response_id'],
+        $item['state_fit_margin'],
+        $item['coverage_caution'],
+    );
+}
+$es_switch_signature = array();
+foreach ( $es['response_switch_playbook']['items'] as $item ) {
+    $es_switch_signature[] = array(
+        $item['branch_id'],
+        $item['decision'],
+        $item['target_response']['response_id'],
+        $item['state_fit_margin'],
+        $item['coverage_caution'],
+    );
+}
+tt_twin_assert( $en_switch_signature === $es_switch_signature, 'switch playbook decisions are language-neutral' );
 
 foreach ( $en['scenario_tree']['branches'] as $index => $branch ) {
     tt_twin_assert(

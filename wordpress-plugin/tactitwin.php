@@ -50,6 +50,7 @@ require_once TACTITWIN_DIR . 'includes/class-tactitwin-game-state-what-if.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-context-what-if.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-match-state-scenario-tree.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-response-state-robustness.php';
+require_once TACTITWIN_DIR . 'includes/class-tactitwin-response-switch-playbook.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-tactical-twin-lab.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-contingency-playbook.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-live-observation.php';
