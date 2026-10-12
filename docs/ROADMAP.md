@@ -23,7 +23,12 @@ Implemented milestones now include:
 - v1.23 Match Workspace, so the active match becomes the WordPress operational home, the full preparation/live/review flow is navigable from one surface, and Lineup, Personnel and Unit Lab join the shared planning context;
 - v1.24 Fixture Lifecycle & Workspace Progress, so the Workspace derives the real state of the active fixture from existing artifacts, distinguishes persistent/temporary/on-demand states and recommends the next operational step without inventing a preparation score;
 - v1.25 Post-Match Review Sign-off, so a closed session review can be frozen into an immutable, versioned staff sign-off bound to the exact fixture, source Staff Brief, Live Session and objective evidence used at review time;
-- **v1.26 Signed Review Learning Integration**, so Intervention Library and Historical Precedents can distinguish unsigned calculated history from integrity-valid staff-reviewed history without turning sign-off into an effectiveness score or altering default precedent ranking.
+- v1.26 Signed Review Learning Integration, so Intervention Library and Historical Precedents can distinguish unsigned calculated history from integrity-valid staff-reviewed history without turning sign-off into an effectiveness score or altering default precedent ranking;
+- **v1.27 Tactical Response Matrix**, so one Full Matchup Scan can be stress-tested against several explicit tactical response packages while preserving the original scenario scores, recommendations and evidence boundaries.
+
+### v1.27 exit criterion
+
+For one valid Full Matchup Scan, TactiTwin must compare four deterministic tactical response packages against the same five existing scenario dimensions. The comparison must reuse the Match Plan scenario-priority formula (`0.60*risk + 0.40*opportunity`), expose each response's weights, contributions, dominant driver, existing instructions and underweighted high-priority trade-offs, and provide language-invariant ES/EN numeric output. Response fit must remain a prioritisation index only: it must never mutate the source scan, change tactical scores or recommendations, activate Plan A/B/C, predict a scoreline or win probability, or be presented as causal tactical effectiveness. The matrix must be available through an authenticated REST endpoint and covered by dedicated regression tests.
 
 ### v1.26 exit criterion
 
