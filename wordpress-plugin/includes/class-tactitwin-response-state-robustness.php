@@ -8,7 +8,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Stress-tests v1.27 tactical responses across the explicit v1.28 match-state
  * branches without assigning branch probabilities or claiming outcome impact.
  *
- * Robustness is expressed through rank stability, not a new 0-100 score.
+ * Robustness is expressed through rank stability, not a new 0-100 robustness
+ * score. Each branch-specific state_fit is only a transparent coverage index.
  */
 final class TactiTwin_Response_State_Robustness {
     public static function compose( array $matrix, array $tree, string $language = 'en' ): array {
@@ -28,45 +29,53 @@ final class TactiTwin_Response_State_Robustness {
         $branches  = self::index_branches( $tree['branches'] );
         $profiles  = self::branch_emphasis_profiles();
 
-        foreach ( array_keys( $profiles ) as $branch_id ) {
+        foreach ( $profiles as $branch_id => $profile ) {
             if ( ! isset( $branches[ $branch_id ] ) ) {
                 throw new InvalidArgumentException( sprintf( 'Required scenario-tree branch missing: %s', $branch_id ) );
             }
+            if ( abs( array_sum( $profile ) - 1.0 ) > 0.0001 ) {
+                throw new RuntimeException( sprintf( 'Branch emphasis profile must sum to 1.0: %s', $branch_id ) );
+            }
         }
 
-        $baseline_top = (string) ( $matrix['top_response_id'] ?? '' );
+        $baseline_top   = (string) ( $matrix['top_response_id'] ?? '' );
         $branch_results = array();
         $rank_history   = array();
         $leader_changes = array();
 
-        foreach ( $profiles as $branch_id => $multipliers ) {
+        foreach ( $profiles as $branch_id => $emphasis_profile ) {
             $ranked = array();
+            $branch_demand_priority = 0.0;
+
+            foreach ( $emphasis_profile as $scenario_id => $demand_weight ) {
+                $branch_demand_priority += (float) ( $priorities[ $scenario_id ] ?? 0 ) * (float) $demand_weight;
+            }
 
             foreach ( $responses as $response_id => $response ) {
-                $numerator   = 0.0;
-                $denominator = 0.0;
-                $components  = array();
+                $covered_priority = 0.0;
+                $components       = array();
 
-                foreach ( $multipliers as $scenario_id => $multiplier ) {
+                foreach ( $emphasis_profile as $scenario_id => $demand_weight ) {
                     $response_weight = (float) ( $response['weights'][ $scenario_id ] ?? 0 );
                     $priority        = (float) ( $priorities[ $scenario_id ] ?? 0 );
-                    $effective_weight = $response_weight * (float) $multiplier;
-                    $weighted_value   = $priority * $effective_weight;
+                    $covered_weight  = min( $response_weight, (float) $demand_weight );
+                    $covered_value   = $priority * $covered_weight;
 
-                    $numerator   += $weighted_value;
-                    $denominator += $effective_weight;
+                    $covered_priority += $covered_value;
 
                     $components[] = array(
                         'scenario_id'         => $scenario_id,
                         'scenario_priority'   => $priority,
                         'response_weight'     => $response_weight,
-                        'state_multiplier'    => (float) $multiplier,
-                        'effective_weight'    => round( $effective_weight, 4 ),
-                        'weighted_value'      => round( $weighted_value, 2 ),
+                        'state_demand_weight' => (float) $demand_weight,
+                        'covered_weight'      => round( $covered_weight, 4 ),
+                        'covered_value'       => round( $covered_value, 2 ),
                     );
                 }
 
-                $state_fit = $denominator > 0.0 ? round( $numerator / $denominator, 1 ) : 0.0;
+                $state_fit = $branch_demand_priority > 0.0
+                    ? round( 100.0 * $covered_priority / $branch_demand_priority, 1 )
+                    : 0.0;
 
                 $ranked[] = array(
                     'response_id'       => $response_id,
@@ -74,7 +83,6 @@ final class TactiTwin_Response_State_Robustness {
                     'baseline_rank'     => (int) $response['baseline_rank'],
                     'baseline_fit'      => (float) $response['baseline_fit'],
                     'state_fit'         => $state_fit,
-                    'state_fit_delta'   => round( $state_fit - (float) $response['baseline_fit'], 1 ),
                     'components'        => $components,
                 );
             }
@@ -94,7 +102,7 @@ final class TactiTwin_Response_State_Robustness {
             }
             unset( $item );
 
-            $leader_id = (string) ( $ranked[0]['response_id'] ?? '' );
+            $leader_id      = (string) ( $ranked[0]['response_id'] ?? '' );
             $leader_changed = '' !== $baseline_top && $leader_id !== $baseline_top;
             if ( $leader_changed ) {
                 $leader_changes[] = array(
@@ -114,7 +122,8 @@ final class TactiTwin_Response_State_Robustness {
                 'risk'            => $branches[ $branch_id ]['risk'] ?? array(),
                 'opportunity'     => $branches[ $branch_id ]['opportunity'] ?? array(),
                 'coverage'        => $branches[ $branch_id ]['coverage'] ?? array(),
-                'emphasis_profile'=> $multipliers,
+                'emphasis_profile'=> $emphasis_profile,
+                'demand_priority' => round( $branch_demand_priority, 1 ),
                 'ranked_responses'=> $ranked,
                 'top_response_id' => $leader_id,
                 'leader_changed_from_baseline' => $leader_changed,
@@ -142,7 +151,8 @@ final class TactiTwin_Response_State_Robustness {
             ),
             'method' => array(
                 'type' => 'deterministic-response-rank-robustness-across-match-states',
-                'state_fit_formula' => 'sum(scenario_priority * response_weight * state_multiplier) / sum(response_weight * state_multiplier)',
+                'state_fit_formula' => '100 * sum(scenario_priority * min(response_weight, state_demand_weight)) / sum(scenario_priority * state_demand_weight)',
+                'state_fit_meaning' => 'coverage of the branch tactical-emphasis profile by one response package',
                 'robustness_score_created' => false,
                 'branch_probabilities' => false,
                 'outcome_prediction' => false,
@@ -158,53 +168,53 @@ final class TactiTwin_Response_State_Robustness {
     public static function branch_emphasis_profiles(): array {
         return array(
             'opening-neutral' => array(
-                'build-up-vs-high-press' => 1.0,
-                'opponent-side-bias' => 1.0,
-                'defensive-transition-after-loss' => 1.0,
-                'attack-vs-low-block' => 1.0,
-                'exploit-opponent-weak-side' => 1.0,
+                'build-up-vs-high-press' => 0.25,
+                'opponent-side-bias' => 0.15,
+                'defensive-transition-after-loss' => 0.25,
+                'attack-vs-low-block' => 0.15,
+                'exploit-opponent-weak-side' => 0.20,
             ),
             'second-half-neutral' => array(
-                'build-up-vs-high-press' => 1.0,
-                'opponent-side-bias' => 1.0,
-                'defensive-transition-after-loss' => 1.0,
-                'attack-vs-low-block' => 1.0,
-                'exploit-opponent-weak-side' => 1.0,
+                'build-up-vs-high-press' => 0.20,
+                'opponent-side-bias' => 0.15,
+                'defensive-transition-after-loss' => 0.25,
+                'attack-vs-low-block' => 0.15,
+                'exploit-opponent-weak-side' => 0.25,
             ),
             'protect-lead' => array(
-                'build-up-vs-high-press' => 0.9,
-                'opponent-side-bias' => 1.0,
-                'defensive-transition-after-loss' => 1.5,
-                'attack-vs-low-block' => 0.7,
-                'exploit-opponent-weak-side' => 0.9,
+                'build-up-vs-high-press' => 0.15,
+                'opponent-side-bias' => 0.15,
+                'defensive-transition-after-loss' => 0.40,
+                'attack-vs-low-block' => 0.10,
+                'exploit-opponent-weak-side' => 0.20,
             ),
             'chase-game' => array(
-                'build-up-vs-high-press' => 0.9,
-                'opponent-side-bias' => 0.8,
-                'defensive-transition-after-loss' => 0.8,
-                'attack-vs-low-block' => 1.2,
-                'exploit-opponent-weak-side' => 1.3,
+                'build-up-vs-high-press' => 0.15,
+                'opponent-side-bias' => 0.10,
+                'defensive-transition-after-loss' => 0.15,
+                'attack-vs-low-block' => 0.25,
+                'exploit-opponent-weak-side' => 0.35,
             ),
             'late-draw' => array(
-                'build-up-vs-high-press' => 1.0,
-                'opponent-side-bias' => 1.0,
-                'defensive-transition-after-loss' => 1.1,
-                'attack-vs-low-block' => 0.9,
-                'exploit-opponent-weak-side' => 1.0,
+                'build-up-vs-high-press' => 0.20,
+                'opponent-side-bias' => 0.15,
+                'defensive-transition-after-loss' => 0.25,
+                'attack-vs-low-block' => 0.15,
+                'exploit-opponent-weak-side' => 0.25,
             ),
             'numerical-superiority' => array(
-                'build-up-vs-high-press' => 0.8,
-                'opponent-side-bias' => 0.9,
-                'defensive-transition-after-loss' => 1.0,
-                'attack-vs-low-block' => 1.2,
-                'exploit-opponent-weak-side' => 1.1,
+                'build-up-vs-high-press' => 0.10,
+                'opponent-side-bias' => 0.10,
+                'defensive-transition-after-loss' => 0.15,
+                'attack-vs-low-block' => 0.25,
+                'exploit-opponent-weak-side' => 0.40,
             ),
             'numerical-inferiority' => array(
-                'build-up-vs-high-press' => 1.0,
-                'opponent-side-bias' => 1.1,
-                'defensive-transition-after-loss' => 1.5,
-                'attack-vs-low-block' => 0.6,
-                'exploit-opponent-weak-side' => 0.8,
+                'build-up-vs-high-press' => 0.20,
+                'opponent-side-bias' => 0.20,
+                'defensive-transition-after-loss' => 0.40,
+                'attack-vs-low-block' => 0.05,
+                'exploit-opponent-weak-side' => 0.15,
             ),
         );
     }
@@ -331,14 +341,14 @@ final class TactiTwin_Response_State_Robustness {
                 'robustness_stable_leading' => 'Stable leader',
                 'robustness_stable_competitive' => 'Stable competitor',
                 'robustness_state_sensitive' => 'State-sensitive',
-                'method' => 'Each explicit match-state branch applies a documented tactical-emphasis multiplier to the same five scenario priorities and the same four response packages. Robustness is then described only by rank stability across branches. The multipliers are authored preparation assumptions, not learned probabilities, treatment effects or claims that a branch will occur.',
+                'method' => 'Each explicit match-state branch defines a documented tactical-emphasis profile over the same five scenario priorities. A response receives branch compatibility only for the share of that demand its existing emphasis covers. Robustness is then described by rank stability across branches. The emphasis profiles are authored preparation assumptions, not learned probabilities, treatment effects or claims that a branch will occur.',
             ),
             'es' => array(
                 'name' => 'Robustez de respuestas entre estados del partido',
                 'robustness_stable_leading' => 'Líder estable',
                 'robustness_stable_competitive' => 'Competidor estable',
                 'robustness_state_sensitive' => 'Sensible al estado',
-                'method' => 'Cada rama explícita del partido aplica un multiplicador documentado de énfasis táctico sobre las mismas cinco prioridades de escenario y los mismos cuatro paquetes de respuesta. La robustez se describe únicamente mediante estabilidad de ranking entre ramas. Los multiplicadores son supuestos de preparación definidos de forma explícita, no probabilidades aprendidas, efectos causales ni afirmaciones de que una rama vaya a ocurrir.',
+                'method' => 'Cada rama explícita del partido define un perfil documentado de énfasis táctico sobre las mismas cinco prioridades de escenario. Una respuesta recibe compatibilidad en la rama solo por la parte de esa demanda que cubre su énfasis existente. La robustez se describe después mediante estabilidad de ranking entre ramas. Los perfiles de énfasis son supuestos de preparación explícitos, no probabilidades aprendidas, efectos causales ni afirmaciones de que una rama vaya a ocurrir.',
             ),
         );
 
