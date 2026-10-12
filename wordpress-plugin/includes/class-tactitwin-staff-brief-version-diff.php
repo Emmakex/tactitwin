@@ -75,6 +75,17 @@ final class TactiTwin_Staff_Brief_Version_Diff {
         self::array_change( $changes, 'halftime-checks-changed', 'phase_checks', 'halftime_checks', $previous['phase_checks']['halftime_checks'] ?? array(), $current['phase_checks']['halftime_checks'] ?? array(), $language );
         self::array_change( $changes, 'decision-tree-changed', 'decision_tree', 'decision_tree', self::decision_tree( $previous['decision_tree'] ?? array() ), self::decision_tree( $current['decision_tree'] ?? array() ), $language );
         self::array_change( $changes, 'material-evidence-watch-changed', 'evidence', 'material_signals', self::material_signals( $previous ), self::material_signals( $current ), $language );
+        if ( class_exists( 'TactiTwin_Frozen_Twin_Handoff' ) ) {
+            self::array_change(
+                $changes,
+                'tactical-twin-preparation-changed',
+                'tactical_twin',
+                'preparation_signature',
+                TactiTwin_Frozen_Twin_Handoff::signature( $previous ),
+                TactiTwin_Frozen_Twin_Handoff::signature( $current ),
+                $language
+            );
+        }
 
         $sections = array_values( array_unique( array_map( static fn( array $change ): string => (string) $change['section'], $changes ) ) );
         $fixture_key = class_exists( 'TactiTwin_Fixture_Identity' ) ? TactiTwin_Fixture_Identity::key_from_brief( $current ) : '';
@@ -94,6 +105,7 @@ final class TactiTwin_Staff_Brief_Version_Diff {
             'method' => array(
                 'type' => 'deterministic-structural-staff-brief-version-diff',
                 'fixture_scoped_when_available' => '' !== $fixture_key,
+                'tracks_tactical_twin_preparation' => class_exists( 'TactiTwin_Frozen_Twin_Handoff' ),
                 'creates_change_score' => false,
                 'recalculates_tactical_models' => false,
                 'changes_tactical_scores' => false,
@@ -298,12 +310,12 @@ final class TactiTwin_Staff_Brief_Version_Diff {
     private static function text( string $key, string $language ): string {
         $catalog = array(
             'en' => array(
-                'method'=>'v1.18 performs a deterministic structural comparison between Staff Brief versions. With v1.20 fixture identity available, comparison is also restricted to the exact fixture. It reports changed fields only and does not create a change score, recalculate tactical models or alter either version.',
-                'headline-changed'=>'Headline changed','coverage-changed'=>'Coverage changed','priority-order-changed'=>'Priority order changed','priority-membership-changed'=>'Priority membership changed','priority-changed'=>'Priority details changed','plan-changed'=>'Plan changed','opening-checks-changed'=>'Opening checks changed','halftime-checks-changed'=>'Halftime checks changed','decision-tree-changed'=>'Decision tree changed','material-evidence-watch-changed'=>'Material evidence warnings changed',
+                'method'=>'v1.32 extends the deterministic Staff Brief version comparison to the frozen Tactical Twin preparation signature. With fixture identity available, comparison remains restricted to the exact fixture. It reports changed fields only and does not create a change score, recalculate tactical models or alter either version.',
+                'headline-changed'=>'Headline changed','coverage-changed'=>'Coverage changed','priority-order-changed'=>'Priority order changed','priority-membership-changed'=>'Priority membership changed','priority-changed'=>'Priority details changed','plan-changed'=>'Plan changed','opening-checks-changed'=>'Opening checks changed','halftime-checks-changed'=>'Halftime checks changed','decision-tree-changed'=>'Decision tree changed','material-evidence-watch-changed'=>'Material evidence warnings changed','tactical-twin-preparation-changed'=>'Prepared Tactical Twin changed',
             ),
             'es' => array(
-                'method'=>'v1.18 realiza una comparación estructural determinista entre versiones del Staff Brief. Con identidad de fixture v1.20 disponible, la comparación también queda restringida al partido exacto. Solo informa campos cambiados y no crea un score de cambio, no recalcula modelos tácticos ni modifica ninguna versión.',
-                'headline-changed'=>'Cambió el titular','coverage-changed'=>'Cambió la cobertura','priority-order-changed'=>'Cambió el orden de prioridades','priority-membership-changed'=>'Cambió la composición de prioridades','priority-changed'=>'Cambió el detalle de una prioridad','plan-changed'=>'Cambió el plan','opening-checks-changed'=>'Cambió el checklist inicial','halftime-checks-changed'=>'Cambió el checklist del descanso','decision-tree-changed'=>'Cambió el árbol de decisión','material-evidence-watch-changed'=>'Cambiaron las alertas materiales de evidencia',
+                'method'=>'v1.32 amplía la comparación estructural determinista del Staff Brief para incluir la firma del Tactical Twin congelable. Con identidad de fixture disponible, la comparación sigue restringida al partido exacto. Solo informa campos cambiados y no crea un score de cambio, no recalcula modelos tácticos ni modifica ninguna versión.',
+                'headline-changed'=>'Cambió el titular','coverage-changed'=>'Cambió la cobertura','priority-order-changed'=>'Cambió el orden de prioridades','priority-membership-changed'=>'Cambió la composición de prioridades','priority-changed'=>'Cambió el detalle de una prioridad','plan-changed'=>'Cambió el plan','opening-checks-changed'=>'Cambió el checklist inicial','halftime-checks-changed'=>'Cambió el checklist del descanso','decision-tree-changed'=>'Cambió el árbol de decisión','material-evidence-watch-changed'=>'Cambiaron las alertas materiales de evidencia','tactical-twin-preparation-changed'=>'Cambió el Tactical Twin preparado',
             ),
         );
         return $catalog[ $language ][ $key ] ?? $catalog['en'][ $key ] ?? $key;
