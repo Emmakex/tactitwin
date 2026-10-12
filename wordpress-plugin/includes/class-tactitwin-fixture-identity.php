@@ -124,13 +124,19 @@ final class TactiTwin_Fixture_Identity {
         if ( '' === $value ) {
             return '';
         }
-        if ( 1 !== preg_match( '/^\d{1,2}:\d{2}(?::\d{2})?$/', $value ) ) {
-            throw new InvalidArgumentException( 'Fixture kick-off time must use HH:MM or HH:MM:SS.' );
+        if ( 1 !== preg_match( '/^(\d{1,2}):(\d{2})(?::(\d{2})(?:\.\d{1,9})?)?$/', $value, $matches ) ) {
+            throw new InvalidArgumentException( 'Fixture kick-off time must use HH:MM, HH:MM:SS or provider fractional seconds.' );
         }
-        $parts = array_map( 'intval', explode( ':', $value ) );
-        if ( $parts[0] > 23 || $parts[1] > 59 || ( isset( $parts[2] ) && $parts[2] > 59 ) ) {
+
+        $hour = (int) $matches[1];
+        $minute = (int) $matches[2];
+        $has_seconds = isset( $matches[3] ) && '' !== $matches[3];
+        $second = $has_seconds ? (int) $matches[3] : 0;
+
+        if ( $hour > 23 || $minute > 59 || $second > 59 ) {
             throw new InvalidArgumentException( 'Fixture kick-off time is invalid.' );
         }
-        return sprintf( '%02d:%02d%s', $parts[0], $parts[1], isset( $parts[2] ) ? sprintf( ':%02d', $parts[2] ) : '' );
+
+        return sprintf( '%02d:%02d%s', $hour, $minute, $has_seconds ? sprintf( ':%02d', $second ) : '' );
     }
 }
