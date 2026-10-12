@@ -1,0 +1,68 @@
+name: TactiTwin Test Candidate
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: tactitwin-test-candidate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          coverage: none
+
+      - name: Validate PHP syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          find wordpress-plugin tests -type f -name '*.php' -print0 \
+            | xargs -0 -n1 php -l
+
+      - name: Run regression suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          for test_file in tests/test-*.php; do
+            php "$test_file"
+          done
+
+      - name: Build installable WordPress ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf build
+          mkdir -p build/tactitwin
+          cp -R wordpress-plugin/. build/tactitwin/
+          printf '%s\n' \
+            'TactiTwin Test Candidate' \
+            "Commit: ${GITHUB_SHA}" \
+            "Built: $(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+            > build/tactitwin/TEST-CANDIDATE.txt
+          cd build
+          zip -qr tactitwin-test-candidate.zip tactitwin
+          sha256sum tactitwin-test-candidate.zip > SHA256SUMS.txt
+          unzip -l tactitwin-test-candidate.zip | grep -q 'tactitwin/tactitwin.php'
+          unzip -l tactitwin-test-candidate.zip | grep -q 'tactitwin/includes/'
+
+      - name: Upload Test Candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: tactitwin-test-candidate-${{ github.sha }}
+          path: |
+            build/tactitwin-test-candidate.zip
+            build/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 14
