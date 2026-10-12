@@ -10,12 +10,12 @@ final class TactiTwin_Admin_Route {
     }
 
     public static function canonical_url( string $slug ): string {
-        $slug = sanitize_key( $slug );
+        $slug = strtolower( trim( $slug ) );
         if ( 1 !== preg_match( '/^tactitwin(?:-[a-z0-9-]+)?$/', $slug ) ) {
             throw new InvalidArgumentException( 'Invalid TactiTwin admin page slug.' );
         }
 
-        return add_query_arg( 'page', $slug, admin_url( 'admin.php' ) );
+        return add_query_arg( 'page', sanitize_key( $slug ), admin_url( 'admin.php' ) );
     }
 
     public static function legacy_slug_from_uri( string $request_uri ): string {
