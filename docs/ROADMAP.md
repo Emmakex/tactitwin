@@ -26,7 +26,12 @@ Implemented milestones now include:
 - v1.26 Signed Review Learning Integration, so Intervention Library and Historical Precedents can distinguish unsigned calculated history from integrity-valid staff-reviewed history without turning sign-off into an effectiveness score or altering default precedent ranking;
 - v1.27 Tactical Response Matrix, so one Full Matchup Scan can be stress-tested against several explicit tactical response packages while preserving the original scenario scores, recommendations and evidence boundaries;
 - v1.28 Match-State Scenario Tree, so pre-match preparation can evaluate seven explicit minute/score/manpower branches through the existing Context What-if engine without assigning probabilities or silently re-ranking response packages;
-- **v1.29 Tactical Twin Lab**, so coaches can inspect the v1.27 response matrix and v1.28 scenario tree together on one shared Full Matchup Scan in a WordPress workspace that inherits the active match context when available.
+- v1.29 Tactical Twin Lab, so coaches can inspect the v1.27 response matrix and v1.28 scenario tree together on one shared Full Matchup Scan in a WordPress workspace that inherits the active match context when available;
+- **v1.30 Response Robustness Across Match States**, so the four existing response packages can be compared against all seven explicit match-state demands and staff can see leader changes and rank stability without creating outcome probabilities or an aggregate robustness score.
+
+### v1.30 exit criterion
+
+For one valid Twin Lab result, all four v1.27 response packages must be evaluated against all seven v1.28 branches using documented branch tactical-emphasis profiles over the same five scenario dimensions. Every branch profile must sum to `1.0`, and branch compatibility must be calculated transparently as coverage of state demand by the unchanged response emphasis and unchanged scenario priorities. The original v1.27 baseline ranking must remain intact. v1.30 must expose each branch leader, whether that leader differs from baseline, first-place and Top-2 counts, mean/best/worst rank and rank range for every response. Robustness must remain a rank-stability diagnosis rather than a new aggregate 0–100 robustness score. The layer must not alter v1.28 branch outputs, assign branch probabilities, predict outcomes, activate Plan A/B/C or create new persistence. ES/EN mathematics must remain invariant and dedicated regression tests must prove the documented switch behavior and guardrails.
 
 ### v1.29 exit criterion
 
