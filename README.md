@@ -6,7 +6,7 @@ TactiTwin is a football tactical analysis and match-scenario simulation project.
 
 ## Product direction
 
-`public/open data -> normalized football model -> tactical analysis -> scenario engine -> lineup decisions -> match plan -> Plan A/B/C -> evidence suitability/robustness -> evidence decision brief -> evidence conflict signals -> match-day staff brief -> imported match target -> match-centric planning context -> exact fixture identity -> version diff -> approval revision chain -> approved immutable brief snapshot -> live session handoff -> live staff observations -> persistent match-day timeline -> post-match review -> full-match evidence -> time-aligned segment evidence -> before/after transition deltas -> context-aware transition review -> context-matched intervention library -> historical precedent retrieval`
+`public/open data -> normalized football model -> tactical analysis -> scenario engine -> lineup decisions -> match plan -> tactical response matrix -> Plan A/B/C -> evidence suitability/robustness -> evidence decision brief -> evidence conflict signals -> match-day staff brief -> imported match target -> match-centric planning context -> exact fixture identity -> version diff -> approval revision chain -> approved immutable brief snapshot -> live session handoff -> live staff observations -> persistent match-day timeline -> post-match review -> full-match evidence -> time-aligned segment evidence -> before/after transition deltas -> context-aware transition review -> context-matched intervention library -> signed-review learning -> historical precedent retrieval`
 
 TactiTwin is not intended to predict a final score with certainty. It is a decision-support system for exploring tactical risks, opportunities and "what if" scenarios before, during and after a match while retaining evidence, confidence and method boundaries.
 
@@ -20,6 +20,7 @@ The first phase focuses on:
 - Tactical metrics and opponent profiling.
 - Scenario simulation with rules, weights and scores.
 - Match-plan recommendations with explainable evidence.
+- Tactical Response Matrix comparison across several explicit response packages without outcome prediction.
 - Historical score-state and manpower conditioning.
 - Lineup and unit what-if comparison.
 - Plan A / B / C contingency preparation.
@@ -65,6 +66,7 @@ The current WordPress plugin supports:
 - Attack vs Low Block.
 - Exploit Opponent Weak Side.
 - Full Matchup Scan across all five scenarios.
+- Tactical Response Matrix comparing Balanced Control, Press-Resistant Build-up, Transition Security and Width & Switch against the same matchup evidence.
 - Bilingual Match Plan generation in English and Spanish.
 - Game State / What-if planning from an exact hypothetical minute and scoreline.
 - Player, unit, phase-unit and lineup comparison.
@@ -93,6 +95,7 @@ The current WordPress plugin supports:
 - Transition Deltas comparing matched event windows immediately before and after each recorded tactical transition.
 - Context-aware transition review that flags goals, dismissals, recorded manpower/score changes and substitutions that may confound a before/after comparison.
 - Intervention Library grouping repeated interventions across closed linked sessions when scenario, destination plan/mode, minute band, score state and manpower state match.
+- Signed-review-only learning scope for integrity-valid post-match staff reviews without changing default historical ranking.
 - Historical Tactical Precedents inside What-if, using exact minute-band + score-state + manpower-state matching and current matchup relevance.
 - Pre-match precedent catalog inside Match Plan, keeping minute/score/manpower contexts separate rather than averaging them together.
 - Exact-context precedent distribution into Plan A/B/C by historical destination plan, with Plan B additionally requiring the current armed/live scenario.
@@ -105,7 +108,7 @@ The current WordPress plugin supports:
 
 ### Match-day decision workflow
 
-`Imported Match Target -> Match-Centric Planning Context -> Match Plan -> Pre-match Precedent Catalog -> Evidence Quality + Opponent Similarity -> Evidence Suitability Ranking -> Ranking Robustness -> Evidence Decision Brief -> Evidence Conflict Signals -> Plan A/B/C -> Match-Day Staff Brief -> Exact Fixture Identity -> Version Diff -> Explicit Approval -> Approval Revision Chain -> Immutable Snapshot -> Live Session Handoff -> Live Playbook -> Session Review -> Evidence Review -> Segment Evidence -> Transition Deltas -> Context-Aware Review -> Intervention Library -> Historical Precedents`
+`Imported Match Target -> Match-Centric Planning Context -> Full Matchup Scan -> Match Plan -> Tactical Response Matrix -> Pre-match Precedent Catalog -> Evidence Quality + Opponent Similarity -> Evidence Suitability Ranking -> Ranking Robustness -> Evidence Decision Brief -> Evidence Conflict Signals -> Plan A/B/C -> Match-Day Staff Brief -> Exact Fixture Identity -> Version Diff -> Explicit Approval -> Approval Revision Chain -> Immutable Snapshot -> Live Session Handoff -> Live Playbook -> Session Review -> Evidence Review -> Segment Evidence -> Transition Deltas -> Context-Aware Review -> Post-Match Sign-off -> Intervention Library -> Signed Review Learning -> Historical Precedents`
 
 Plan B is never activated merely because historical data predicted an opponent behaviour. A supported manual observation from the staff can activate Plan B when Plan C is not already required by score/manpower context. Plan C keeps precedence for configured score/manpower contingencies.
 
@@ -124,6 +127,16 @@ With v1.20, a Staff Brief can be bound to one exact fixture. Provider match IDs 
 With v1.21, the Staff Brief can select a real match already stored in `tactitwin_matches`. TactiTwin resolves the selected team perspective and opponent from that persisted row before tactical calculation, then derives the v1.20 fixture identity from the stored provider match identity. Browser fields are convenience only; the server-side normalized match record remains authoritative. Manual fixture binding remains available as a fallback.
 
 With v1.22, that imported match becomes a persistent per-user planning context. Scenario Lab, Match Plan, What-if, Live Playbook and Staff Brief all receive the same re-resolved team/opponent pair from the canonical match row. Staff Brief additionally receives the same `target_match_id`, so the v1.21 resolver and v1.20 fixture-integrity chain remain the source of truth for approval and Live Session handoff.
+
+With v1.23, Match Workspace becomes the operational home for the active imported fixture. It keeps the shared match context visible while linking the preparation, live and post-match surfaces without rebinding session-derived or historical artifacts to the workspace selector.
+
+With v1.24, Match Workspace derives fixture lifecycle state from real artifacts rather than an artificial completion percentage. It distinguishes persistent, temporary and on-demand states, checks evidence against the exact provider match and exposes a deterministic next action.
+
+With v1.25, a closed-session post-match review can be signed off as an immutable, versioned application-level staff artifact bound to the exact fixture, approved Staff Brief, Live Session and objective evidence used at review time.
+
+With v1.26, signed-review provenance flows into the Intervention Library and Historical Precedents. Staff can explicitly filter to integrity-valid signed reviews, while the default all-history population and v1.8 retrieval ranking remain unchanged.
+
+With v1.27, the Tactical Response Matrix compares four explicit tactical response packages against the same Full Matchup Scan. Fit measures how strongly each package emphasises the matchup's existing priorities; it is not a scoreline forecast, win probability or causal effectiveness estimate and does not change upstream scenario scores or recommendations.
 
 Live Sessions persist the exact playbook JSON submitted at each staff update. Post-match review therefore reconstructs the historical decision state from immutable snapshots rather than recalculating the past with newer code or newer data.
 
@@ -195,6 +208,10 @@ v1.21 is a canonical input-resolution layer. It chooses which persisted match th
 
 v1.22 is a workflow-consistency layer. It reuses one canonical match target across planning surfaces and revalidates it server-side before each calculation; it does not change any tactical score, recommendation, evidence order or plan activation.
 
+v1.23-v1.26 extend workflow provenance from the active fixture through signed post-match learning without converting lifecycle or staff sign-off into tactical effectiveness scores.
+
+v1.27 is a comparative response-emphasis layer. It ranks how strongly fixed tactical packages address the already calculated matchup priorities; it does not change those priorities, forecast the result or authorize a plan change.
+
 No layer currently claims causal coaching impact.
 
 ## Method boundaries
@@ -225,11 +242,14 @@ An imported match target is trusted only as a persisted normalized TactiTwin rec
 
 The v1.22 planning context stores only a user-scoped working selection. On every supported admin submission, TactiTwin re-resolves the current normalized match record before passing team/opponent IDs to the tactical module. The local `tactitwin_matches.id` is a locator, not a cross-installation football identity.
 
+The v1.27 Tactical Response Matrix is a deterministic comparison over the existing Full Matchup Scan. Its response fit values are prioritisation indices, not probabilities, scoreline forecasts, expected-goals estimates or causal intervention effects.
+
 ## Key REST surfaces
 
 Examples include:
 
 - `GET /wp-json/tactitwin/v1/planning/match-plan`
+- `GET /wp-json/tactitwin/v1/planning/tactical-response-matrix`
 - `GET /wp-json/tactitwin/v1/planning/what-if`
 - `GET /wp-json/tactitwin/v1/planning/contingency-playbook`
 - `POST /wp-json/tactitwin/v1/planning/live-playbook`
@@ -276,6 +296,11 @@ Staff Brief approval, version audit, fixture binding and Live Session handoff ar
 - **v1.20 — Exact Fixture Identity**
 - **v1.21 — Imported Match Target Resolution**
 - **v1.22 — Match-Centric Planning Context**
+- **v1.23 — Match Workspace**
+- **v1.24 — Fixture Lifecycle & Workspace Progress**
+- **v1.25 — Post-Match Review Sign-off**
+- **v1.26 — Signed Review Learning Integration**
+- **v1.27 — Tactical Response Matrix**
 
 ## Repository workflow
 
@@ -283,4 +308,4 @@ Development flows through feature branches and pull requests into `main`, with a
 
 ## Status
 
-Active coach-usable MVP development. The current product spans canonical imported-match targeting, a shared per-user match-centric planning context, pre-match tactical analysis, lineup decision support, contingency planning, a printable and exact-fixture-bindable Match-Day Staff Brief, immutable staff-approved pre-match snapshots, fixture-scoped structural preapproval version diffs, immutable approval revision lineage, stale-review protection, direct Live Session handoff, explicit live staff observation, persistent match-day audit trails, full-match and time-aligned post-match evidence, before/after transition review, explicit context/confounder annotations, a cross-match intervention memory, exact-context precedent retrieval, precedent-aware Match Plan / Plan A/B/C evidence, evidence-quality calibration, transparent opponent-context similarity, auditable evidence-suitability ranking, deterministic ranking-robustness diagnostics, compact staff-facing evidence decision briefs and explicit evidence-conflict signals.
+Active coach-usable MVP development. The current product spans canonical imported-match targeting, a shared per-user match-centric planning context, pre-match tactical analysis, deterministic multi-response tactical comparison, lineup decision support, contingency planning, a printable and exact-fixture-bindable Match-Day Staff Brief, immutable staff-approved pre-match snapshots, fixture-scoped structural preapproval version diffs, immutable approval revision lineage, stale-review protection, direct Live Session handoff, explicit live staff observation, persistent match-day audit trails, full-match and time-aligned post-match evidence, before/after transition review, explicit context/confounder annotations, immutable post-match staff sign-off, signed-review-aware historical learning, a cross-match intervention memory, exact-context precedent retrieval, precedent-aware Match Plan / Plan A/B/C evidence, evidence-quality calibration, transparent opponent-context similarity, auditable evidence-suitability ranking, deterministic ranking-robustness diagnostics, compact staff-facing evidence decision briefs and explicit evidence-conflict signals.
