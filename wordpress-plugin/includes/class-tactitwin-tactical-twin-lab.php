@@ -5,7 +5,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Presentation/orchestration layer joining v1.27 and v1.28 on one source scan.
+ * Presentation/orchestration layer joining v1.27, v1.28 and v1.30 on one
+ * source Full Matchup Scan.
  */
 final class TactiTwin_Tactical_Twin_Lab {
     public static function compose(
@@ -27,6 +28,9 @@ final class TactiTwin_Tactical_Twin_Lab {
             $scan,
             $language
         );
+        $robustness = TactiTwin_Response_State_Robustness::compose( $matrix, $tree, $language );
+
+        $most_robust = $robustness['summary']['most_robust_response'] ?? array();
 
         return array(
             'lab_id'   => 'tactical-twin-lab',
@@ -38,6 +42,10 @@ final class TactiTwin_Tactical_Twin_Lab {
             'preparation_summary' => array(
                 'top_response_id' => (string) ( $matrix['top_response_id'] ?? '' ),
                 'top_response_name' => (string) ( $matrix['responses'][0]['response_name'] ?? '' ),
+                'most_robust_response_id' => (string) ( $most_robust['response_id'] ?? '' ),
+                'most_robust_response_name' => (string) ( $most_robust['response_name'] ?? '' ),
+                'most_robust_label' => (string) ( $most_robust['robustness_label'] ?? '' ),
+                'leader_change_count' => (int) ( $robustness['summary']['leader_change_count'] ?? 0 ),
                 'highest_risk_branch' => $tree['summary']['highest_risk_branch'] ?? array(),
                 'highest_opportunity_branch' => $tree['summary']['highest_opportunity_branch'] ?? array(),
                 'low_coverage_branches' => (int) ( $tree['summary']['low_coverage_branches'] ?? 0 ),
@@ -45,11 +53,13 @@ final class TactiTwin_Tactical_Twin_Lab {
             ),
             'response_matrix' => $matrix,
             'scenario_tree'   => $tree,
+            'response_robustness' => $robustness,
             'method' => array(
                 'type' => 'presentation-orchestration-tactical-twin-lab',
                 'shared_source_scan' => true,
                 'creates_new_tactical_score' => false,
                 'changes_response_ranking' => false,
+                'adds_state_rank_diagnostics' => true,
                 'changes_branch_outputs' => false,
                 'predicts_outcome' => false,
                 'activates_plan' => false,
@@ -62,11 +72,11 @@ final class TactiTwin_Tactical_Twin_Lab {
         $catalog = array(
             'en' => array(
                 'lab_name' => 'Tactical Twin Lab',
-                'method' => 'The Lab places the v1.27 response comparison and v1.28 match-state scenario tree on one shared Full Matchup Scan. It is a preparation workspace only: it introduces no new score, outcome prediction, response re-ranking or plan activation.',
+                'method' => 'The Lab places the v1.27 response comparison, v1.28 match-state scenario tree and v1.30 response-rank robustness diagnostics on one shared Full Matchup Scan. It remains a preparation workspace: baseline response ranking and branch outputs are preserved, and no outcome probability or plan activation is introduced.',
             ),
             'es' => array(
                 'lab_name' => 'Laboratorio Tactical Twin',
-                'method' => 'El Lab coloca la comparación de respuestas v1.27 y el árbol de estados v1.28 sobre un único Full Matchup Scan compartido. Es solo un espacio de preparación: no introduce un nuevo score, predicción de resultado, reordenación de respuestas ni activación de plan.',
+                'method' => 'El Lab coloca la comparación de respuestas v1.27, el árbol de estados v1.28 y el diagnóstico v1.30 de robustez del ranking sobre un único Full Matchup Scan compartido. Sigue siendo un espacio de preparación: conserva el ranking base y las salidas de las ramas, y no introduce probabilidad de resultado ni activación de plan.',
             ),
         );
 
