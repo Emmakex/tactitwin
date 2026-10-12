@@ -25,7 +25,12 @@ Implemented milestones now include:
 - v1.25 Post-Match Review Sign-off, so a closed session review can be frozen into an immutable, versioned staff sign-off bound to the exact fixture, source Staff Brief, Live Session and objective evidence used at review time;
 - v1.26 Signed Review Learning Integration, so Intervention Library and Historical Precedents can distinguish unsigned calculated history from integrity-valid staff-reviewed history without turning sign-off into an effectiveness score or altering default precedent ranking;
 - v1.27 Tactical Response Matrix, so one Full Matchup Scan can be stress-tested against several explicit tactical response packages while preserving the original scenario scores, recommendations and evidence boundaries;
-- **v1.28 Match-State Scenario Tree**, so pre-match preparation can evaluate seven explicit minute/score/manpower branches through the existing Context What-if engine without assigning probabilities or silently re-ranking response packages.
+- v1.28 Match-State Scenario Tree, so pre-match preparation can evaluate seven explicit minute/score/manpower branches through the existing Context What-if engine without assigning probabilities or silently re-ranking response packages;
+- **v1.29 Tactical Twin Lab**, so coaches can inspect the v1.27 response matrix and v1.28 scenario tree together on one shared Full Matchup Scan in a WordPress workspace that inherits the active match context when available.
+
+### v1.29 exit criterion
+
+For one active imported match + team perspective, a coach can open Twin Lab and generate one unified preparation view containing all four v1.27 tactical response packages and all seven v1.28 match-state branches from the same Full Matchup Scan. The WordPress surface must inherit the existing `TactiTwin_Planning_Context` when present, retain manual team/opponent fallback when no active match exists, and expose top response, highest-risk/highest-opportunity branches, coverage warnings, the detailed response/branch tables and full technical evidence. The Lab must remain presentation/orchestration only: it creates no combined tactical score, does not re-rank response packages, does not change branch outputs, predicts no outcome, activates no Plan A/B/C and introduces no new persistence/schema. ES/EN numeric outputs and ordering must remain invariant and dedicated regression coverage must prove that the response matrix and scenario tree share the same source identity and do not mutate the source scan.
 
 ### v1.28 exit criterion
 
