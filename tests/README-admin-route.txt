@@ -1,0 +1,1 @@
+Regression target: TactiTwin admin pages on WordPress subdirectory installations must resolve through admin.php?page=... and malformed /wp-admin/tactitwin-* paths must recover to the canonical admin router.

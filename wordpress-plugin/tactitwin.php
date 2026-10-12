@@ -125,6 +125,7 @@ require_once TACTITWIN_DIR . 'includes/class-tactitwin-personnel-rest.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-unit-rest.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-phase-unit-rest.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-lineup-rest.php';
+require_once TACTITWIN_DIR . 'includes/class-tactitwin-admin-route.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-workspace-admin.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-match-plan-admin.php';
 require_once TACTITWIN_DIR . 'includes/class-tactitwin-tactical-twin-lab-admin.php';
@@ -154,6 +155,7 @@ register_activation_hook( __FILE__, array( 'TactiTwin', 'activate' ) );
 
 TactiTwin_Schema_Guard::register();
 TactiTwin_I18n::register();
+TactiTwin_Admin_Route::register();
 TactiTwin_Analysis_REST::register();
 TactiTwin_Scenario_REST::register();
 TactiTwin_Match_Plan_REST::register();
