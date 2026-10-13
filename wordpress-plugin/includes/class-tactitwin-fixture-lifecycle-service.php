@@ -5,6 +5,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 final class TactiTwin_Fixture_Lifecycle_Service {
+    private const MIN_READY_MATCHES = 3;
+
     public function inspect( array $context, int $user_id ): array {
         if ( empty( $context ) ) {
             return self::derive( array( 'context_selected' => false ) );
@@ -18,7 +20,11 @@ final class TactiTwin_Fixture_Lifecycle_Service {
             throw new InvalidArgumentException( 'Fixture lifecycle requires a complete canonical planning context.' );
         }
 
-        $planning = $this->planning_data_counts( $fixture, $team_id, $opponent_id );
+        if ( ! class_exists( 'TactiTwin_Pre_Match_Readiness' ) ) {
+            require_once __DIR__ . '/class-tactitwin-pre-match-readiness.php';
+        }
+        $planning = TactiTwin_Pre_Match_Readiness::inspect( $context );
+
         $temporary_match_plan = $this->temporary_match_plan_for_matchup( $user_id, $team_id, $opponent_id );
         $temporary_staff_brief = $this->temporary_staff_brief_for_fixture( $user_id, $fixture_key );
 
@@ -41,8 +47,9 @@ final class TactiTwin_Fixture_Lifecycle_Service {
             array(
                 'context_selected' => true,
                 'fixture_key' => $fixture_key,
-                'team_history_matches' => (int) $planning['team_history_matches'],
-                'opponent_history_matches' => (int) $planning['opponent_history_matches'],
+                'team_history_matches' => (int) ( $planning['team_matches'] ?? 0 ),
+                'opponent_history_matches' => (int) ( $planning['opponent_matches'] ?? 0 ),
+                'planning_readiness' => $planning,
                 'temporary_match_plan' => $temporary_match_plan,
                 'temporary_staff_brief' => $temporary_staff_brief,
                 'approved_snapshot' => $approved_snapshot,
@@ -59,6 +66,14 @@ final class TactiTwin_Fixture_Lifecycle_Service {
         $context_selected = ! empty( $signals['context_selected'] );
         $team_history = max( 0, (int) ( $signals['team_history_matches'] ?? 0 ) );
         $opponent_history = max( 0, (int) ( $signals['opponent_history_matches'] ?? 0 ) );
+        $planning_readiness = is_array( $signals['planning_readiness'] ?? null )
+            ? $signals['planning_readiness']
+            : self::fallback_readiness( $team_history, $opponent_history );
+        $team_history = max( 0, (int) ( $planning_readiness['team_matches'] ?? $team_history ) );
+        $opponent_history = max( 0, (int) ( $planning_readiness['opponent_matches'] ?? $opponent_history ) );
+        $effective_matches = max( 0, (int) ( $planning_readiness['effective_matches'] ?? min( $team_history, $opponent_history ) ) );
+        $limiting_side = (string) ( $planning_readiness['limiting_side'] ?? self::limiting_side( $team_history, $opponent_history ) );
+
         $temporary_match_plan = is_array( $signals['temporary_match_plan'] ?? null ) ? $signals['temporary_match_plan'] : array();
         $temporary_staff_brief = is_array( $signals['temporary_staff_brief'] ?? null ) ? $signals['temporary_staff_brief'] : array();
         $approved_snapshot = is_array( $signals['approved_snapshot'] ?? null ) ? $signals['approved_snapshot'] : array();
@@ -68,16 +83,7 @@ final class TactiTwin_Fixture_Lifecycle_Service {
         $session_source_match_id = trim( (string) ( $signals['session_source_match_id'] ?? '' ) );
         $evidence_event_count = max( 0, (int) ( $signals['evidence_event_count'] ?? 0 ) );
 
-        $planning_state = 'not_available';
-        if ( $context_selected ) {
-            if ( $team_history > 0 && $opponent_history > 0 ) {
-                $planning_state = 'ready';
-            } elseif ( $team_history > 0 || $opponent_history > 0 ) {
-                $planning_state = 'partial';
-            } else {
-                $planning_state = 'missing';
-            }
-        }
+        $planning_state = self::planning_state( $context_selected, $team_history, $opponent_history );
 
         $approved = ! empty( $approved_snapshot );
         $match_plan_state = $approved
@@ -130,10 +136,18 @@ final class TactiTwin_Fixture_Lifecycle_Service {
             ),
             'planning_data' => array(
                 'state' => $planning_state,
-                'provenance' => 'database',
+                'provenance' => 'database_pre_match_scope',
                 'persistent' => true,
                 'team_history_matches' => $team_history,
                 'opponent_history_matches' => $opponent_history,
+                'team_eligible_matches' => $team_history,
+                'opponent_eligible_matches' => $opponent_history,
+                'effective_matches' => $effective_matches,
+                'limiting_side' => $limiting_side,
+                'minimum_ready_matches_per_side' => self::MIN_READY_MATCHES,
+                'team_sample' => is_array( $planning_readiness['team'] ?? null ) ? $planning_readiness['team'] : array(),
+                'opponent_sample' => is_array( $planning_readiness['opponent'] ?? null ) ? $planning_readiness['opponent'] : array(),
+                'temporal_scope' => is_array( $planning_readiness['temporal_scope'] ?? null ) ? $planning_readiness['temporal_scope'] : array(),
             ),
             'match_plan' => array(
                 'state' => $match_plan_state,
@@ -180,13 +194,52 @@ final class TactiTwin_Fixture_Lifecycle_Service {
             'stages' => $stages,
             'next_action' => self::next_action( $context_selected, $planning_state, $match_plan_state, $staff_brief_state, $session_state, $evidence_state, $review_state ),
             'method' => array(
-                'name' => 'fixture-lifecycle-v1.25',
+                'name' => 'fixture-lifecycle-v1.39',
                 'no_progress_score' => true,
                 'review_signoff_persisted' => true,
                 'temporary_outputs_explicit' => true,
                 'temporary_match_plan_fixture_bound' => false,
+                'planning_scope' => 'eligible-before-active-fixture',
+                'minimum_ready_matches_per_side' => self::MIN_READY_MATCHES,
+                'target_fixture_excluded_from_planning' => true,
+                'phase_precedence_for_next_action' => true,
             ),
         );
+    }
+
+    private static function fallback_readiness( int $team_matches, int $opponent_matches ): array {
+        return array(
+            'team_matches' => $team_matches,
+            'opponent_matches' => $opponent_matches,
+            'effective_matches' => min( $team_matches, $opponent_matches ),
+            'limiting_side' => self::limiting_side( $team_matches, $opponent_matches ),
+            'team' => array(),
+            'opponent' => array(),
+            'temporal_scope' => array(),
+        );
+    }
+
+    private static function limiting_side( int $team_matches, int $opponent_matches ): string {
+        if ( $team_matches < $opponent_matches ) {
+            return 'team';
+        }
+        if ( $opponent_matches < $team_matches ) {
+            return 'opponent';
+        }
+        return 'balanced';
+    }
+
+    private static function planning_state( bool $context_selected, int $team_matches, int $opponent_matches ): string {
+        if ( ! $context_selected ) {
+            return 'not_available';
+        }
+        if ( 0 === $team_matches && 0 === $opponent_matches ) {
+            return 'missing';
+        }
+        if ( $team_matches < self::MIN_READY_MATCHES || $opponent_matches < self::MIN_READY_MATCHES ) {
+            return 'partial';
+        }
+        return 'ready';
     }
 
     private static function next_action(
@@ -201,6 +254,23 @@ final class TactiTwin_Fixture_Lifecycle_Service {
         if ( ! $context_selected ) {
             return array( 'id' => 'select_match', 'page' => 'tactitwin' );
         }
+
+        // Once match-day/post-match artifacts exist they take precedence over
+        // pre-match readiness. Historical gaps must never send an active or
+        // completed fixture back to Data & Imports.
+        if ( 'active' === $session_state ) {
+            return array( 'id' => 'continue_live_session', 'page' => 'tactitwin-live-sessions' );
+        }
+        if ( 'closed' === $session_state ) {
+            if ( 'signed_off' === $review_state ) {
+                return array( 'id' => 'learn_from_match', 'page' => 'tactitwin-intervention-library' );
+            }
+            if ( 'available' !== $evidence_state ) {
+                return array( 'id' => 'prepare_evidence', 'page' => 'tactitwin-evidence-review' );
+            }
+            return array( 'id' => 'review_match', 'page' => 'tactitwin-session-review' );
+        }
+
         if ( in_array( $planning_state, array( 'missing', 'partial' ), true ) ) {
             return array( 'id' => 'prepare_data', 'page' => 'tactitwin-data' );
         }
@@ -213,46 +283,7 @@ final class TactiTwin_Fixture_Lifecycle_Service {
         if ( 'draft_temporary' === $staff_brief_state ) {
             return array( 'id' => 'approve_staff_brief', 'page' => 'tactitwin-staff-brief' );
         }
-        if ( 'not_started' === $session_state ) {
-            return array( 'id' => 'handoff_live_session', 'page' => 'tactitwin-staff-brief' );
-        }
-        if ( 'active' === $session_state ) {
-            return array( 'id' => 'continue_live_session', 'page' => 'tactitwin-live-sessions' );
-        }
-        if ( 'signed_off' === $review_state ) {
-            return array( 'id' => 'learn_from_match', 'page' => 'tactitwin-intervention-library' );
-        }
-        if ( 'available' !== $evidence_state ) {
-            return array( 'id' => 'prepare_evidence', 'page' => 'tactitwin-evidence-review' );
-        }
-        return array( 'id' => 'review_match', 'page' => 'tactitwin-session-review' );
-    }
-
-    private function planning_data_counts( array $fixture, string $team_id, string $opponent_id ): array {
-        global $wpdb;
-        $source = trim( (string) ( $fixture['source'] ?? '' ) );
-        if ( '' === $source ) {
-            return array( 'team_history_matches' => 0, 'opponent_history_matches' => 0 );
-        }
-        $events = TactiTwin_DB::table( 'events' );
-        $team_matches = (int) $wpdb->get_var(
-            $wpdb->prepare(
-                "SELECT COUNT(DISTINCT source_match_id) FROM {$events} WHERE source = %s AND team_source_id = %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-                $source,
-                $team_id
-            )
-        );
-        $opponent_matches = (int) $wpdb->get_var(
-            $wpdb->prepare(
-                "SELECT COUNT(DISTINCT source_match_id) FROM {$events} WHERE source = %s AND team_source_id = %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-                $source,
-                $opponent_id
-            )
-        );
-        return array(
-            'team_history_matches' => $team_matches,
-            'opponent_history_matches' => $opponent_matches,
-        );
+        return array( 'id' => 'handoff_live_session', 'page' => 'tactitwin-staff-brief' );
     }
 
     private function temporary_match_plan_for_matchup( int $user_id, string $team_id, string $opponent_id ): array {
