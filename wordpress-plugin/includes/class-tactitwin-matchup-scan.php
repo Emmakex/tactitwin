@@ -4,6 +4,10 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+if ( ! class_exists( 'TactiTwin_Evidence_Coverage' ) ) {
+    require_once __DIR__ . '/class-tactitwin-evidence-coverage.php';
+}
+
 final class TactiTwin_Matchup_Scan {
     public static function evaluate( array $team_profile, array $opponent_profile, string $language = 'en' ): array {
         $language = TactiTwin_I18n::normalize_language( $language );
@@ -23,10 +27,7 @@ final class TactiTwin_Matchup_Scan {
         $risk_scores        = array_map( static fn( array $scenario ): float => (float) ( $scenario['risk']['score'] ?? 0 ), $scenarios );
         $opportunity_scores = array_map( static fn( array $scenario ): float => (float) ( $scenario['opportunity']['score'] ?? 0 ), $scenarios );
         $top                = $scenarios[0];
-        $effective_matches  = min(
-            (int) ( $team_profile['coverage']['matches'] ?? 0 ),
-            (int) ( $opponent_profile['coverage']['matches'] ?? 0 )
-        );
+        $coverage           = TactiTwin_Evidence_Coverage::compose( $team_profile, $opponent_profile, $language );
 
         $ranking = array();
         $recommendations = array();
@@ -61,15 +62,7 @@ final class TactiTwin_Matchup_Scan {
             'language'      => $language,
             'team'          => $top['team'],
             'opponent'      => $top['opponent'],
-            'coverage'      => array(
-                'team_matches'      => (int) ( $team_profile['coverage']['matches'] ?? 0 ),
-                'opponent_matches'  => (int) ( $opponent_profile['coverage']['matches'] ?? 0 ),
-                'effective_matches' => $effective_matches,
-                'status'            => self::coverage_status( $effective_matches ),
-                'warning'           => $effective_matches < 3
-                    ? TactiTwin_I18n::t( 'coverage.full_scan_low', array(), $language )
-                    : null,
-            ),
+            'coverage'      => $coverage,
             'risk' => array(
                 'score'          => (float) $top['risk']['score'],
                 'level'          => (string) $top['risk']['level'],
@@ -90,19 +83,10 @@ final class TactiTwin_Matchup_Scan {
             'subscenarios'     => $scenarios,
             'method' => array(
                 'type' => 'scenario-orchestration',
+                'coverage_contract' => 'v1.35-per-side-auditable-samples',
                 'note' => TactiTwin_I18n::t( 'scenario.full_scan.method', array(), $language ),
             ),
         );
-    }
-
-    private static function coverage_status( int $matches ): string {
-        if ( $matches >= 5 ) {
-            return 'high';
-        }
-        if ( $matches >= 3 ) {
-            return 'medium';
-        }
-        return 'low';
     }
 
     private static function level( float $score ): string {
