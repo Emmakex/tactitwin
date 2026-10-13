@@ -10,12 +10,19 @@ if ( ! class_exists( 'TactiTwin_Admin_Navigation' ) ) {
 if ( ! class_exists( 'TactiTwin_Admin_Translations' ) ) {
     require_once __DIR__ . '/class-tactitwin-admin-translations.php';
 }
+if ( ! class_exists( 'TactiTwin_Pre_Match_Readiness' ) ) {
+    require_once __DIR__ . '/class-tactitwin-pre-match-readiness.php';
+}
+if ( ! class_exists( 'TactiTwin_Pre_Match_Readiness_Admin' ) ) {
+    require_once __DIR__ . '/class-tactitwin-pre-match-readiness-admin.php';
+}
 
 final class TactiTwin_Admin_Route {
     public static function register(): void {
         add_action( 'template_redirect', array( self::class, 'redirect_legacy_path' ), 1 );
         TactiTwin_Admin_Navigation::register();
         TactiTwin_Admin_Translations::register();
+        TactiTwin_Pre_Match_Readiness_Admin::register();
     }
 
     public static function canonical_url( string $slug ): string {
