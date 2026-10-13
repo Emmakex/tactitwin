@@ -7,11 +7,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 if ( ! class_exists( 'TactiTwin_Admin_Navigation' ) ) {
     require_once __DIR__ . '/class-tactitwin-admin-navigation.php';
 }
+if ( ! class_exists( 'TactiTwin_Admin_Translations' ) ) {
+    require_once __DIR__ . '/class-tactitwin-admin-translations.php';
+}
 
 final class TactiTwin_Admin_Route {
     public static function register(): void {
         add_action( 'template_redirect', array( self::class, 'redirect_legacy_path' ), 1 );
         TactiTwin_Admin_Navigation::register();
+        TactiTwin_Admin_Translations::register();
     }
 
     public static function canonical_url( string $slug ): string {
