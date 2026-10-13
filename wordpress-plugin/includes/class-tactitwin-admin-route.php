@@ -16,6 +16,9 @@ if ( ! class_exists( 'TactiTwin_Pre_Match_Readiness' ) ) {
 if ( ! class_exists( 'TactiTwin_Pre_Match_Readiness_Admin' ) ) {
     require_once __DIR__ . '/class-tactitwin-pre-match-readiness-admin.php';
 }
+if ( ! class_exists( 'TactiTwin_MVP_Readiness' ) ) {
+    require_once __DIR__ . '/class-tactitwin-mvp-readiness.php';
+}
 
 final class TactiTwin_Admin_Route {
     public static function register(): void {
@@ -23,6 +26,7 @@ final class TactiTwin_Admin_Route {
         TactiTwin_Admin_Navigation::register();
         TactiTwin_Admin_Translations::register();
         TactiTwin_Pre_Match_Readiness_Admin::register();
+        TactiTwin_MVP_Readiness::register();
     }
 
     public static function canonical_url( string $slug ): string {
