@@ -44,8 +44,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          VERSION="$(php -r '$s=file_get_contents("wordpress-plugin/tactitwin.php"); preg_match("/Version:\\s*([^\\r\\n]+)/", $s, $m); echo trim($m[1] ?? "");')"
-          SCHEMA="$(php -r '$s=file_get_contents("wordpress-plugin/includes/class-tactitwin-db.php"); preg_match("/SCHEMA_VERSION\\s*=\\s*['\''\"]([^'\''\"]+)/", $s, $m); echo trim($m[1] ?? "");')"
+          VERSION="$(sed -n 's/^[[:space:]]*\* Version:[[:space:]]*//p' wordpress-plugin/tactitwin.php | head -n1 | xargs)"
+          SCHEMA="$(sed -n "s/.*SCHEMA_VERSION = '\([^']*\)'.*/\1/p" wordpress-plugin/includes/class-tactitwin-db.php | head -n1)"
           if [ -z "$VERSION" ] || [ -z "$SCHEMA" ]; then
             echo "Could not resolve plugin/schema version" >&2
             exit 1
