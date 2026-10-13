@@ -39,30 +39,80 @@ jobs:
             php "$test_file"
           done
 
+      - name: Resolve release metadata
+        id: meta
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="$(sed -n 's/^[[:space:]]*\* Version:[[:space:]]*//p' wordpress-plugin/tactitwin.php | head -n1 | xargs)"
+          SCHEMA="$(sed -n "s/.*SCHEMA_VERSION = '\([^']*\)'.*/\1/p" wordpress-plugin/includes/class-tactitwin-db.php | head -n1)"
+          if [ -z "$VERSION" ] || [ -z "$SCHEMA" ]; then
+            echo "Could not resolve plugin/schema version" >&2
+            exit 1
+          fi
+          if [[ "$VERSION" == *dev* ]]; then
+            echo "Test Candidate cannot be packaged with a -dev plugin version: $VERSION" >&2
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "schema=$SCHEMA" >> "$GITHUB_OUTPUT"
+
       - name: Build installable WordPress ZIP
         shell: bash
+        env:
+          TACTITWIN_VERSION: ${{ steps.meta.outputs.version }}
+          TACTITWIN_SCHEMA: ${{ steps.meta.outputs.schema }}
         run: |
           set -euo pipefail
           rm -rf build
           mkdir -p build/tactitwin
           cp -R wordpress-plugin/. build/tactitwin/
+          BUILT_AT="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
           printf '%s\n' \
-            'TactiTwin Test Candidate' \
+            'TactiTwin MVP Release Candidate' \
+            "Version: ${TACTITWIN_VERSION}" \
+            "Schema: ${TACTITWIN_SCHEMA}" \
             "Commit: ${GITHUB_SHA}" \
-            "Built: $(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+            "Built: ${BUILT_AT}" \
             > build/tactitwin/TEST-CANDIDATE.txt
+          cat > build/tactitwin/BUILD-MANIFEST.json <<EOF
+          {
+            "name": "TactiTwin",
+            "release_stage": "mvp-release-candidate",
+            "plugin_version": "${TACTITWIN_VERSION}",
+            "schema_version": "${TACTITWIN_SCHEMA}",
+            "commit": "${GITHUB_SHA}",
+            "built_at": "${BUILT_AT}",
+            "minimum_php": "8.1"
+          }
+          EOF
           cd build
           zip -qr tactitwin-test-candidate.zip tactitwin
           sha256sum tactitwin-test-candidate.zip > SHA256SUMS.txt
+          ZIP_SHA="$(cut -d' ' -f1 SHA256SUMS.txt)"
+          cat > release-manifest.json <<EOF
+          {
+            "name": "TactiTwin",
+            "release_stage": "mvp-release-candidate",
+            "plugin_version": "${TACTITWIN_VERSION}",
+            "schema_version": "${TACTITWIN_SCHEMA}",
+            "commit": "${GITHUB_SHA}",
+            "built_at": "${BUILT_AT}",
+            "minimum_php": "8.1",
+            "zip_sha256": "${ZIP_SHA}"
+          }
+          EOF
           unzip -l tactitwin-test-candidate.zip | grep -q 'tactitwin/tactitwin.php'
           unzip -l tactitwin-test-candidate.zip | grep -q 'tactitwin/includes/'
+          unzip -l tactitwin-test-candidate.zip | grep -q 'tactitwin/BUILD-MANIFEST.json'
 
       - name: Upload Test Candidate
         uses: actions/upload-artifact@v4
         with:
-          name: tactitwin-test-candidate-${{ github.sha }}
+          name: tactitwin-test-candidate-${{ steps.meta.outputs.version }}-${{ github.sha }}
           path: |
             build/tactitwin-test-candidate.zip
             build/SHA256SUMS.txt
+            build/release-manifest.json
           if-no-files-found: error
           retention-days: 14
