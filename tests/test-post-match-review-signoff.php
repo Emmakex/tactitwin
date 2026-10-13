@@ -155,7 +155,7 @@ tt_v125_assert( 'signed_off' === $lifecycle['stages']['post_match_review']['stat
 tt_v125_assert( true === $lifecycle['stages']['post_match_review']['persistent'], 'signed review is persistent lifecycle evidence' );
 tt_v125_assert( 'post_match_review_snapshot' === $lifecycle['stages']['post_match_review']['provenance'], 'lifecycle exposes signed snapshot provenance' );
 tt_v125_assert( 'learn_from_match' === $lifecycle['next_action']['id'], 'signed review advances next action to historical learning' );
-tt_v125_assert( 'fixture-lifecycle-v1.25' === $lifecycle['method']['name'], 'lifecycle method version advances to v1.25' );
+tt_v125_assert( true === ( $lifecycle['method']['review_signoff_persisted'] ?? false ), 'lifecycle preserves persistent post-match sign-off support' );
 
 tt_v125_assert( '0.5.0' === TactiTwin_DB::SCHEMA_VERSION, 'v1.25 advances schema to 0.5.0' );
 
