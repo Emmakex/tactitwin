@@ -4,9 +4,14 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+if ( ! class_exists( 'TactiTwin_Admin_Navigation' ) ) {
+    require_once __DIR__ . '/class-tactitwin-admin-navigation.php';
+}
+
 final class TactiTwin_Admin_Route {
     public static function register(): void {
         add_action( 'template_redirect', array( self::class, 'redirect_legacy_path' ), 1 );
+        TactiTwin_Admin_Navigation::register();
     }
 
     public static function canonical_url( string $slug ): string {
