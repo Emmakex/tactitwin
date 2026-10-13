@@ -7,9 +7,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 if ( ! class_exists( 'TactiTwin_Evidence_Coverage' ) ) {
     require_once __DIR__ . '/class-tactitwin-evidence-coverage.php';
 }
-if ( function_exists( 'is_admin' ) && is_admin() && ! class_exists( 'TactiTwin_Evidence_Coverage_Admin_Bridge' ) ) {
-    require_once __DIR__ . '/class-tactitwin-evidence-coverage-admin-bridge.php';
-    TactiTwin_Evidence_Coverage_Admin_Bridge::register();
+if ( function_exists( 'is_admin' ) && is_admin() ) {
+    if ( ! class_exists( 'TactiTwin_Evidence_Coverage_Transient_Bridge' ) ) {
+        require_once __DIR__ . '/class-tactitwin-evidence-coverage-transient-bridge.php';
+        TactiTwin_Evidence_Coverage_Transient_Bridge::register();
+    }
+    if ( ! class_exists( 'TactiTwin_Evidence_Coverage_Admin_Bridge' ) ) {
+        require_once __DIR__ . '/class-tactitwin-evidence-coverage-admin-bridge.php';
+        TactiTwin_Evidence_Coverage_Admin_Bridge::register();
+    }
 }
 
 final class TactiTwin_Matchup_Scan {
