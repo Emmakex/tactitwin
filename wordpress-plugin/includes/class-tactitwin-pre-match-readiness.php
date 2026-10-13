@@ -80,7 +80,7 @@ final class TactiTwin_Pre_Match_Readiness {
             $args[] = $excluded;
         }
 
-        $sql = "SELECT DISTINCT m.source_match_id, m.match_date
+        $sql = "SELECT m.source_match_id, m.match_date
                  FROM {$matches} m
                  {$where}
                  ORDER BY m.match_date DESC, m.id DESC"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
