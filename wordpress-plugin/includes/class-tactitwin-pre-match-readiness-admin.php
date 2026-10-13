@@ -101,16 +101,15 @@ final class TactiTwin_Pre_Match_Readiness_Admin {
         (function () {
             var template = document.getElementById('tt-v138-readiness-template');
             if (!template) return;
-            var lifecycle = document.querySelector('.tt-fixture-lifecycle');
-            var contextForm = document.querySelector('form input[name="action"][value="tactitwin_set_match_workspace_context"]');
+            var wrap = document.querySelector('.wrap');
+            var lifecycle = wrap ? wrap.querySelector('.tt-fixture-lifecycle') : null;
+            var contextForm = wrap ? wrap.querySelector('form input[name="action"][value="tactitwin_set_match_workspace_context"]') : null;
             var form = contextForm ? contextForm.closest('form') : null;
-            if (!document.querySelector('.tt-v138-readiness')) {
+            if (wrap && !wrap.querySelector('.tt-v138-readiness')) {
                 if (lifecycle) lifecycle.insertAdjacentHTML('beforebegin', template.innerHTML);
                 else if (form) form.insertAdjacentHTML('afterend', template.innerHTML);
             }
 
-            // Correct the legacy lifecycle planning-data text with the eligible
-            // pre-match sample, while keeping lifecycle artifact semantics intact.
             if (lifecycle) {
                 var articles = lifecycle.querySelectorAll('article');
                 if (articles.length > 1) {
@@ -122,10 +121,8 @@ final class TactiTwin_Pre_Match_Readiness_Admin {
                 }
             }
 
-            // Twin Lab is now a first-class Workspace step. Add it only when an
-            // older Workspace renderer did not include the card yet.
-            var existingTwin = document.querySelector('a[href*="page=tactitwin-twin-lab"]');
-            var matchPlan = document.querySelector('a[href*="page=tactitwin-match-plan"]');
+            var existingTwin = wrap ? wrap.querySelector('a[href*="page=tactitwin-twin-lab"]') : null;
+            var matchPlan = wrap ? wrap.querySelector('a[href*="page=tactitwin-match-plan"]') : null;
             if (!existingTwin && matchPlan) {
                 var card = matchPlan.cloneNode(true);
                 card.href = <?php echo wp_json_encode( admin_url( 'admin.php?page=tactitwin-twin-lab' ) ); ?>;
