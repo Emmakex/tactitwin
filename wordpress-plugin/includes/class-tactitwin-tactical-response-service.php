@@ -19,6 +19,11 @@ final class TactiTwin_Tactical_Response_Service {
             $language
         );
 
-        return TactiTwin_Tactical_Response_Matrix::compose( $scan, $language );
+        $matrix = TactiTwin_Tactical_Response_Matrix::compose( $scan, $language );
+        if ( ! empty( $scan['coverage'] ) ) {
+            $matrix['coverage'] = $scan['coverage'];
+            $matrix['method']['coverage_transparency'] = 'v1.35-per-side-auditable-samples';
+        }
+        return $matrix;
     }
 }

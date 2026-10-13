@@ -22,6 +22,10 @@ final class TactiTwin_Tactical_Twin_Lab {
         }
 
         $matrix = TactiTwin_Tactical_Response_Matrix::compose( $scan, $language );
+        if ( ! empty( $scan['coverage'] ) ) {
+            $matrix['coverage'] = $scan['coverage'];
+            $matrix['method']['coverage_transparency'] = 'v1.35-per-side-auditable-samples';
+        }
         $tree   = TactiTwin_Match_State_Scenario_Tree::compose(
             $team_profile,
             $opponent_profile,
@@ -39,7 +43,7 @@ final class TactiTwin_Tactical_Twin_Lab {
             'language' => $language,
             'team'     => $matrix['team'] ?? array(),
             'opponent' => $matrix['opponent'] ?? array(),
-            'coverage' => $matrix['coverage'] ?? array(),
+            'coverage' => $scan['coverage'] ?? $matrix['coverage'] ?? array(),
             'preparation_summary' => array(
                 'top_response_id' => (string) ( $matrix['top_response_id'] ?? '' ),
                 'top_response_name' => (string) ( $matrix['responses'][0]['response_name'] ?? '' ),
@@ -70,6 +74,7 @@ final class TactiTwin_Tactical_Twin_Lab {
                 'changes_branch_outputs' => false,
                 'predicts_outcome' => false,
                 'activates_plan' => false,
+                'coverage_transparency' => 'v1.35-per-side-auditable-samples',
                 'note' => self::text( 'method', $language ),
             ),
         );
